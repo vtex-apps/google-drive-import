@@ -9,5 +9,7 @@ namespace DriveImport.Services
         Task<string> GetGoogleAuthorizationUrl();
         Task<bool> ProcessReturn(string code);
         Task SaveCredentials(Credentials credentials);
+
+        Task<string> ListFiles();
     }
 }

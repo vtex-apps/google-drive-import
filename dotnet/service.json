@@ -23,6 +23,10 @@
     "processReturnUrl": {
       "path": "/google-drive-import/return",
       "public": true
+    },
+    "listFiles": {
+      "path": "/google-drive-import/list-files",
+      "public": true
     }
   },
   "events": {

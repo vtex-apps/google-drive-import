@@ -93,6 +93,13 @@
             }
         }
 
+        public async Task<string> ListFiles()
+        {
+            Console.WriteLine("ListFiles.........");
+            Response.Headers.Add("Cache-Control", "no-cache");
+            return await _googleDriveService.ListFiles();
+        }
+
         public string PrintHeaders()
         {
             string headers = "--->>> Headers <<<---\n";

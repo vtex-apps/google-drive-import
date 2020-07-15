@@ -124,7 +124,7 @@
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
-            //Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
+            Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {

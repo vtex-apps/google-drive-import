@@ -59,7 +59,7 @@ namespace DriveImport.Services
             postData.Append("client_id=" + HttpUtility.UrlEncode(credentials.Web.ClientId) + "&");
             postData.Append("client_secret=" + HttpUtility.UrlEncode(credentials.Web.ClientSecret) + "&");
             postData.Append("grant_type=" + HttpUtility.UrlEncode(DriveImportConstants.GRANT_TYPE) + "&");
-            postData.Append("redirect_uri=" + HttpUtility.UrlEncode($"{DriveImportConstants.REDIRECT_SITE_BASE}{DriveImportConstants.REDIRECT_PATH}") + "&");
+            postData.Append("redirect_uri=" + HttpUtility.UrlEncode($"{DriveImportConstants.REDIRECT_SITE_BASE}/{DriveImportConstants.APP_NAME}/{DriveImportConstants.REDIRECT_PATH}/") + "&");
             postData.Append("to=");
 
             var request = new HttpRequestMessage
@@ -79,6 +79,7 @@ namespace DriveImport.Services
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Token = {responseContent}");
             if (response.IsSuccessStatusCode)
             {
                 tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
@@ -97,6 +98,44 @@ namespace DriveImport.Services
         public async Task SaveCredentials(Credentials credentials)
         {
             await _driveImportRepository.SaveCredentials(credentials);
+        }
+
+        public async Task<string> ListFiles()
+        {
+            string responseContent = string.Empty;
+            Token token = await _driveImportRepository.LoadToken();
+            if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}"),
+                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                };
+
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                responseContent = await response.Content.ReadAsStringAsync();
+
+                if(response.IsSuccessStatusCode)
+                {
+                    ListFilesResponse listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Token error.");
+            }
+
+            return responseContent;
         }
     }
 }

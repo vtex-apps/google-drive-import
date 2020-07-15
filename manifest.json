@@ -9,7 +9,9 @@
   "dependencies": {
     "vtex.styleguide": "9.x"
   },
-  "registries": ["smartcheckout"],
+  "registries": [
+    "smartcheckout"
+  ],
   "builders": {
     "dotnet": "2.x",
     "admin": "0.x",
@@ -65,7 +67,7 @@
         "path": "/o/oauth2/auth/*"
       }
     },
-	{
+    {
       "name": "outbound-access",
       "attrs": {
         "host": "oauth2.googleapis.com",

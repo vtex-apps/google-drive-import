@@ -39,6 +39,9 @@ namespace DriveImport.Data
         public const string REDIRECT_SITE_BASE = "https://brian--sandboxusdev.myvtex.com";
         public const string REDIRECT_PATH = "return";
 
+        public const string GOOGLE_DRIVE_URL = "https://www.googleapis.com/drive/v3";
+        public const string GOOGLE_DRIVE_FILES = "files";
+
         public const string GRANT_TYPE = "authorization_code";
 
         public const string DATA_ENTITY = "DriveImport";
