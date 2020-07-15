@@ -1,0 +1,10 @@
+{
+  "section": "products",
+  "subSection": "catalog",
+  "subSectionItems": [
+    {
+      "labelId": "admin/google-drive-import.title",
+      "path": "/admin/google-drive-import/"
+    }
+  ]
+}

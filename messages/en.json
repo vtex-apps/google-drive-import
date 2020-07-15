@@ -1,0 +1,6 @@
+{
+  "admin/google-drive-import.title": "Google Drive Import",
+  "admin/google-drive-import.setup.title": "Setup",
+  "admin/google-drive-import.setup.description": "Please click the button below to grant this app access to your Google Drive.",
+  "admin/google-drive-import.setup.button": "Grant Access"
+}
