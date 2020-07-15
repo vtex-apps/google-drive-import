@@ -1,0 +1,9 @@
+{
+  "admin.app.google-drive-import": {
+    "around": ["layout"],
+    "path": "/admin/app/google-drive-import/"
+  },
+  "layout": {
+    "component": "Admin"
+  }
+}
