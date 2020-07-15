@@ -5,19 +5,23 @@
   ],
   "routes": {
     "printHeaders": {
-      "path": "/drive-test/print-headers",
+      "path": "/google-drive-import/print-headers",
       "public": true
     },
-    "DriveImport": {
-      "path": "/drive-test/test",
+    "driveImport": {
+      "path": "/google-drive-import/test",
       "public": true
     },
-    "authTest": {
-      "path": "/drive-test/auth",
+    "saveCredentials": {
+      "path": "/google-drive-import/set-creds",
       "public": true
     },
-    "parseReturnUrl": {
-      "path": "/drive-test/return",
+    "googleAuthorize": {
+      "path": "/google-drive-import/auth",
+      "public": true
+    },
+    "processReturnUrl": {
+      "path": "/google-drive-import/return",
       "public": true
     }
   },

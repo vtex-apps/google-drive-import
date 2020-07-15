@@ -37,6 +37,7 @@
 
         public async Task<Credentials> GetCredentials()
         {
+            Console.WriteLine("-> GetCredentials <-");
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
@@ -54,6 +55,8 @@
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
 
+            //Console.WriteLine(responseContent);
+
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
@@ -68,12 +71,17 @@
 
         public async Task SaveCredentials(Credentials credentials)
         {
+            Console.WriteLine("-> SaveCredentials <-");
             if (credentials == null)
             {
+                Console.WriteLine("-> Credentials Null!!! <-");
                 credentials = new Credentials();
             }
 
             var jsonSerializedCredentials = JsonConvert.SerializeObject(credentials);
+
+            //Console.WriteLine(jsonSerializedCredentials);
+
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Put,
@@ -90,6 +98,9 @@
 
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
+
+            //string responseContent = await response.Content.ReadAsStringAsync();
+            //Console.WriteLine(responseContent);
 
             response.EnsureSuccessStatusCode();
         }

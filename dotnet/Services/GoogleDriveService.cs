@@ -10,7 +10,7 @@ using System.Web;
 
 namespace DriveImport.Services
 {
-    public class GoogleDriveService
+    public class GoogleDriveService : IGoogleDriveService
     {
         private readonly IVtexEnvironmentVariableProvider _environmentVariableProvider;
         private readonly IDriveImportRepository _driveImportRepository;
@@ -38,20 +38,24 @@ namespace DriveImport.Services
 
         public async Task<string> GetGoogleAuthorizationUrl()
         {
+            string authUrl = string.Empty;
             Credentials credentials = await _driveImportRepository.GetCredentials();
-            string redirectUri = $"{DriveImportConstants.REDIRECT_SITE_BASE}{DriveImportConstants.REDIRECT_PATH}";
-            string clientId = credentials.Web.ClientId;
-            string authUrl = $"{DriveImportConstants.GOOGLE_AUTHORIZATION_URL}?scope={DriveImportConstants.GOOGLE_SCOPE}&response_type={DriveImportConstants.GOOGLE_REPONSE_TYPE}&access_type={DriveImportConstants.GOOGLE_ACCESS_TYPE}&redirect_uri={redirectUri}&client_id={clientId}";
+            if (credentials != null && !string.IsNullOrEmpty(credentials.Web.ClientId))
+            {
+                string redirectUri = $"{DriveImportConstants.REDIRECT_SITE_BASE}/{DriveImportConstants.APP_NAME}/{DriveImportConstants.REDIRECT_PATH}/";
+                string clientId = credentials.Web.ClientId;
+                authUrl = $"{credentials.Web.AuthUri}?scope={DriveImportConstants.GOOGLE_SCOPE}&response_type={DriveImportConstants.GOOGLE_REPONSE_TYPE}&access_type={DriveImportConstants.GOOGLE_ACCESS_TYPE}&redirect_uri={redirectUri}&client_id={clientId}";
+            }
 
             return authUrl;
         }
 
-        public async Task<Token> GetGoogleAuthorizationToken()
+        public async Task<Token> GetGoogleAuthorizationToken(string code)
         {
             Token tokenObj = new Token();
             Credentials credentials = await _driveImportRepository.GetCredentials();
             StringBuilder postData = new StringBuilder();
-            postData.Append("code=" + HttpUtility.UrlEncode(_httpContextAccessor.HttpContext.Request.Query["code"]) + "&");
+            postData.Append("code=" + HttpUtility.UrlEncode(code) + "&");
             postData.Append("client_id=" + HttpUtility.UrlEncode(credentials.Web.ClientId) + "&");
             postData.Append("client_secret=" + HttpUtility.UrlEncode(credentials.Web.ClientSecret) + "&");
             postData.Append("grant_type=" + HttpUtility.UrlEncode(DriveImportConstants.GRANT_TYPE) + "&");
@@ -61,7 +65,7 @@ namespace DriveImport.Services
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri(DriveImportConstants.GOOGLE_TOKEN_URL),
+                RequestUri = credentials.Web.TokenUri,
                 Content = new StringContent(postData.ToString(), Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
             };
 
@@ -81,6 +85,18 @@ namespace DriveImport.Services
             }
 
             return tokenObj;
+        }
+
+        public async Task<bool> ProcessReturn(string code)
+        {
+            Token token = await this.GetGoogleAuthorizationToken(code);
+            bool saved = await _driveImportRepository.SaveToken(token);
+            return saved;
+        }
+
+        public async Task SaveCredentials(Credentials credentials)
+        {
+            await _driveImportRepository.SaveCredentials(credentials);
         }
     }
 }

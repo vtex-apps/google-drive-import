@@ -1,9 +1,9 @@
 {
-  "name": "drive-test",
+  "name": "google-drive-import",
   "vendor": "vtex",
   "version": "0.0.1",
-  "title": "drive-test",
-  "description": "drive-test",
+  "title": "Google Drive Import",
+  "description": "Import files from Google Drive",
   "categories": [],
   "settingsSchema": {},
   "registries": [
@@ -51,6 +51,13 @@
       "attrs": {
         "host": "accounts.google.com",
         "path": "/o/oauth2/auth/*"
+      }
+    },
+	{
+      "name": "outbound-access",
+      "attrs": {
+        "host": "oauth2.googleapis.com",
+        "path": "/token/*"
       }
     },
     {

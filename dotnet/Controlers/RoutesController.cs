@@ -2,6 +2,7 @@
 {
     using DriveImport.Data;
     using DriveImport.Models;
+    using DriveImport.Services;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.TagHelpers;
@@ -21,12 +22,14 @@
         private readonly IIOServiceContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHttpClientFactory _clientFactory;
+        private readonly IGoogleDriveService _googleDriveService;
 
-        public RoutesController(IIOServiceContext context, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory)
+        public RoutesController(IIOServiceContext context, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory, IGoogleDriveService googleDriveService)
         {
             this._context = context ?? throw new ArgumentNullException(nameof(context));
             this._httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             this._clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
+            this._googleDriveService = googleDriveService ?? throw new ArgumentNullException(nameof(googleDriveService));
         }
 
         public async Task<IActionResult> DriveImport()
@@ -53,21 +56,41 @@
             return Json("");
         }
 
-        public async Task<IActionResult> ParseReturnUrl()
+        public async Task<IActionResult> ProcessReturnUrl()
         {
-            //foreach(string key in _httpContextAccessor.HttpContext.Request.Query.Keys)
-            //{
-            //    Console.WriteLine($"{key} = {_httpContextAccessor.HttpContext.Request.Query[key]}");
-            //}
+            bool success = false;
+            string code = _httpContextAccessor.HttpContext.Request.Query["code"];
+            if (!string.IsNullOrEmpty(code))
+            {
+                success = await _googleDriveService.ProcessReturn(code);
+            }
 
-            return Json("");
+            return Json(success);
         }
 
         public async Task<IActionResult> GoogleAuthorize()
         {
-            string url = "";
-            
-            return Redirect(url);
+            string url = await _googleDriveService.GetGoogleAuthorizationUrl();
+            if (string.IsNullOrEmpty(url))
+            {
+                return BadRequest();
+            }
+            else
+            {
+                return Redirect(url);
+            }
+        }
+
+        public async Task SaveCredentials()
+        {
+            if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
+            {
+                string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+                Console.WriteLine($"[Credentials] : '{bodyAsText}'");
+                Credentials credentials = JsonConvert.DeserializeObject<Credentials>(bodyAsText);
+
+                await _googleDriveService.SaveCredentials(credentials);
+            }
         }
 
         public string PrintHeaders()

@@ -22,7 +22,7 @@ namespace DriveImport.Data
         public const string LOCAL_ENVIRONMENT = "myvtex";
         public const string VTEX_ID_HEADER_NAME = "VtexIdclientAutCookie";
         public const string HEADER_VTEX_WORKSPACE = "X-Vtex-Workspace";
-        public const string APP_SETTINGS = "vtex.curbside-pickup";
+        public const string APP_SETTINGS = "vtex.google-drive-import";
         public const string ACCEPT = "Accept";
         public const string CONTENT_TYPE = "Content-Type";
         public const string HTTP_FORWARDED_HEADER = "HTTP_X_FORWARDED_FOR";
@@ -37,7 +37,7 @@ namespace DriveImport.Data
         public const string GOOGLE_REPONSE_TYPE = "code";
         public const string GOOGLE_ACCESS_TYPE = "offline";
         public const string REDIRECT_SITE_BASE = "https://brian--sandboxusdev.myvtex.com";
-        public const string REDIRECT_PATH = "/drive-test/return/";
+        public const string REDIRECT_PATH = "return";
 
         public const string GRANT_TYPE = "authorization_code";
 
