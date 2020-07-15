@@ -1,0 +1,30 @@
+{
+  "stack": "dotnet",
+  "memory": 256,
+  "runtimeArgs": [
+  ],
+  "routes": {
+    "printHeaders": {
+      "path": "/drive-test/print-headers",
+      "public": true
+    },
+    "DriveImport": {
+      "path": "/drive-test/test",
+      "public": true
+    },
+    "authTest": {
+      "path": "/drive-test/auth",
+      "public": true
+    },
+    "parseReturnUrl": {
+      "path": "/drive-test/return",
+      "public": true
+    }
+  },
+  "events": {
+    "onAppsLinked": {
+      "sender": "apps",
+      "keys": ["linked"]
+    }
+  }
+}
