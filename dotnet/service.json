@@ -27,6 +27,10 @@
     "listFiles": {
       "path": "/google-drive-import/list-files",
       "public": true
+    },
+    "listImages": {
+      "path": "/google-drive-import/list-images",
+      "public": true
     }
   },
   "events": {

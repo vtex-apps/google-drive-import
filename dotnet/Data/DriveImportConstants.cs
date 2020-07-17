@@ -42,9 +42,17 @@ namespace DriveImport.Data
         public const string GOOGLE_DRIVE_URL = "https://www.googleapis.com/drive/v3";
         public const string GOOGLE_DRIVE_FILES = "files";
 
-        public const string GRANT_TYPE = "authorization_code";
+        public const string GRANT_TYPE_AUTH = "authorization_code";
+        public const string GRANT_TYPE_REFRESH = "refresh_token";
 
         public const string DATA_ENTITY = "DriveImport";
         public const string SCHEMA = "DriveImport";
+
+        public class FolderNames
+        {
+            public const string NEW = "New";
+            public const string ERROR = "Error";
+            public const string DONE = "Done";
+        }
     }
 }

@@ -21,5 +21,7 @@ namespace DriveImport.Models
 
         [JsonProperty("token_type")]
         public string TokenType { get; set; }
+
+        public DateTime ExpiresAt { get; set; }
     }
 }

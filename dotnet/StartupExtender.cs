@@ -20,6 +20,7 @@ namespace Vtex
             services.AddSingleton<IVtexEnvironmentVariableProvider, VtexEnvironmentVariableProvider>();
             services.AddSingleton<IDriveImportRepository, DriveImportRepository>();
             services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
+            services.AddSingleton<IVtexAPIService, VtexAPIService>();
             services.AddHttpContextAccessor();
             services.AddHttpClient();
         }

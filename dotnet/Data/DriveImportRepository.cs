@@ -37,7 +37,7 @@
 
         public async Task<Credentials> GetCredentials()
         {
-            Console.WriteLine("-> GetCredentials <-");
+            //Console.WriteLine("-> GetCredentials <-");
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
@@ -71,7 +71,7 @@
 
         public async Task SaveCredentials(Credentials credentials)
         {
-            Console.WriteLine("-> SaveCredentials <-");
+            //Console.WriteLine("-> SaveCredentials <-");
             if (credentials == null)
             {
                 Console.WriteLine("-> Credentials Null!!! <-");
@@ -107,7 +107,7 @@
 
         public async Task<Token> LoadToken()
         {
-            Console.WriteLine("-> LoadToken <-");
+            //Console.WriteLine("-> LoadToken <-");
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
@@ -124,7 +124,7 @@
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
+            //Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -141,7 +141,7 @@
 
         public async Task<bool> SaveToken(Token token)
         {
-            Console.WriteLine("-> SaveToken <-");
+            //Console.WriteLine("-> SaveToken <-");
             var jsonSerializedToken = JsonConvert.SerializeObject(token);
             var request = new HttpRequestMessage
             {
