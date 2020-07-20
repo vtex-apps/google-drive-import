@@ -42,11 +42,12 @@ namespace DriveImport.Services
         {
             string authUrl = string.Empty;
             Credentials credentials = await _driveImportRepository.GetCredentials();
+            string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
             if (credentials != null && !string.IsNullOrEmpty(credentials.Web.ClientId))
             {
                 string redirectUri = $"{DriveImportConstants.REDIRECT_SITE_BASE}/{DriveImportConstants.APP_NAME}/{DriveImportConstants.REDIRECT_PATH}/";
                 string clientId = credentials.Web.ClientId;
-                authUrl = $"{credentials.Web.AuthUri}?scope={DriveImportConstants.GOOGLE_SCOPE}&response_type={DriveImportConstants.GOOGLE_REPONSE_TYPE}&access_type={DriveImportConstants.GOOGLE_ACCESS_TYPE}&redirect_uri={redirectUri}&client_id={clientId}";
+                authUrl = $"{credentials.Web.AuthUri}?scope={DriveImportConstants.GOOGLE_SCOPE}&response_type={DriveImportConstants.GOOGLE_REPONSE_TYPE}&access_type={DriveImportConstants.GOOGLE_ACCESS_TYPE}&redirect_uri={redirectUri}&client_id={clientId}&state={siteUrl}";
             }
 
             return authUrl;
@@ -395,17 +396,21 @@ namespace DriveImport.Services
                 Token token = await this.GetGoogleToken();
                 if (token != null && !string.IsNullOrEmpty(token.AccessToken))
                 {
-                    List<string> parents = new List<string> { folderId };
+                    //List<string> parents = new List<string> { folderId };
                     dynamic metadata = new JObject();
-                    metadata.parents = JToken.FromObject(parents);
+                    //metadata.parents = JToken.FromObject(parents);
+                    metadata.id = folderId;
+
                     var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
 
                     Console.WriteLine(jsonSerializedMetadata);
 
+                    //string query = $"addParents '{folderId}' and removeParents 'root'";
+
                     var request = new HttpRequestMessage
                     {
-                        Method = HttpMethod.Patch,
-                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}/{fileId}"),
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL_V2}/{DriveImportConstants.GOOGLE_DRIVE_FILES}/{fileId}/parents?enforceSingleParent=true"), // fields=*&q={query}
                         Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                     };
 

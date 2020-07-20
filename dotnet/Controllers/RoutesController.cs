@@ -59,8 +59,30 @@
 
         public async Task<IActionResult> ProcessReturnUrl()
         {
+            Console.WriteLine("ProcessReturnUrl");
+            foreach (string key in _httpContextAccessor.HttpContext.Request.Query.Keys)
+            {
+                Console.WriteLine($"-]|[- {key} = {_httpContextAccessor.HttpContext.Request.Query[key]}");
+            }
+
+            string code = _httpContextAccessor.HttpContext.Request.Query["code"];
+            string siteUrl = _httpContextAccessor.HttpContext.Request.Query["state"];
+            if (string.IsNullOrEmpty(siteUrl))
+            {
+                return BadRequest();
+            }
+            else
+            {
+                string redirectUri = $"https://{siteUrl}/{DriveImportConstants.APP_NAME}/{DriveImportConstants.REDIRECT_PATH}-code/?code={code}";
+                return Redirect(redirectUri);
+            }
+        }
+
+        public async Task<IActionResult> ProcessReturnCode()
+        {
             bool success = false;
-            foreach(string key in _httpContextAccessor.HttpContext.Request.Query.Keys)
+            Console.WriteLine("ProcessReturnCode");
+            foreach (string key in _httpContextAccessor.HttpContext.Request.Query.Keys)
             {
                 Console.WriteLine($"-]|[- {key} = {_httpContextAccessor.HttpContext.Request.Query[key]}");
             }

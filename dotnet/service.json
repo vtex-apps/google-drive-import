@@ -24,6 +24,10 @@
       "path": "/google-drive-import/return",
       "public": true
     },
+    "processReturnCode": {
+      "path": "/google-drive-import/return-code",
+      "public": true
+    },
     "listFiles": {
       "path": "/google-drive-import/list-files",
       "public": true

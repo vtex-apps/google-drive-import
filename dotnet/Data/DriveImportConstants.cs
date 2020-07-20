@@ -40,6 +40,7 @@ namespace DriveImport.Data
         public const string REDIRECT_PATH = "return";
 
         public const string GOOGLE_DRIVE_URL = "https://www.googleapis.com/drive/v3";
+        public const string GOOGLE_DRIVE_URL_V2 = "https://www.googleapis.com/drive/v2";
         public const string GOOGLE_DRIVE_FILES = "files";
 
         public const string GRANT_TYPE_AUTH = "authorization_code";
