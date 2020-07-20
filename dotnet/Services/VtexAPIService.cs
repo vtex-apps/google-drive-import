@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,6 +36,7 @@ namespace DriveImport.Services
 
         public async Task<bool> UpdateSkuImage(string skuId, string imageName, string imageLabel, bool isMain, string imageUrl)
         {
+            Console.WriteLine($"UpdateSkuImage '{skuId}' {imageName}");
 
             //POST https://{{accountName}}.vtexcommercestable.com.br/api/catalog/pvt/stockkeepingunit/{{skuId}}/file
             //    {
@@ -221,6 +224,68 @@ namespace DriveImport.Services
             }
 
             return skuIds;
+        }
+
+        public async Task<bool> ProcessImageFile(string fileName, string webLink)
+        {
+            bool success = false;
+            string identificatorType = string.Empty;
+            string id = string.Empty;
+            string imageName = string.Empty;
+            string imageLabel = string.Empty;
+            bool isMain = false;
+
+            // IdentificatorType, Id, ImageName, ImageLabel, Main
+            string[] fileNameArr = fileName.Split('.');
+            if(fileNameArr.Count() == 2 && !string.IsNullOrEmpty(fileNameArr[0]))
+            {
+                string[] fileNameParsed = fileNameArr[0].Split(',');
+                if ((fileNameParsed.Count() == 5 || fileNameParsed.Count() == 4))
+                {
+                    identificatorType = fileNameParsed[0];
+                    id = fileNameParsed[1];
+                    imageName = fileNameParsed[2];
+                    imageLabel = fileNameParsed[3];
+                    if (fileNameParsed.Count() == 5)
+                    {
+                        isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
+                    }
+
+                    Console.WriteLine($"ProcessImageFile {identificatorType} {id} Main?{isMain}");
+
+                    switch(identificatorType)
+                    {
+                        case DriveImportConstants.IdentificatorType.SKU_ID:
+                            success = await this.UpdateSkuImage(id, imageName, imageLabel, isMain, webLink);
+                            break;
+                        case DriveImportConstants.IdentificatorType.SKU_REF_ID:
+                            string skuId = await this.GetSkuIdFromReference(id);
+                            success = await this.UpdateSkuImage(skuId, imageName, imageLabel, isMain, webLink);
+                            break;
+                        case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
+                            string prodId = await this.GetProductIdFromReference(id);
+                            List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
+                            success = true;
+                            foreach(string prodRefSku in prodRefSkuIds)
+                            {
+                                success &= await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                            }
+
+                            break;
+                        case DriveImportConstants.IdentificatorType.PRODUCT_ID:
+                            List<string> skuIds = await this.GetSkusFromProductId(id);
+                            success = true;
+                            foreach (string sku in skuIds)
+                            {
+                                success &= await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                            }
+
+                            break;
+                    }
+                }
+            }
+
+            return success;
         }
     }
 }

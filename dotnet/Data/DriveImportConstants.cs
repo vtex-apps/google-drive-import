@@ -55,5 +55,13 @@ namespace DriveImport.Data
             public const string ERROR = "Error";
             public const string DONE = "Done";
         }
+
+        public class IdentificatorType
+        {
+            public const string SKU_ID = "SkuId";
+            public const string SKU_REF_ID = "SkuRefId";
+            public const string PRODUCT_REF_ID = "ProductRefId";
+            public const string PRODUCT_ID = "ProductId";
+        }
     }
 }

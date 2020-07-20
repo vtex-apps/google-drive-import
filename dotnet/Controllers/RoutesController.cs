@@ -24,37 +24,79 @@
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHttpClientFactory _clientFactory;
         private readonly IGoogleDriveService _googleDriveService;
+        private readonly IVtexAPIService _vtexAPIService;
 
-        public RoutesController(IIOServiceContext context, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory, IGoogleDriveService googleDriveService)
+        public RoutesController(IIOServiceContext context, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory, IGoogleDriveService googleDriveService, IVtexAPIService vtexAPIService)
         {
             this._context = context ?? throw new ArgumentNullException(nameof(context));
             this._httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             this._clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
             this._googleDriveService = googleDriveService ?? throw new ArgumentNullException(nameof(googleDriveService));
+            this._vtexAPIService = vtexAPIService ?? throw new ArgumentNullException(nameof(vtexAPIService));
         }
 
         public async Task<IActionResult> DriveImport()
         {
-            string url = "";
+            //TimeSpan timeSpan = new TimeSpan(0, 30, 0);
+            TimeSpan timeSpan = new TimeSpan(0, 5, 0);
 
-            var request = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri(url)
-            };
+            Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
-            request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-            string authToken = _context.Vtex.AuthToken;
-            if (authToken != null)
+            bool relistFolders = false;
+            //if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
+            //{
+            //    await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
+            //    relistFolders = true;
+            //}
+
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
             {
-                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE);
+                relistFolders = true;
             }
 
-            var client = _clientFactory.CreateClient();
-            var response = await client.SendAsync(request);
-            string responseContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"{response.StatusCode}");
-            return Json("");
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
+            {
+                await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR);
+                relistFolders = true;
+            }
+
+            if (relistFolders)
+            {
+                folders = await _googleDriveService.ListFolders();
+            }
+
+            //ListFilesResponse imageFiles = await _googleDriveService.ListImages();
+            Dictionary<string, string> images = new Dictionary<string, string>();
+
+            string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
+            string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+            Console.WriteLine($"{doneFolderId} {errorFolderId}");
+
+            for (int i = 0; i < 5; i++)
+            {
+                ListFilesResponse imageFiles = await _googleDriveService.ListImagesInRootFolder();
+                if (imageFiles != null)
+                {
+                    foreach (Models.File file in imageFiles.Files)
+                    {
+                        Console.WriteLine($"{file.Name} {file.WebViewLink}");
+                        bool updated = await _vtexAPIService.ProcessImageFile(file.Name, file.WebViewLink.ToString());
+                        if(updated)
+                        {
+                            await _googleDriveService.MoveFile(file.Id, doneFolderId);
+                        }
+                        else
+                        {
+                            await _googleDriveService.MoveFile(file.Id, errorFolderId);
+                        }
+                    }
+                }
+
+                await Task.Delay(timeSpan);
+            }
+
+            return Json("Completed");
         }
 
         public async Task<IActionResult> ProcessReturnUrl()

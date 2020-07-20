@@ -9,5 +9,6 @@ namespace DriveImport.Services
         Task<string> GetSkuIdFromReference(string skuRefId);
         Task<List<string>> GetSkusFromProductId(string productId);
         Task<bool> UpdateSkuImage(string skuId, string imageName, string imageLabel, bool isMain, string imageUrl);
+        Task<bool> ProcessImageFile(string fileName, string webLink);
     }
 }
