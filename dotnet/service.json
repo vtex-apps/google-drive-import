@@ -9,7 +9,7 @@
       "public": true
     },
     "driveImport": {
-      "path": "/google-drive-import/test",
+      "path": "/google-drive-import/import-images",
       "public": true
     },
     "saveCredentials": {

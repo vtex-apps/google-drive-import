@@ -14,6 +14,7 @@ namespace DriveImport.Services
 
         Task<string> ListFiles();
         Task<ListFilesResponse> ListImagesInRootFolder();
+        Task<ListFilesResponse> ListImagesInFolder(string folderId);
         Task<ListFilesResponse> ListImages();
         Task<Dictionary<string, string>> ListFolders();
         Task<bool> CreateFolder(string folderName);

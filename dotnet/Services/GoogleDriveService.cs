@@ -340,6 +340,49 @@ namespace DriveImport.Services
             return listFilesResponse;
         }
 
+        public async Task<ListFilesResponse> ListImagesInFolder(string folderId)
+        {
+            ListFilesResponse listFilesResponse = null;
+            string responseContent = string.Empty;
+            Token token = await this.GetGoogleToken();
+            if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+            {
+                string fields = "*";
+                string query = $"mimeType contains 'image' and '{folderId}' in parents";
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?fields={fields}&q={query}"),
+                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                };
+
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                responseContent = await response.Content.ReadAsStringAsync();
+
+                //Console.WriteLine($"ListImagesInFolder: [{response.StatusCode}] '{responseContent}'");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Token error.");
+            }
+
+            return listFilesResponse;
+        }
+
         public async Task<bool> CreateFolder(string folderName)
         {
             bool success = false;
@@ -388,7 +431,7 @@ namespace DriveImport.Services
 
         public async Task<bool> MoveFile(string fileId, string folderId)
         {
-            Console.WriteLine($"Moving {fileId} to folder {folderId}");
+            //Console.WriteLine($"Moving {fileId} to folder {folderId}");
             bool success = false;
             string responseContent = string.Empty;
             if (!string.IsNullOrEmpty(fileId) && !string.IsNullOrEmpty(folderId))

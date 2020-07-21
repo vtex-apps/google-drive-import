@@ -33,21 +33,35 @@
             this._clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
             this._googleDriveService = googleDriveService ?? throw new ArgumentNullException(nameof(googleDriveService));
             this._vtexAPIService = vtexAPIService ?? throw new ArgumentNullException(nameof(vtexAPIService));
+
+            //DoWork();
+        }
+
+        public async Task DoWork()
+        {
+            Console.WriteLine("DoWork Init");
+            TimeSpan timeSpan = new TimeSpan(0, 5, 0);
+            for (int i = 0; i < 5; i++)
+            {
+                Console.WriteLine($"------------------>>>>>>>>>>>>>>>>> {i} <<<<<<<<<<<<<<<<<<<<<----------------------------");
+                await Task.Delay(timeSpan);
+            }
         }
 
         public async Task<IActionResult> DriveImport()
         {
+            bool updated = false;
             //TimeSpan timeSpan = new TimeSpan(0, 30, 0);
             TimeSpan timeSpan = new TimeSpan(0, 5, 0);
 
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
             bool relistFolders = false;
-            //if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
-            //{
-            //    await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
-            //    relistFolders = true;
-            //}
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
+            {
+                await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
+                relistFolders = true;
+            }
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
             {
@@ -69,34 +83,36 @@
             //ListFilesResponse imageFiles = await _googleDriveService.ListImages();
             Dictionary<string, string> images = new Dictionary<string, string>();
 
+            string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
             string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
             string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
             Console.WriteLine($"{doneFolderId} {errorFolderId}");
 
-            for (int i = 0; i < 5; i++)
+            //for (int i = 0; i < 5; i++)
             {
-                ListFilesResponse imageFiles = await _googleDriveService.ListImagesInRootFolder();
+                ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
                 if (imageFiles != null)
                 {
                     foreach (Models.File file in imageFiles.Files)
                     {
                         Console.WriteLine($"{file.Name} {file.WebViewLink}");
-                        bool updated = await _vtexAPIService.ProcessImageFile(file.Name, file.WebViewLink.ToString());
+                        updated = await _vtexAPIService.ProcessImageFile(file.Name, file.WebViewLink.ToString());
                         if(updated)
                         {
-                            await _googleDriveService.MoveFile(file.Id, doneFolderId);
+                            //await _googleDriveService.MoveFile(file.Id, doneFolderId);
                         }
                         else
                         {
-                            await _googleDriveService.MoveFile(file.Id, errorFolderId);
+                            //await _googleDriveService.MoveFile(file.Id, errorFolderId);
                         }
                     }
                 }
 
-                await Task.Delay(timeSpan);
+                //await Task.Delay(timeSpan);
             }
 
-            return Json("Completed");
+            Response.Headers.Add("Cache-Control", "no-cache");
+            return Json($"Updated? {updated}");
         }
 
         public async Task<IActionResult> ProcessReturnUrl()
@@ -177,11 +193,11 @@
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
             bool relistFolders = false;
-            //if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
-            //{
-            //    await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
-            //    relistFolders = true;
-            //}
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
+            {
+                await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
+                relistFolders = true;
+            }
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
             {
@@ -200,20 +216,22 @@
                 folders = await _googleDriveService.ListFolders();
             }
 
+            string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+
             //ListFilesResponse imageFiles = await _googleDriveService.ListImages();
             Dictionary<string, string> images = new Dictionary<string, string>();
-            ListFilesResponse imageFiles = await _googleDriveService.ListImagesInRootFolder();
-            if (imageFiles != null)
-            {
-                string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
-                string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
-                Console.WriteLine($"{doneFolderId} {errorFolderId}");
-                foreach (Models.File file in imageFiles.Files)
-                {
-                    Console.WriteLine($"{file.Name} {file.WebViewLink}");
-                    await _googleDriveService.MoveFile(file.Id, doneFolderId);
-                }
-            }
+            ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            //if (imageFiles != null)
+            //{
+            //    string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
+            //    string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+            //    Console.WriteLine($"{doneFolderId} {errorFolderId}");
+            //    foreach (Models.File file in imageFiles.Files)
+            //    {
+            //        Console.WriteLine($"{file.Name} {file.WebViewLink}");
+            //        await _googleDriveService.MoveFile(file.Id, doneFolderId);
+            //    }
+            //}
 
             return Json(imageFiles);
         }

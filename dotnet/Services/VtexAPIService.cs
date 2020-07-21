@@ -62,6 +62,8 @@ namespace DriveImport.Services
 
                 string jsonSerializedData = JsonConvert.SerializeObject(imageUpdate);
 
+                Console.WriteLine($"jsonSerializedData = {jsonSerializedData}");
+
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Post,
@@ -84,6 +86,7 @@ namespace DriveImport.Services
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
                 string responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"UpdateSkuImage Response: {response.StatusCode} {responseContent}");
 
                 success = response.IsSuccessStatusCode;
             }
