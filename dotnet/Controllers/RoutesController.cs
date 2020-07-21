@@ -51,28 +51,26 @@
         public async Task<IActionResult> DriveImport()
         {
             bool updated = false;
+            int doneCount = 0;
+            int errorCount = 0;
             //TimeSpan timeSpan = new TimeSpan(0, 30, 0);
-            TimeSpan timeSpan = new TimeSpan(0, 5, 0);
 
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
             bool relistFolders = false;
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
             {
-                await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
-                relistFolders = true;
+                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
             }
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
             {
-                await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE);
-                relistFolders = true;
+                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE);
             }
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
             {
-                await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR);
-                relistFolders = true;
+                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR);
             }
 
             if (relistFolders)
@@ -86,33 +84,34 @@
             string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
             string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
             string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
-            Console.WriteLine($"{doneFolderId} {errorFolderId}");
+            //Console.WriteLine($"{doneFolderId} {errorFolderId}");
 
-            //for (int i = 0; i < 5; i++)
+            ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            if (imageFiles != null)
             {
-                ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
-                if (imageFiles != null)
+                foreach (Models.File file in imageFiles.Files)
                 {
-                    foreach (Models.File file in imageFiles.Files)
+                    Console.WriteLine($"'{file.Name}' [{file.Id}]");
+                    bool haveFile = await _googleDriveService.GetFile(file.Id);
+                    if (haveFile)
                     {
-                        Console.WriteLine($"{file.Name} {file.WebViewLink}");
                         updated = await _vtexAPIService.ProcessImageFile(file.Name, file.WebViewLink.ToString());
-                        if(updated)
+                        if (updated)
                         {
+                            doneCount++;
                             //await _googleDriveService.MoveFile(file.Id, doneFolderId);
                         }
                         else
                         {
+                            errorCount++;
                             //await _googleDriveService.MoveFile(file.Id, errorFolderId);
                         }
                     }
                 }
-
-                //await Task.Delay(timeSpan);
             }
 
             Response.Headers.Add("Cache-Control", "no-cache");
-            return Json($"Updated? {updated}");
+            return Json($"Imported {doneCount} image(s).  {errorCount} image(s) not imported.");
         }
 
         public async Task<IActionResult> ProcessReturnUrl()
@@ -151,7 +150,8 @@
                 success = await _googleDriveService.ProcessReturn(code);
             }
 
-            return Json(success);
+            string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
+            return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}");
         }
 
         public async Task<IActionResult> GoogleAuthorize()
@@ -234,6 +234,12 @@
             //}
 
             return Json(imageFiles);
+        }
+
+        public async Task<bool> HaveToken()
+        {
+            Token token = await _googleDriveService.GetGoogleToken();
+            return token != null;
         }
 
         public string PrintHeaders()

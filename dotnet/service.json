@@ -35,6 +35,10 @@
     "listImages": {
       "path": "/google-drive-import/list-images",
       "public": true
+    },
+    "haveToken": {
+      "path": "/google-drive-import/have-token",
+      "public": true
     }
   },
   "events": {

@@ -9,19 +9,24 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using Vtex.Api.Context;
 
 namespace DriveImport.Services
 {
     public class GoogleDriveService : IGoogleDriveService
     {
+        private readonly IIOServiceContext _context;
         private readonly IVtexEnvironmentVariableProvider _environmentVariableProvider;
         private readonly IDriveImportRepository _driveImportRepository;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHttpClientFactory _clientFactory;
         private readonly string _applicationName;
 
-        public GoogleDriveService(IVtexEnvironmentVariableProvider environmentVariableProvider, IDriveImportRepository driveImportRepository, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory)
+        public GoogleDriveService(IIOServiceContext context, IVtexEnvironmentVariableProvider environmentVariableProvider, IDriveImportRepository driveImportRepository, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory)
         {
+            this._context = context ??
+                            throw new ArgumentNullException(nameof(context));
+
             this._environmentVariableProvider = environmentVariableProvider ??
                                                 throw new ArgumentNullException(nameof(environmentVariableProvider));
 
@@ -87,6 +92,10 @@ namespace DriveImport.Services
             {
                 tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
             }
+            else
+            {
+                _context.Vtex.Logger.Info("GetGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+            }
 
             return tokenObj;
         }
@@ -97,6 +106,7 @@ namespace DriveImport.Services
             if (string.IsNullOrEmpty(refreshToken))
             {
                 Console.WriteLine("Refresh Token Empty");
+                _context.Vtex.Logger.Info("RefreshGoogleAuthorizationToken", null, "Refresh Token Empty");
             }
             else
             {
@@ -128,6 +138,10 @@ namespace DriveImport.Services
                 if (response.IsSuccessStatusCode)
                 {
                     tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
+                }
+                else
+                {
+                    _context.Vtex.Logger.Info("RefreshGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
                 }
             }
 
@@ -168,6 +182,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine("Did not load token.");
+                _context.Vtex.Logger.Info("GetGoogleToken", null, "Could not load token.");
             }
 
             return token;
@@ -206,6 +221,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine("Token error.");
+                _context.Vtex.Logger.Info("ListFiles", null, "Token error.");
             }
 
             return responseContent;
@@ -251,6 +267,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine("Token error.");
+                _context.Vtex.Logger.Info("ListFolders", null, "Token error.");
             }
 
             return folders;
@@ -292,6 +309,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine("Token error.");
+                _context.Vtex.Logger.Info("ListImages", null, "Token error.");
             }
 
             return listFilesResponse;
@@ -335,6 +353,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine("Token error.");
+                _context.Vtex.Logger.Info("ListImagesInRootFolder", null, "Token error.");
             }
 
             return listFilesResponse;
@@ -378,6 +397,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine("Token error.");
+                _context.Vtex.Logger.Info("ListImagesInFolder", null, "Token error.");
             }
 
             return listFilesResponse;
@@ -424,6 +444,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine("Token error.");
+                _context.Vtex.Logger.Info("CreateFolder", null, "Token error.");
             }
 
             return success;
@@ -476,11 +497,59 @@ namespace DriveImport.Services
                 else
                 {
                     Console.WriteLine("Token error.");
+                    _context.Vtex.Logger.Info("MoveFile", null, "Token error.");
                 }
             }
             else
             {
                 Console.WriteLine("Parameer missing.");
+                _context.Vtex.Logger.Info("MoveFile", null, "Parameer missing.");
+            }
+
+            return success;
+        }
+
+        public async Task<bool> GetFile(string fileId)
+        {
+            bool success = false;
+            string responseContent = string.Empty;
+            if (!string.IsNullOrEmpty(fileId))
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Get,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}/{fileId}?alt=media")
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+
+                    Console.WriteLine($"GetFile {response.StatusCode} {responseContent}");
+
+                    success = response.IsSuccessStatusCode;
+                }
+                else
+                {
+                    Console.WriteLine("Token error.");
+                    _context.Vtex.Logger.Info("GetFile", null, "Token error.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Parameer missing.");
+                _context.Vtex.Logger.Info("GetFile", null, "Parameer missing.");
             }
 
             return success;

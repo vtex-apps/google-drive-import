@@ -11,6 +11,7 @@ namespace DriveImport.Services
         Task<string> GetGoogleAuthorizationUrl();
         Task<bool> ProcessReturn(string code);
         Task SaveCredentials(Credentials credentials);
+        Task<Token> GetGoogleToken();
 
         Task<string> ListFiles();
         Task<ListFilesResponse> ListImagesInRootFolder();
@@ -19,5 +20,6 @@ namespace DriveImport.Services
         Task<Dictionary<string, string>> ListFolders();
         Task<bool> CreateFolder(string folderName);
         Task<bool> MoveFile(string fileId, string folderId);
+        Task<bool> GetFile(string fileId);
     }
 }
