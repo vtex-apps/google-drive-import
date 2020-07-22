@@ -2,5 +2,10 @@
   "admin/google-drive-import.title": "admin/google-drive-import.title",
   "admin/google-drive-import.setup.title": "admin/google-drive-import.setup.title",
   "admin/google-drive-import.setup.description": "admin/google-drive-import.setup.description",
+  "admin/google-drive-import.connected.text": "admin/google-drive-import.connected.text",
+  "admin/google-drive-import.fetch.button": "admin/google-drive-import.fetch.button",
+  "admin/google-drive-import.fetched.text": "admin/google-drive-import.fetched.text",
+  "admin/google-drive-import.connected-as": "admin/google-drive-import.connected-as",
+  "admin/google-drive-import.disconnect.button": "admin/google-drive-import.disconnect.button",
   "admin/google-drive-import.setup.button": "admin/google-drive-import.setup.button"
 }
