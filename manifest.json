@@ -5,7 +5,22 @@
   "title": "Google Drive Import",
   "description": "Import files from Google Drive",
   "categories": [],
-  "settingsSchema": {},
+  "settingsSchema": {
+    "title": "Google Drive Import",
+    "type": "object",
+    "properties": {
+      "appToken": {
+        "title": "App Token",
+        "description": "AppToken",
+        "type": "string"
+      },
+      "appKey": {
+        "title": "App Key",
+        "description": "AppKey",
+        "type": "string"
+      }
+    }
+  },
   "dependencies": {
     "vtex.styleguide": "9.x"
   },
@@ -47,10 +62,20 @@
       "name": "ADMIN_DS"
     },
     {
+      "name": "AcessaTodosPedidos"
+    },
+    {
       "name": "outbound-access",
       "attrs": {
         "host": "{{account}}.vtexcommercestable.com.br",
         "path": "/api/dataentities/*"
+      }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "{{account}}.vtexcommercestable.com.br",
+        "path": "/api/catalog/*"
       }
     },
     {
@@ -78,7 +103,7 @@
       "name": "outbound-access",
       "attrs": {
         "host": "drive.google.com",
-        "path": "/uc"
+        "path": "/file/*"
       }
     },
     {

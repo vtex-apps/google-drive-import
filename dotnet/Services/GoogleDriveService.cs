@@ -1,10 +1,13 @@
 ﻿using DriveImport.Data;
 using DriveImport.Models;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -258,7 +261,7 @@ namespace DriveImport.Services
                 if (response.IsSuccessStatusCode)
                 {
                     ListFilesResponse listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
-                    foreach(File folder in listFilesResponse.Files)
+                    foreach(GoogleFile folder in listFilesResponse.Files)
                     {
                         folders.Add(folder.Id, folder.Name);
                     }
@@ -502,16 +505,18 @@ namespace DriveImport.Services
             }
             else
             {
-                Console.WriteLine("Parameer missing.");
-                _context.Vtex.Logger.Info("MoveFile", null, "Parameer missing.");
+                Console.WriteLine("Parameter missing.");
+                _context.Vtex.Logger.Info("MoveFile", null, "Parameter missing.");
             }
 
             return success;
         }
 
-        public async Task<bool> GetFile(string fileId)
+        public async Task<byte[]> GetFile(string fileId)
         {
             bool success = false;
+            Stream contentStream = null;
+            byte[] contentByteArray = null;
             string responseContent = string.Empty;
             if (!string.IsNullOrEmpty(fileId))
             {
@@ -534,9 +539,21 @@ namespace DriveImport.Services
 
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
-                    responseContent = await response.Content.ReadAsStringAsync();
+                    //responseContent = await response.Content.ReadAsStringAsync();
 
-                    Console.WriteLine($"GetFile {response.StatusCode} {responseContent}");
+                    Console.WriteLine($"GetFile {response.StatusCode}");
+                    //foreach (var header in response.Headers)
+                    //{
+                    //    Console.WriteLine($"GetFile Header [{ header.Key} : { header.Value.FirstOrDefault()}]");
+                    //}
+
+                    //foreach (var header in response.Content.Headers)
+                    //{
+                    //    Console.WriteLine($"GetFile Content [{ header.Key} : { header.Value.FirstOrDefault()}]");
+                    //}
+
+                    contentStream = await response.Content.ReadAsStreamAsync();
+                    contentByteArray = await response.Content.ReadAsByteArrayAsync();
 
                     success = response.IsSuccessStatusCode;
                 }
@@ -550,6 +567,67 @@ namespace DriveImport.Services
             {
                 Console.WriteLine("Parameer missing.");
                 _context.Vtex.Logger.Info("GetFile", null, "Parameer missing.");
+            }
+
+            return contentByteArray;
+        }
+
+        public async Task<bool> SetPermission(string fileId)
+        {
+            //Console.WriteLine($"Moving {fileId} to folder {folderId}");
+            bool success = false;
+            string responseContent = string.Empty;
+            if (!string.IsNullOrEmpty(fileId))
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    //List<string> parents = new List<string> { folderId };
+                    dynamic metadata = new JObject();
+                    //metadata.parents = JToken.FromObject(parents);
+                    metadata.type = "anyone";
+                    metadata.role = "reader";
+
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
+
+                    Console.WriteLine(jsonSerializedMetadata);
+
+                    //string query = $"addParents '{folderId}' and removeParents 'root'";
+
+                    // POST https://www.googleapis.com/drive/v3/files/fileId/permissions
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}/{fileId}/permissions"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+
+                    Console.WriteLine($"SetPermission {response.StatusCode} {responseContent}");
+
+                    success = response.IsSuccessStatusCode;
+                }
+                else
+                {
+                    Console.WriteLine("Token error.");
+                    _context.Vtex.Logger.Info("SetPermission", null, "Token error.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Parameter missing.");
+                _context.Vtex.Logger.Info("MoveFile", null, "Parameter missing.");
             }
 
             return success;

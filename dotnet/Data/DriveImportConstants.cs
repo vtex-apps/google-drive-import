@@ -8,6 +8,9 @@ namespace DriveImport.Data
     {
         public const string APP_NAME = "google-drive-import";
 
+        public const string APP_TOKEN = "X-Vtex-Api-AppToken";
+        public const string APP_KEY = "X-Vtex-Api-AppKey";
+
         public const string FORWARDED_HEADER = "X-Forwarded-For";
         public const string FORWARDED_HOST = "X-Forwarded-Host";
         public const string APPLICATION_JSON = "application/json";

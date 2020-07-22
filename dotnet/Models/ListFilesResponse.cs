@@ -14,10 +14,10 @@ namespace DriveImport.Models
         public bool IncompleteSearch { get; set; }
 
         [JsonProperty("files")]
-        public List<File> Files { get; set; }
+        public List<GoogleFile> Files { get; set; }
     }
 
-    public class File
+    public class GoogleFile
     {
         [JsonProperty("kind")]
         public string Kind { get; set; }

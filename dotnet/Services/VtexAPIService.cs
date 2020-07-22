@@ -20,9 +20,10 @@ namespace DriveImport.Services
         private readonly IVtexEnvironmentVariableProvider _environmentVariableProvider;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHttpClientFactory _clientFactory;
+        private readonly IDriveImportRepository _driveImportRepository;
         private readonly string _applicationName;
 
-        public VtexAPIService(IIOServiceContext context, IVtexEnvironmentVariableProvider environmentVariableProvider, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory)
+        public VtexAPIService(IIOServiceContext context, IVtexEnvironmentVariableProvider environmentVariableProvider, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory, IDriveImportRepository driveImportRepository)
         {
             this._context = context ??
                             throw new ArgumentNullException(nameof(context));
@@ -35,6 +36,9 @@ namespace DriveImport.Services
 
             this._clientFactory = clientFactory ??
                                throw new ArgumentNullException(nameof(clientFactory));
+
+            this._driveImportRepository = driveImportRepository ??
+                               throw new ArgumentNullException(nameof(driveImportRepository));
 
             this._applicationName =
                 $"{this._environmentVariableProvider.ApplicationVendor}.{this._environmentVariableProvider.ApplicationName}";
@@ -73,9 +77,11 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Post,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
+                    RequestUri = new Uri($"https://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
                     Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                 };
+
+                Console.WriteLine($"RequestUri [{request.RequestUri.ToString()}]");
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                 //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
@@ -105,7 +111,7 @@ namespace DriveImport.Services
             return success;
         }
 
-        public async Task<bool> UpdateSkuImageByFormData(string skuId, string imageName, string imageLabel, bool isMain, string imageUrl)
+        public async Task<bool> UpdateSkuImageByFormData(string skuId, string imageName, string imageLabel, bool isMain, byte[] imageStream)
         {
             Console.WriteLine($"UpdateSkuImageByFormData '{skuId}' {imageName}");
 
@@ -122,16 +128,24 @@ namespace DriveImport.Services
 
             try
             {
-                //MultipartFormDataContent form = new MultipartFormDataContent();
-                //form.Add(new ByteArrayContent(file_bytes, 0, file_bytes.Length), "profile_pic", "hello1.jpg");
+                MultipartFormDataContent form = new MultipartFormDataContent();
+                if (isMain)
+                {
+                    form.Add(new ByteArrayContent(imageStream, 0, imageStream.Length), "main", imageName);
+                }
+                else
+                {
+                    form.Add(new ByteArrayContent(imageStream, 0, imageStream.Length), imageName, imageName);
+                }
 
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Post,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
-                    //Content = new StreamContent(new MemoryStream(form)), "bilddatei", "upload.jpg" };
+                    RequestUri = new Uri($"https://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file?an={this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}"),
+                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                 };
 
+                request.Headers.Add(DriveImportConstants.ACCEPT, DriveImportConstants.APPLICATION_JSON);
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                 //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
                 //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
@@ -144,8 +158,23 @@ namespace DriveImport.Services
                     request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
                 }
 
+                MerchantSettings merchantSettings = await _driveImportRepository.GetMerchantSettings();
+                if(string.IsNullOrEmpty(merchantSettings.AppKey) || string.IsNullOrEmpty(merchantSettings.AppToken))
+                {
+                    Console.WriteLine("Missing Settings");
+                }
+                //else
+                //{
+                //    Console.WriteLine($"Token:{merchantSettings.AppToken} Key:{merchantSettings.AppKey}");
+                //}
+
+                request.Headers.Add(DriveImportConstants.APP_TOKEN, merchantSettings.AppToken);
+                request.Headers.Add(DriveImportConstants.APP_KEY, merchantSettings.AppKey);
+
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
+                //Console.WriteLine($"PostAsync {request.RequestUri}");
+                //var response = await client.PostAsync(request.RequestUri, form);
                 string responseContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"UpdateSkuImageByFormData Response: {response.StatusCode} {responseContent}");
 
@@ -350,6 +379,73 @@ namespace DriveImport.Services
                             foreach (string sku in skuIds)
                             {
                                 success &= await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success}");
+                            }
+
+                            break;
+                    }
+                }
+            }
+
+            return success;
+        }
+
+        public async Task<bool> ProcessImageFile(string fileName, byte[] imageStream)
+        {
+            bool success = false;
+            string identificatorType = string.Empty;
+            string id = string.Empty;
+            string imageName = string.Empty;
+            string imageLabel = string.Empty;
+            bool isMain = false;
+
+            // IdentificatorType, Id, ImageName, ImageLabel, Main
+            string[] fileNameArr = fileName.Split('.');
+            if (fileNameArr.Count() == 2 && !string.IsNullOrEmpty(fileNameArr[0]))
+            {
+                string[] fileNameParsed = fileNameArr[0].Split(',');
+                if ((fileNameParsed.Count() == 5 || fileNameParsed.Count() == 4))
+                {
+                    identificatorType = fileNameParsed[0];
+                    id = fileNameParsed[1];
+                    imageName = fileNameParsed[2];
+                    imageLabel = fileNameParsed[3];
+                    if (fileNameParsed.Count() == 5)
+                    {
+                        isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
+                    }
+
+                    Console.WriteLine($"ProcessImageFile {identificatorType} {id} Main?{isMain}");
+                    _context.Vtex.Logger.Info("ProcessImageFile", null, $"{identificatorType} {id} Main?{isMain}");
+
+                    switch (identificatorType)
+                    {
+                        case DriveImportConstants.IdentificatorType.SKU_ID:
+                            success = await this.UpdateSkuImageByFormData(id, imageName, imageLabel, isMain, imageStream);
+                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {id} success? {success}");
+                            break;
+                        case DriveImportConstants.IdentificatorType.SKU_REF_ID:
+                            string skuId = await this.GetSkuIdFromReference(id);
+                            success = await this.UpdateSkuImageByFormData(skuId, imageName, imageLabel, isMain, imageStream);
+                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success}");
+                            break;
+                        case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
+                            string prodId = await this.GetProductIdFromReference(id);
+                            List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
+                            success = true;
+                            foreach (string prodRefSku in prodRefSkuIds)
+                            {
+                                success &= await this.UpdateSkuImageByFormData(prodRefSku, imageName, imageLabel, isMain, imageStream);
+                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success}");
+                            }
+
+                            break;
+                        case DriveImportConstants.IdentificatorType.PRODUCT_ID:
+                            List<string> skuIds = await this.GetSkusFromProductId(id);
+                            success = true;
+                            foreach (string sku in skuIds)
+                            {
+                                success &= await this.UpdateSkuImageByFormData(sku, imageName, imageLabel, isMain, imageStream);
                                 _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success}");
                             }
 

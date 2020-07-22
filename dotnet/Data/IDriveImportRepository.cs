@@ -9,5 +9,6 @@ namespace DriveImport.Data
         Task<Token> LoadToken();
         Task SaveCredentials(Credentials credentials);
         Task<bool> SaveToken(Token token);
+        Task<MerchantSettings> GetMerchantSettings();
     }
 }

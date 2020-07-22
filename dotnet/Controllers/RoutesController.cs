@@ -84,27 +84,30 @@
             string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
             string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
             string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+
+            //_googleDriveService.SetPermission(newFolderId);
             //Console.WriteLine($"{doneFolderId} {errorFolderId}");
 
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
             if (imageFiles != null)
             {
-                foreach (Models.File file in imageFiles.Files)
+                foreach (Models.GoogleFile file in imageFiles.Files)
                 {
                     Console.WriteLine($"'{file.Name}' [{file.Id}]");
-                    bool haveFile = await _googleDriveService.GetFile(file.Id);
-                    if (haveFile)
+                    byte[] imageStream = await _googleDriveService.GetFile(file.Id);
+                    if (imageStream != null)
                     {
-                        updated = await _vtexAPIService.ProcessImageFile(file.Name, file.WebViewLink.ToString());
+                        //updated = await _vtexAPIService.ProcessImageFile(file.Name, imageStream);
+                        updated = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
                         if (updated)
                         {
                             doneCount++;
-                            //await _googleDriveService.MoveFile(file.Id, doneFolderId);
+                            await _googleDriveService.MoveFile(file.Id, doneFolderId);
                         }
                         else
                         {
                             errorCount++;
-                            //await _googleDriveService.MoveFile(file.Id, errorFolderId);
+                            await _googleDriveService.MoveFile(file.Id, errorFolderId);
                         }
                     }
                 }
@@ -239,7 +242,7 @@
         public async Task<bool> HaveToken()
         {
             Token token = await _googleDriveService.GetGoogleToken();
-            return token != null;
+            return token != null && !string.IsNullOrEmpty(token.RefreshToken);
         }
 
         public string PrintHeaders()

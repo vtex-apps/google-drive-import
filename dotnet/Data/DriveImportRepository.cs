@@ -163,5 +163,31 @@
             //Console.WriteLine($"-> SaveToken [{response.StatusCode}] {responseContent} <-");
             return response.IsSuccessStatusCode;
         }
+
+        public async Task<MerchantSettings> GetMerchantSettings()
+        {
+            // Load merchant settings
+            // 'http://apps.${region}.vtex.io/${account}/${workspace}/apps/${vendor.appName}/settings'
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri($"http://apps.{this._environmentVariableProvider.Region}.vtex.io/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_WORKSPACE]}/apps/{DriveImportConstants.APP_SETTINGS}/settings"),
+            };
+
+            //Console.WriteLine($"Request URL = {request.RequestUri}");
+
+            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            if (authToken != null)
+            {
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            }
+
+            var client = _clientFactory.CreateClient();
+            var response = await client.SendAsync(request);
+            string responseContent = await response.Content.ReadAsStringAsync();
+
+            return JsonConvert.DeserializeObject<MerchantSettings>(responseContent);
+        }
     }
 }

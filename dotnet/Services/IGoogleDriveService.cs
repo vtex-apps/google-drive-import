@@ -1,5 +1,6 @@
 ﻿using DriveImport.Models;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace DriveImport.Services
@@ -20,6 +21,7 @@ namespace DriveImport.Services
         Task<Dictionary<string, string>> ListFolders();
         Task<bool> CreateFolder(string folderName);
         Task<bool> MoveFile(string fileId, string folderId);
-        Task<bool> GetFile(string fileId);
+        Task<byte[]> GetFile(string fileId);
+        Task<bool> SetPermission(string fileId);
     }
 }
