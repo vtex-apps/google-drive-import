@@ -60,53 +60,60 @@ namespace DriveImport.Services
             bool success = false;
             string responseContent = string.Empty;
 
-            try
+            if (string.IsNullOrEmpty(skuId) || string.IsNullOrEmpty(imageUrl))
             {
-                ImageUpdate imageUpdate = new ImageUpdate
-                {
-                    IsMain = isMain,
-                    Label = imageLabel,
-                    Name = imageName,
-                    Text = null,
-                    Url = imageUrl
-                };
-
-                string jsonSerializedData = JsonConvert.SerializeObject(imageUpdate);
-
-                Console.WriteLine($"jsonSerializedData = {jsonSerializedData}");
-
-                var request = new HttpRequestMessage
-                {
-                    Method = HttpMethod.Post,
-                    RequestUri = new Uri($"https://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
-                    Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
-                };
-
-                //Console.WriteLine($"RequestUri [{request.RequestUri}]");
-
-                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-                //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
-                //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
-                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                //Console.WriteLine($"Token = '{authToken}'");
-                if (authToken != null)
-                {
-                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
-                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
-                }
-
-                var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"UpdateSkuImage Response: {response.StatusCode} {responseContent}");
-
-                success = response.IsSuccessStatusCode;
+                responseContent = "Missing Parameter";
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"UpdateSkuImage Error: {ex.Message}");
-                _context.Vtex.Logger.Error("UpdateSkuImage", null, $"Error updating sku '{skuId}' {imageName}", ex);
+                try
+                {
+                    ImageUpdate imageUpdate = new ImageUpdate
+                    {
+                        IsMain = isMain,
+                        Label = imageLabel,
+                        Name = imageName,
+                        Text = null,
+                        Url = imageUrl
+                    };
+
+                    string jsonSerializedData = JsonConvert.SerializeObject(imageUpdate);
+
+                    Console.WriteLine($"jsonSerializedData = {jsonSerializedData}");
+
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"https://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
+                        Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    //Console.WriteLine($"RequestUri [{request.RequestUri}]");
+
+                    request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                    //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
+                    //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    //Console.WriteLine($"Token = '{authToken}'");
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                        request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"UpdateSkuImage Response: {response.StatusCode} {responseContent}");
+
+                    success = response.IsSuccessStatusCode;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"UpdateSkuImage Error: {ex.Message}");
+                    _context.Vtex.Logger.Error("UpdateSkuImage", null, $"Error updating sku '{skuId}' {imageName}", ex);
+                }
             }
 
             UpdateResponse updateResponse = new UpdateResponse
@@ -229,6 +236,11 @@ namespace DriveImport.Services
                 {
                     skuId = responseContent;
                 }
+                else
+                {
+                    Console.WriteLine($"Could not get sku for reference id '{skuRefId}'");
+                    _context.Vtex.Logger.Error("GetSkuIdFromReference", null, $"Could not get sku for reference id '{skuRefId}'");
+                }
             }
             catch (Exception ex)
             {
@@ -271,6 +283,11 @@ namespace DriveImport.Services
                 if (response.IsSuccessStatusCode)
                 {
                     productId = responseContent;
+                }
+                else
+                {
+                    Console.WriteLine($"Could not get product id for reference '{productRefId}'");
+                    _context.Vtex.Logger.Error("GetProductIdFromReference", null, $"Could not get product id for reference '{productRefId}'");
                 }
             }
             catch (Exception ex)
@@ -320,6 +337,11 @@ namespace DriveImport.Services
                         skuIds.Add(skuId);
                     }
                 }
+                else
+                {
+                    Console.WriteLine($"Could not get skus for product id '{productId}'");
+                    _context.Vtex.Logger.Error("GetSkusFromProductId", null, $"Could not get skus for product id '{productId}'");
+                }
             }
             catch (Exception ex)
             {
@@ -359,7 +381,7 @@ namespace DriveImport.Services
                     }
 
                     Console.WriteLine($"ProcessImageFile {identificatorType} {id} Main?{isMain}");
-                    _context.Vtex.Logger.Info("ProcessImageFile", null, $"{identificatorType} {id} Main?{isMain}");
+                    //_context.Vtex.Logger.Info("ProcessImageFile", null, $"{identificatorType} {id} Main?{isMain}");
 
                     switch(identificatorType)
                     {
@@ -371,7 +393,7 @@ namespace DriveImport.Services
                                 messages.Add(updateResponse.Message);
                             }
 
-                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {id} success? {success}");
+                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {id} success? {success} '{updateResponse.Message}'");
                             break;
                         case DriveImportConstants.IdentificatorType.SKU_REF_ID:
                             string skuId = await this.GetSkuIdFromReference(id);
@@ -382,7 +404,7 @@ namespace DriveImport.Services
                                 messages.Add(updateResponse.Message);
                             }
 
-                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success}");
+                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
                             break;
                         case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
                             string prodId = await this.GetProductIdFromReference(id);
@@ -397,7 +419,7 @@ namespace DriveImport.Services
                                     messages.Add(updateResponse.Message);
                                 }
 
-                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success}");
+                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
                             }
 
                             break;
@@ -413,9 +435,13 @@ namespace DriveImport.Services
                                     messages.Add(updateResponse.Message);
                                 }
 
-                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success}");
+                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
                             }
 
+                            break;
+                        default:
+                            messages.Add($"Type {identificatorType} not recognized.");
+                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"Type '{identificatorType}' is not recognized.  Filename '{fileName}'");
                             break;
                     }
                 }

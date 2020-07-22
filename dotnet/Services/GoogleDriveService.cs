@@ -493,7 +493,8 @@ namespace DriveImport.Services
                     var response = await client.SendAsync(request);
                     responseContent = await response.Content.ReadAsStringAsync();
 
-                    Console.WriteLine($"MoveFile {response.StatusCode} {responseContent}");
+                    //Console.WriteLine($"MoveFile {response.StatusCode} {responseContent}");
+                    Console.WriteLine($"MoveFile {response.StatusCode}");
 
                     success = response.IsSuccessStatusCode;
                 }
@@ -672,6 +673,7 @@ namespace DriveImport.Services
                     responseContent = await response.Content.ReadAsStringAsync();
 
                     //Console.WriteLine($"RenameFile {response.StatusCode} {responseContent}");
+                    Console.WriteLine($"RenameFile {response.StatusCode}");
 
                     success = response.IsSuccessStatusCode;
                 }

@@ -53,6 +53,8 @@
             bool updated = false;
             int doneCount = 0;
             int errorCount = 0;
+            List<string> doneFileNames = new List<string>();
+            List<string> errorFileNames = new List<string>();
             //TimeSpan timeSpan = new TimeSpan(0, 30, 0);
 
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
@@ -87,7 +89,11 @@
 
             if (relistFolders)
             {
-                _googleDriveService.SetPermission(newFolderId);
+                bool setPermission = await _googleDriveService.SetPermission(newFolderId);
+                if(!setPermission)
+                {
+                    _context.Vtex.Logger.Error("DriveImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
+                }
             }
 
             //Console.WriteLine($"{doneFolderId} {errorFolderId}");
@@ -104,22 +110,38 @@
                         //updated = await _vtexAPIService.ProcessImageFile(file.Name, imageStream);
                         UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
                         updated = updateResponse.Success;
+                        bool moved = false;
                         if (updated)
                         {
                             doneCount++;
-                            await _googleDriveService.MoveFile(file.Id, doneFolderId);
+                            doneFileNames.Add(file.Name);
+                            moved = await _googleDriveService.MoveFile(file.Id, doneFolderId);
+
+                            if (!moved)
+                            {
+                                _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.DONE}'");
+                            }
                         }
                         else
                         {
                             errorCount++;
-                            await _googleDriveService.MoveFile(file.Id, errorFolderId);
+                            errorFileNames.Add(file.Name);
+                            moved = await _googleDriveService.MoveFile(file.Id, errorFolderId);
                             string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
-                            string newFileName = $"{file.Name}-{errorText}";
+                            //string newFileName = $"{file.Name}-{errorText}";
+                            string newFileName = $"{errorText}-{file.Name}";
                             await _googleDriveService.RenameFile(file.Id, newFileName);
+
+                            if (!moved)
+                            {
+                                _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
+                            }
                         }
                     }
                 }
             }
+
+            _context.Vtex.Logger.Info("DriveImport", null, $"Imported {doneCount} image(s).  {errorCount} image(s) not imported.  Done:[{string.Join(" ", doneFileNames)}] Error:[{string.Join(" ", errorFileNames)}]");
 
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json($"Imported {doneCount} image(s).  {errorCount} image(s) not imported.");
