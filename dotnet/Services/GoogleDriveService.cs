@@ -632,5 +632,62 @@ namespace DriveImport.Services
 
             return success;
         }
+
+        public async Task<bool> RenameFile(string fileId, string fileName)
+        {
+            //Console.WriteLine($"Moving {fileId} to folder {folderId}");
+            bool success = false;
+            string responseContent = string.Empty;
+            if (!string.IsNullOrEmpty(fileId) && !string.IsNullOrEmpty(fileName))
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    dynamic metadata = new JObject();
+                    metadata.title = fileName;
+
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
+
+                    Console.WriteLine(jsonSerializedMetadata);
+
+                    //string query = $"addParents '{folderId}' and removeParents 'root'";
+
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Patch,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL_V2}/{DriveImportConstants.GOOGLE_DRIVE_FILES}/{fileId}"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+
+                    //Console.WriteLine($"RenameFile {response.StatusCode} {responseContent}");
+
+                    success = response.IsSuccessStatusCode;
+                }
+                else
+                {
+                    Console.WriteLine("Token error.");
+                    _context.Vtex.Logger.Info("RenameFile", null, "Token error.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Parameter missing.");
+                _context.Vtex.Logger.Info("RenameFile", null, "Parameter missing.");
+            }
+
+            return success;
+        }
     }
 }

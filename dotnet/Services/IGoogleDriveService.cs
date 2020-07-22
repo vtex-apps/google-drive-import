@@ -23,5 +23,6 @@ namespace DriveImport.Services
         Task<bool> MoveFile(string fileId, string folderId);
         Task<byte[]> GetFile(string fileId);
         Task<bool> SetPermission(string fileId);
+        Task<bool> RenameFile(string fileId, string fileName);
     }
 }

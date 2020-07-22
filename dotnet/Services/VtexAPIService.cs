@@ -44,7 +44,7 @@ namespace DriveImport.Services
                 $"{this._environmentVariableProvider.ApplicationVendor}.{this._environmentVariableProvider.ApplicationName}";
         }
 
-        public async Task<bool> UpdateSkuImage(string skuId, string imageName, string imageLabel, bool isMain, string imageUrl)
+        public async Task<UpdateResponse> UpdateSkuImage(string skuId, string imageName, string imageLabel, bool isMain, string imageUrl)
         {
             Console.WriteLine($"UpdateSkuImage '{skuId}' {imageName}");
 
@@ -58,6 +58,7 @@ namespace DriveImport.Services
             //    }
 
             bool success = false;
+            string responseContent = string.Empty;
 
             try
             {
@@ -81,7 +82,7 @@ namespace DriveImport.Services
                     Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                 };
 
-                Console.WriteLine($"RequestUri [{request.RequestUri.ToString()}]");
+                //Console.WriteLine($"RequestUri [{request.RequestUri}]");
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                 //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
@@ -97,7 +98,7 @@ namespace DriveImport.Services
 
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
-                string responseContent = await response.Content.ReadAsStringAsync();
+                responseContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"UpdateSkuImage Response: {response.StatusCode} {responseContent}");
 
                 success = response.IsSuccessStatusCode;
@@ -108,7 +109,13 @@ namespace DriveImport.Services
                 _context.Vtex.Logger.Error("UpdateSkuImage", null, $"Error updating sku '{skuId}' {imageName}", ex);
             }
 
-            return success;
+            UpdateResponse updateResponse = new UpdateResponse
+            {
+                Success = success,
+                Message = responseContent
+            };
+
+            return updateResponse;
         }
 
         public async Task<bool> UpdateSkuImageByFormData(string skuId, string imageName, string imageLabel, bool isMain, byte[] imageStream)
@@ -323,14 +330,17 @@ namespace DriveImport.Services
             return skuIds;
         }
 
-        public async Task<bool> ProcessImageFile(string fileName, string webLink)
+        public async Task<UpdateResponse> ProcessImageFile(string fileName, string webLink)
         {
+            UpdateResponse updateResponse = new UpdateResponse();
+            List<string> messages = new List<string>();
             bool success = false;
             string identificatorType = string.Empty;
             string id = string.Empty;
             string imageName = string.Empty;
             string imageLabel = string.Empty;
             bool isMain = false;
+
 
             // IdentificatorType, Id, ImageName, ImageLabel, Main
             string[] fileNameArr = fileName.Split('.');
@@ -354,12 +364,24 @@ namespace DriveImport.Services
                     switch(identificatorType)
                     {
                         case DriveImportConstants.IdentificatorType.SKU_ID:
-                            success = await this.UpdateSkuImage(id, imageName, imageLabel, isMain, webLink);
+                            updateResponse = await this.UpdateSkuImage(id, imageName, imageLabel, isMain, webLink);
+                            success = updateResponse.Success;
+                            if (!updateResponse.Success)
+                            {
+                                messages.Add(updateResponse.Message);
+                            }
+
                             _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {id} success? {success}");
                             break;
                         case DriveImportConstants.IdentificatorType.SKU_REF_ID:
                             string skuId = await this.GetSkuIdFromReference(id);
-                            success = await this.UpdateSkuImage(skuId, imageName, imageLabel, isMain, webLink);
+                            updateResponse = await this.UpdateSkuImage(skuId, imageName, imageLabel, isMain, webLink);
+                            success = updateResponse.Success;
+                            if (!updateResponse.Success)
+                            {
+                                messages.Add(updateResponse.Message);
+                            }
+
                             _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success}");
                             break;
                         case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
@@ -368,7 +390,13 @@ namespace DriveImport.Services
                             success = true;
                             foreach(string prodRefSku in prodRefSkuIds)
                             {
-                                success &= await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                success &= updateResponse.Success;
+                                if (!updateResponse.Success)
+                                {
+                                    messages.Add(updateResponse.Message);
+                                }
+
                                 _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success}");
                             }
 
@@ -378,7 +406,13 @@ namespace DriveImport.Services
                             success = true;
                             foreach (string sku in skuIds)
                             {
-                                success &= await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                success &= updateResponse.Success;
+                                if (!updateResponse.Success)
+                                {
+                                    messages.Add(updateResponse.Message);
+                                }
+
                                 _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success}");
                             }
 
@@ -387,7 +421,10 @@ namespace DriveImport.Services
                 }
             }
 
-            return success;
+            updateResponse.Success = success;
+            updateResponse.Message = string.Join("-", messages);
+
+            return updateResponse;
         }
 
         public async Task<bool> ProcessImageFile(string fileName, byte[] imageStream)

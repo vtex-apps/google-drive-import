@@ -34,7 +34,7 @@
             this._googleDriveService = googleDriveService ?? throw new ArgumentNullException(nameof(googleDriveService));
             this._vtexAPIService = vtexAPIService ?? throw new ArgumentNullException(nameof(vtexAPIService));
 
-            //DoWork();
+            // DoWork();
         }
 
         public async Task DoWork()
@@ -85,7 +85,11 @@
             string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
             string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
 
-            //_googleDriveService.SetPermission(newFolderId);
+            if (relistFolders)
+            {
+                _googleDriveService.SetPermission(newFolderId);
+            }
+
             //Console.WriteLine($"{doneFolderId} {errorFolderId}");
 
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
@@ -94,11 +98,12 @@
                 foreach (Models.GoogleFile file in imageFiles.Files)
                 {
                     Console.WriteLine($"'{file.Name}' [{file.Id}]");
-                    byte[] imageStream = await _googleDriveService.GetFile(file.Id);
-                    if (imageStream != null)
+                    //byte[] imageStream = await _googleDriveService.GetFile(file.Id);
+                    if (!string.IsNullOrEmpty(file.WebContentLink.ToString()))
                     {
                         //updated = await _vtexAPIService.ProcessImageFile(file.Name, imageStream);
-                        updated = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
+                        UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
+                        updated = updateResponse.Success;
                         if (updated)
                         {
                             doneCount++;
@@ -108,6 +113,9 @@
                         {
                             errorCount++;
                             await _googleDriveService.MoveFile(file.Id, errorFolderId);
+                            string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
+                            string newFileName = $"{file.Name}-{errorText}";
+                            await _googleDriveService.RenameFile(file.Id, newFileName);
                         }
                     }
                 }
