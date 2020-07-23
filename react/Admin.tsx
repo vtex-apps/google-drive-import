@@ -1,3 +1,4 @@
+/* eslint-disable padding-line-between-statements */
 /* eslint-disable no-console */
 import React, { FC, useState, useEffect } from 'react'
 import axios from 'axios'
@@ -12,18 +13,22 @@ import {
 } from 'vtex.styleguide'
 import { injectIntl, FormattedMessage, WrappedComponentProps } from 'react-intl'
 
-const CHECK_URL = '/google-drive-import/have-token'
+const CHECK_URL = '/google-drive-import/owner-email'
+const FETCH_URL = '/google-drive-import/import-images'
+const REVOKE_URL = '/google-drive-import/revoke-token'
+
 let initialCheck = false
 
 const Admin: FC<WrappedComponentProps> = ({ intl }) => {
   const [state, setState] = useState<any>({
     fetching: false,
+    revoking: false,
     fetched: false,
     authorization: null,
     loading: true,
   })
 
-  const { fetching, fetched, authorization, loading } = state
+  const { fetching, revoking, fetched, authorization, loading } = state
 
   const fetch = () => {
     setState({
@@ -31,31 +36,78 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       fetching: true,
     })
 
-    setTimeout(() => {
-      setState({
-        ...state,
-        fetching: false,
-        fetched: true,
+    axios
+      .get(FETCH_URL)
+      .then((response: any) => {
+        console.log('response', response)
+        setState({
+          ...state,
+          fetching: false,
+          fetched: response.data,
+        })
+        setTimeout(() => {
+          setState({
+            ...state,
+            fetching: false,
+            fetched: false,
+          })
+        }, 5000)
       })
-    }, 3000)
+      .catch(() => {
+        setState({
+          ...state,
+          fetching: false,
+          fetched: false,
+        })
+      })
+  }
 
-    setTimeout(() => {
-      setState({
-        ...state,
-        fetching: false,
-        fetched: false,
+  const revoke = () => {
+    setState({
+      ...state,
+      revoking: true,
+    })
+
+    axios
+      .get(REVOKE_URL)
+      .then(() => {
+        setState({
+          ...state,
+          revoking: false,
+          authorization: null,
+        })
       })
-    }, 10000)
+      .catch(() => {
+        setState({
+          ...state,
+          revoking: false,
+        })
+      })
   }
 
   useEffect(() => {
     if (!initialCheck) {
       initialCheck = true
-      axios.get(CHECK_URL).then((response: any) => {
-        setState({ ...state, loading: false, authorization: response.data })
-      })
+      axios
+        .get(CHECK_URL)
+        .then((response: any) => {
+          console.log('response', response)
+          setState({
+            ...state,
+            loading: false,
+            authorization: response.data,
+          })
+        })
+        .catch(() => {
+          setState({
+            ...state,
+            loading: false,
+          })
+        })
     }
   })
+
+  console.log('authorization', authorization)
 
   return (
     <Layout
@@ -76,32 +128,23 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         {authorization && (
           <div className="flex">
             <div className="w-40">
-              {fetching && (
-                <div className="pv6">
-                  <Spinner />
+              <p>
+                <FormattedMessage id="admin/google-drive-import.connected.text" />{' '}
+                <div className="mt4">
+                  <Button
+                    variation="primary"
+                    collapseLeft
+                    isLoading={fetching}
+                    onClick={() => {
+                      fetch()
+                    }}
+                  >
+                    <FormattedMessage id="admin/google-drive-import.fetch.button" />
+                  </Button>
                 </div>
-              )}
-              {!fetching && !fetched && (
-                <p>
-                  <FormattedMessage id="admin/google-drive-import.connected.text" />{' '}
-                  <div className="mt4">
-                    <Button
-                      variation="primary"
-                      collapseLeft
-                      onClick={() => {
-                        fetch()
-                      }}
-                    >
-                      <FormattedMessage id="admin/google-drive-import.fetch.button" />
-                    </Button>
-                  </div>
-                </p>
-              )}
-              {!fetching && fetched && (
-                <p>
-                  <FormattedMessage id="admin/google-drive-import.fetched.text" />{' '}
-                </p>
-              )}
+              </p>
+
+              {!fetching && fetched && <p>{`${fetched}`}</p>}
             </div>
             <div
               style={{ flexGrow: 1 }}
@@ -112,11 +155,15 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
             <div className="w-40">
               <p>
                 <FormattedMessage id="admin/google-drive-import.connected-as" />{' '}
-                {' {email} '}
+                <strong>{`${authorization}`}</strong>
                 <div className="mt4">
                   <Button
                     variation="danger-tertiary"
                     size="regular"
+                    isLoading={revoking}
+                    onClick={() => {
+                      revoke()
+                    }}
                     collapseLeft
                   >
                     <FormattedMessage id="admin/google-drive-import.disconnect.button" />
