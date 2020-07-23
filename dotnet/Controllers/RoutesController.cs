@@ -293,20 +293,27 @@
         public async Task<IActionResult> GetOwnerEmail()
         {
             string email = null;
-            Token token = await _googleDriveService.GetGoogleToken();
-            if (token != null && !string.IsNullOrEmpty(token.RefreshToken))
+            try
             {
-                Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
-                string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
-                ListFilesResponse listFilesResponse = await _googleDriveService.ListFiles();
-                if (listFilesResponse != null)
+                Token token = await _googleDriveService.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.RefreshToken))
                 {
-                    var owners = listFilesResponse.Files.Where(f => f.Id.Equals(newFolderId)).Select(o => o.Owners.Distinct()).FirstOrDefault();
-                    if (owners != null)
+                    Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
+                    string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+                    ListFilesResponse listFilesResponse = await _googleDriveService.ListFiles();
+                    if (listFilesResponse != null)
                     {
-                        email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+                        var owners = listFilesResponse.Files.Where(f => f.Id.Equals(newFolderId)).Select(o => o.Owners.Distinct()).FirstOrDefault();
+                        if (owners != null)
+                        {
+                            email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+                        }
                     }
                 }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"{ex.Message}");
             }
 
             Response.Headers.Add("Cache-Control", "no-cache");
