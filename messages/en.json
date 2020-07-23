@@ -2,5 +2,10 @@
   "admin/google-drive-import.title": "Google Drive Import",
   "admin/google-drive-import.setup.title": "Setup",
   "admin/google-drive-import.setup.description": "Please click the button below to grant this app access to your Google Drive.",
+  "admin/google-drive-import.connected.text": "Everything is set, click the button bellow to fetch new images from the connected account",
+  "admin/google-drive-import.fetch.button": "Fetch new images",
+  "admin/google-drive-import.fetched.text": "All new images will be updated shortly",
+  "admin/google-drive-import.connected-as": "Connected to the account ",
+  "admin/google-drive-import.disconnect.button": "Disconnect",
   "admin/google-drive-import.setup.button": "Grant Access"
 }
