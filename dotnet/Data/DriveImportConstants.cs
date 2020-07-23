@@ -37,6 +37,7 @@ namespace DriveImport.Data
         public const string GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/auth";
         public const string GOOGLE_TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
         public const string GOOGLE_SCOPE = "https://www.googleapis.com/auth/drive";
+        public const string GOOGLE_AUTHORIZATION_REVOKE = "https://oauth2.googleapis.com/revoke";
         public const string GOOGLE_REPONSE_TYPE = "code";
         public const string GOOGLE_ACCESS_TYPE = "offline";
         public const string REDIRECT_SITE_BASE = "https://brian--sandboxusdev.myvtex.com";

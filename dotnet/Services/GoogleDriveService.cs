@@ -151,6 +151,50 @@ namespace DriveImport.Services
             return tokenObj;
         }
 
+        public async Task<bool> RevokeGoogleAuthorizationToken()
+        {
+            bool success = false;
+
+            Token token = await _driveImportRepository.LoadToken();
+
+            if (token != null && string.IsNullOrEmpty(token.AccessToken))
+            {
+                Console.WriteLine("Token Empty");
+                _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, "Token Empty");
+            }
+            else
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Post,
+                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_AUTHORIZATION_REVOKE}?token={token.AccessToken}"),
+                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
+                };
+
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"RevokeGoogleAuthorizationToken = {responseContent}");
+                if (response.IsSuccessStatusCode)
+                {
+                    success = true;
+                }
+                else
+                {
+                    _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                }
+            }
+
+            return success;
+        }
+
         public async Task<bool> ProcessReturn(string code)
         {
             Token token = await this.GetGoogleAuthorizationToken(code);

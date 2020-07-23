@@ -47,6 +47,10 @@
     "getOwnerEmail": {
       "path": "/google-drive-import/owner-email",
       "public": true
+    },
+    "revokeToken": {
+      "path": "/google-drive-import/revoke-token",
+      "public": true
     }
   },
   "events": {

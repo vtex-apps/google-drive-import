@@ -320,6 +320,14 @@
             return Json(email);
         }
 
+        public async Task<IActionResult> RevokeToken()
+        {
+            bool success = false;
+            success = await _googleDriveService.RevokeGoogleAuthorizationToken();
+            Response.Headers.Add("Cache-Control", "no-cache");
+            return Json(success);
+        }
+
         public string PrintHeaders()
         {
             string headers = "--->>> Headers <<<---\n";
