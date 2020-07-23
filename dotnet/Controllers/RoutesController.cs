@@ -285,16 +285,30 @@
         public async Task<IActionResult> GetOwners()
         {
             ListFilesResponse listFilesResponse = await _googleDriveService.ListFiles();
-            var owners = listFilesResponse.Files.Select(o => o.Owners.Distinct()).FirstOrDefault();
+            var owners = listFilesResponse.Files.Select(o => o.Owners.Distinct());
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json(owners);
         }
 
         public async Task<IActionResult> GetOwnerEmail()
         {
-            ListFilesResponse listFilesResponse = await _googleDriveService.ListFiles();
-            var owners = listFilesResponse.Files.Select(o => o.Owners.Distinct()).FirstOrDefault();
-            string email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+            string email = null;
+            Token token = await _googleDriveService.GetGoogleToken();
+            if (token != null && !string.IsNullOrEmpty(token.RefreshToken))
+            {
+                Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
+                string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+                ListFilesResponse listFilesResponse = await _googleDriveService.ListFiles();
+                if (listFilesResponse != null)
+                {
+                    var owners = listFilesResponse.Files.Where(f => f.Id.Equals(newFolderId)).Select(o => o.Owners.Distinct()).FirstOrDefault();
+                    if (owners != null)
+                    {
+                        email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+                    }
+                }
+            }
+
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json(email);
         }
