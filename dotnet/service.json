@@ -39,6 +39,14 @@
     "haveToken": {
       "path": "/google-drive-import/have-token",
       "public": true
+    },
+    "getOwners": {
+      "path": "/google-drive-import/list-owners",
+      "public": true
+    },
+    "getOwnerEmail": {
+      "path": "/google-drive-import/owner-email",
+      "public": true
     }
   },
   "events": {

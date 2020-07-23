@@ -191,8 +191,9 @@ namespace DriveImport.Services
             return token;
         }
 
-        public async Task<string> ListFiles()
+        public async Task<ListFilesResponse> ListFiles()
         {
+            ListFilesResponse listFilesResponse = new ListFilesResponse();
             string responseContent = string.Empty;
             Token token = await this.GetGoogleToken();
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
@@ -218,7 +219,7 @@ namespace DriveImport.Services
 
                 if(response.IsSuccessStatusCode)
                 {
-                    ListFilesResponse listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
                 }
             }
             else
@@ -227,7 +228,7 @@ namespace DriveImport.Services
                 _context.Vtex.Logger.Info("ListFiles", null, "Token error.");
             }
 
-            return responseContent;
+            return listFilesResponse;
         }
 
         public async Task<Dictionary<string,string>> ListFolders()

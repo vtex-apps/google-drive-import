@@ -157,6 +157,9 @@
 
             string code = _httpContextAccessor.HttpContext.Request.Query["code"];
             string siteUrl = _httpContextAccessor.HttpContext.Request.Query["state"];
+
+            _context.Vtex.Logger.Info("ProcessReturnUrl", null, $"site=[{siteUrl}]");
+
             if (string.IsNullOrEmpty(siteUrl))
             {
                 return BadRequest();
@@ -178,12 +181,16 @@
             }
 
             string code = _httpContextAccessor.HttpContext.Request.Query["code"];
+
+            _context.Vtex.Logger.Info("ProcessReturnCode", null, $"code=[{code}]");
+
             if (!string.IsNullOrEmpty(code))
             {
                 success = await _googleDriveService.ProcessReturn(code);
             }
 
             string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
+
             return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}");
         }
 
@@ -205,18 +212,18 @@
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
                 string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-                Console.WriteLine($"[Credentials] : '{bodyAsText}'");
+                //Console.WriteLine($"[Credentials] : '{bodyAsText}'");
                 Credentials credentials = JsonConvert.DeserializeObject<Credentials>(bodyAsText);
 
                 await _googleDriveService.SaveCredentials(credentials);
             }
         }
 
-        public async Task<string> ListFiles()
+        public async Task<IActionResult> ListFiles()
         {
             Console.WriteLine("ListFiles.........");
             Response.Headers.Add("Cache-Control", "no-cache");
-            return await _googleDriveService.ListFiles();
+            return Json(await _googleDriveService.ListFiles());
         }
 
         public async Task<IActionResult> ListImages()
@@ -273,6 +280,23 @@
         {
             Token token = await _googleDriveService.GetGoogleToken();
             return token != null && !string.IsNullOrEmpty(token.RefreshToken);
+        }
+
+        public async Task<IActionResult> GetOwners()
+        {
+            ListFilesResponse listFilesResponse = await _googleDriveService.ListFiles();
+            var owners = listFilesResponse.Files.Select(o => o.Owners.Distinct()).FirstOrDefault();
+            Response.Headers.Add("Cache-Control", "no-cache");
+            return Json(owners);
+        }
+
+        public async Task<IActionResult> GetOwnerEmail()
+        {
+            ListFilesResponse listFilesResponse = await _googleDriveService.ListFiles();
+            var owners = listFilesResponse.Files.Select(o => o.Owners.Distinct()).FirstOrDefault();
+            string email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+            Response.Headers.Add("Cache-Control", "no-cache");
+            return Json(email);
         }
 
         public string PrintHeaders()
