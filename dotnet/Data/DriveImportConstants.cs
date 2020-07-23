@@ -38,12 +38,14 @@ namespace DriveImport.Data
         public const string GOOGLE_TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
         public const string GOOGLE_SCOPE = "https://www.googleapis.com/auth/drive";
         public const string GOOGLE_AUTHORIZATION_REVOKE = "https://oauth2.googleapis.com/revoke";
+        public const string GOOGLE_WATCH = "https://www.googleapis.com/drive/v3/changes/watch";
         public const string GOOGLE_REPONSE_TYPE = "code";
         public const string GOOGLE_ACCESS_TYPE = "offline";
         public const string REDIRECT_SITE_BASE = "https://brian--sandboxusdev.myvtex.com";
         public const string REDIRECT_PATH = "return";
 
         public const string ADMIN_PAGE = "admin/google-drive-import";
+        public const string WATCH_ENDPOINT = "google-drive-import/watch-notification";
 
         public const string GOOGLE_DRIVE_URL = "https://www.googleapis.com/drive/v3";
         public const string GOOGLE_DRIVE_URL_V2 = "https://www.googleapis.com/drive/v2";
@@ -51,6 +53,8 @@ namespace DriveImport.Data
 
         public const string GRANT_TYPE_AUTH = "authorization_code";
         public const string GRANT_TYPE_REFRESH = "refresh_token";
+        public const string WATCH_KIND = "api#channel";
+        public const string WATCH_TYPE = "web_hook";
 
         public const string DATA_ENTITY = "DriveImport";
         public const string SCHEMA = "DriveImport";

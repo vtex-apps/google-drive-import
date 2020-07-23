@@ -189,9 +189,50 @@
                 success = await _googleDriveService.ProcessReturn(code);
             }
 
+            Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
+
+            bool relistFolders = false;
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
+            {
+                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW);
+            }
+
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
+            {
+                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE);
+            }
+
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
+            {
+                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR);
+            }
+
+            if (relistFolders)
+            {
+                folders = await _googleDriveService.ListFolders();
+            }
+
+            //ListFilesResponse imageFiles = await _googleDriveService.ListImages();
+            Dictionary<string, string> images = new Dictionary<string, string>();
+
+            string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+            string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
+            string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+
+            if (relistFolders)
+            {
+                bool setPermission = await _googleDriveService.SetPermission(newFolderId);
+                if (!setPermission)
+                {
+                    _context.Vtex.Logger.Error("DriveImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
+                }
+            }
+
+            bool watch = await _googleDriveService.SetWatch(newFolderId);
+
             string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
 
-            return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}");
+            return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}");
         }
 
         public async Task<IActionResult> GoogleAuthorize()
@@ -326,6 +367,28 @@
             success = await _googleDriveService.RevokeGoogleAuthorizationToken();
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json(success);
+        }
+
+        public async Task<IActionResult> SetWatch()
+        {
+            Console.WriteLine("SetWatch.........");
+            Response.Headers.Add("Cache-Control", "no-cache");
+            //return Json(await _googleDriveService.SetWatch());
+            Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
+            string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+            return Json(await _googleDriveService.SetWatch(newFolderId));
+        }
+
+        public async Task ProcessChange()
+        {
+            Console.WriteLine("ProcessChange.........");
+            if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
+            {
+                string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+                //Console.WriteLine($"[Credentials] : '{bodyAsText}'");
+                GoogleWatch watch = JsonConvert.DeserializeObject<GoogleWatch>(bodyAsText);
+                Console.WriteLine($"Watch: {bodyAsText}");
+            }
         }
 
         public string PrintHeaders()

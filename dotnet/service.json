@@ -51,6 +51,14 @@
     "revokeToken": {
       "path": "/google-drive-import/revoke-token",
       "public": true
+    },
+    "setWatch": {
+      "path": "/google-drive-import/set-watch",
+      "public": true
+    },
+    "processChange": {
+      "path": "/google-drive-import/watch-notification",
+      "public": true
     }
   },
   "events": {

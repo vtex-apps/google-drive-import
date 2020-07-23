@@ -14,6 +14,8 @@ namespace DriveImport.Services
         Task<bool> ProcessReturn(string code);
         Task SaveCredentials(Credentials credentials);
         Task<Token> GetGoogleToken();
+        Task<bool> SetWatch();
+        Task<bool> SetWatch(string fileId);
 
         Task<ListFilesResponse> ListFiles();
         Task<ListFilesResponse> ListImagesInRootFolder();

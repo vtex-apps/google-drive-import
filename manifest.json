@@ -91,6 +91,13 @@
         "path": "/file/*"
       }
     },
+	{
+      "name": "outbound-access",
+      "attrs": {
+        "host": "www.googleapis.com",
+        "path": "/drive/v3/changes/watch"
+      }
+    },
     {
       "name": "vbase-read-write"
     }
