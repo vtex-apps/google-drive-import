@@ -265,6 +265,11 @@ namespace DriveImport.Services
                 {
                     listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
                 }
+                else
+                {
+                    Console.WriteLine($"ListFiles {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("ListFiles", null, $"[{response.StatusCode}] {responseContent}");
+                }
             }
             else
             {
@@ -311,6 +316,11 @@ namespace DriveImport.Services
                         folders.Add(folder.Id, folder.Name);
                     }
                 }
+                else
+                {
+                    Console.WriteLine($"ListFolders {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("ListFolders", null, $"[{response.StatusCode}] {responseContent}");
+                }
             }
             else
             {
@@ -353,6 +363,11 @@ namespace DriveImport.Services
                 {
                     listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
                 }
+                else
+                {
+                    Console.WriteLine($"ListImages {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("ListImages", null, $"[{response.StatusCode}] {responseContent}");
+                }
             }
             else
             {
@@ -391,11 +406,14 @@ namespace DriveImport.Services
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
 
-                //Console.WriteLine($"ListImagesInFolder: [{response.StatusCode}] '{responseContent}'");
-
                 if (response.IsSuccessStatusCode)
                 {
                     listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                }
+                else
+                {
+                    Console.WriteLine($"ListImagesInRootFolder {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("ListImagesInRootFolder", null, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
@@ -435,11 +453,14 @@ namespace DriveImport.Services
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
 
-                //Console.WriteLine($"ListImagesInFolder: [{response.StatusCode}] '{responseContent}'");
-
                 if (response.IsSuccessStatusCode)
                 {
                     listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                }
+                else
+                {
+                    Console.WriteLine($"ListImagesInFolder {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("ListImagesInFolder", null, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
@@ -486,7 +507,12 @@ namespace DriveImport.Services
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"CreateFolder '{folderName}': {responseContent}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"CreateFolder {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("CreateFolder", null, $"[{response.StatusCode}] {responseContent}");
+                }
+                
                 success = response.IsSuccessStatusCode;
             }
             else
@@ -500,7 +526,6 @@ namespace DriveImport.Services
 
         public async Task<bool> MoveFile(string fileId, string folderId)
         {
-            //Console.WriteLine($"Moving {fileId} to folder {folderId}");
             bool success = false;
             string responseContent = string.Empty;
             if (!string.IsNullOrEmpty(fileId) && !string.IsNullOrEmpty(folderId))
@@ -508,16 +533,10 @@ namespace DriveImport.Services
                 Token token = await this.GetGoogleToken();
                 if (token != null && !string.IsNullOrEmpty(token.AccessToken))
                 {
-                    //List<string> parents = new List<string> { folderId };
                     dynamic metadata = new JObject();
-                    //metadata.parents = JToken.FromObject(parents);
                     metadata.id = folderId;
 
                     var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
-
-                    Console.WriteLine(jsonSerializedMetadata);
-
-                    //string query = $"addParents '{folderId}' and removeParents 'root'";
 
                     var request = new HttpRequestMessage
                     {
@@ -538,8 +557,11 @@ namespace DriveImport.Services
                     var response = await client.SendAsync(request);
                     responseContent = await response.Content.ReadAsStringAsync();
 
-                    //Console.WriteLine($"MoveFile {response.StatusCode} {responseContent}");
-                    Console.WriteLine($"MoveFile {response.StatusCode}");
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"MoveFile {response.StatusCode} {responseContent}");
+                        _context.Vtex.Logger.Info("MoveFile", null, $"[{response.StatusCode}] {responseContent}");
+                    }
 
                     success = response.IsSuccessStatusCode;
                 }
@@ -585,18 +607,12 @@ namespace DriveImport.Services
 
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
-                    //responseContent = await response.Content.ReadAsStringAsync();
 
-                    Console.WriteLine($"GetFile {response.StatusCode}");
-                    //foreach (var header in response.Headers)
-                    //{
-                    //    Console.WriteLine($"GetFile Header [{ header.Key} : { header.Value.FirstOrDefault()}]");
-                    //}
-
-                    //foreach (var header in response.Content.Headers)
-                    //{
-                    //    Console.WriteLine($"GetFile Content [{ header.Key} : { header.Value.FirstOrDefault()}]");
-                    //}
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"GetFile {response.StatusCode} {responseContent}");
+                        _context.Vtex.Logger.Info("GetFile", null, $"[{response.StatusCode}] {responseContent}");
+                    }
 
                     contentStream = await response.Content.ReadAsStreamAsync();
                     contentByteArray = await response.Content.ReadAsByteArrayAsync();
@@ -660,7 +676,11 @@ namespace DriveImport.Services
                     var response = await client.SendAsync(request);
                     responseContent = await response.Content.ReadAsStringAsync();
 
-                    Console.WriteLine($"SetPermission {response.StatusCode} {responseContent}");
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"SetPermission {response.StatusCode} {responseContent}");
+                        _context.Vtex.Logger.Info("SetPermission", null, $"[{response.StatusCode}] {responseContent}");
+                    }
 
                     success = response.IsSuccessStatusCode;
                 }
@@ -741,7 +761,7 @@ namespace DriveImport.Services
         {
             bool success = false;
             string responseContent = string.Empty;
-                Token token = await this.GetGoogleToken();
+            Token token = await this.GetGoogleToken();
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
                 string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
@@ -766,8 +786,6 @@ namespace DriveImport.Services
 
                 request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
 
-                //Console.WriteLine($"{token.TokenType} {token.AccessToken}");
-
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
                 if (authToken != null)
                 {
@@ -778,8 +796,11 @@ namespace DriveImport.Services
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"SetWatch {response.StatusCode} {responseContent}");
-                //Console.WriteLine($"SetWatch {response.StatusCode}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"SetWatch {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                }
 
                 success = response.IsSuccessStatusCode;
             }
@@ -833,8 +854,11 @@ namespace DriveImport.Services
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"SetWatch {response.StatusCode} {responseContent}");
-                //Console.WriteLine($"SetWatch {response.StatusCode}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"SetWatch {response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                }
 
                 success = response.IsSuccessStatusCode;
             }
