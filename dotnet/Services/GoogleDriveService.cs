@@ -267,13 +267,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"ListFiles {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("ListFiles", null, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("ListFiles", null, "Token error.");
             }
 
@@ -318,13 +316,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"ListFolders {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("ListFolders", null, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("ListFolders", null, "Token error.");
             }
 
@@ -365,13 +361,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"ListImages {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("ListImages", null, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("ListImages", null, "Token error.");
             }
 
@@ -412,13 +406,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"ListImagesInRootFolder {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("ListImagesInRootFolder", null, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("ListImagesInRootFolder", null, "Token error.");
             }
 
@@ -459,13 +451,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"ListImagesInFolder {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("ListImagesInFolder", null, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("ListImagesInFolder", null, "Token error.");
             }
 
@@ -509,7 +499,6 @@ namespace DriveImport.Services
                 responseContent = await response.Content.ReadAsStringAsync();
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"CreateFolder {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("CreateFolder", null, $"[{response.StatusCode}] {responseContent}");
                 }
                 
@@ -517,7 +506,6 @@ namespace DriveImport.Services
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("CreateFolder", null, "Token error.");
             }
 
@@ -559,7 +547,6 @@ namespace DriveImport.Services
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine($"MoveFile {response.StatusCode} {responseContent}");
                         _context.Vtex.Logger.Info("MoveFile", null, $"[{response.StatusCode}] {responseContent}");
                     }
 
@@ -567,13 +554,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine("Token error.");
                     _context.Vtex.Logger.Info("MoveFile", null, "Token error.");
                 }
             }
             else
             {
-                Console.WriteLine("Parameter missing.");
                 _context.Vtex.Logger.Info("MoveFile", null, "Parameter missing.");
             }
 
@@ -610,7 +595,6 @@ namespace DriveImport.Services
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine($"GetFile {response.StatusCode} {responseContent}");
                         _context.Vtex.Logger.Info("GetFile", null, $"[{response.StatusCode}] {responseContent}");
                     }
 
@@ -621,13 +605,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine("Token error.");
                     _context.Vtex.Logger.Info("GetFile", null, "Token error.");
                 }
             }
             else
             {
-                Console.WriteLine("Parameer missing.");
                 _context.Vtex.Logger.Info("GetFile", null, "Parameer missing.");
             }
 
@@ -636,7 +618,6 @@ namespace DriveImport.Services
 
         public async Task<bool> SetPermission(string fileId)
         {
-            //Console.WriteLine($"Moving {fileId} to folder {folderId}");
             bool success = false;
             string responseContent = string.Empty;
             if (!string.IsNullOrEmpty(fileId))
@@ -644,17 +625,11 @@ namespace DriveImport.Services
                 Token token = await this.GetGoogleToken();
                 if (token != null && !string.IsNullOrEmpty(token.AccessToken))
                 {
-                    //List<string> parents = new List<string> { folderId };
                     dynamic metadata = new JObject();
-                    //metadata.parents = JToken.FromObject(parents);
                     metadata.type = "anyone";
                     metadata.role = "reader";
 
                     var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
-
-                    Console.WriteLine(jsonSerializedMetadata);
-
-                    //string query = $"addParents '{folderId}' and removeParents 'root'";
 
                     // POST https://www.googleapis.com/drive/v3/files/fileId/permissions
                     var request = new HttpRequestMessage
@@ -678,7 +653,6 @@ namespace DriveImport.Services
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine($"SetPermission {response.StatusCode} {responseContent}");
                         _context.Vtex.Logger.Info("SetPermission", null, $"[{response.StatusCode}] {responseContent}");
                     }
 
@@ -686,13 +660,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine("Token error.");
                     _context.Vtex.Logger.Info("SetPermission", null, "Token error.");
                 }
             }
             else
             {
-                Console.WriteLine("Parameter missing.");
                 _context.Vtex.Logger.Info("MoveFile", null, "Parameter missing.");
             }
 
@@ -701,7 +673,6 @@ namespace DriveImport.Services
 
         public async Task<bool> RenameFile(string fileId, string fileName)
         {
-            //Console.WriteLine($"Moving {fileId} to folder {folderId}");
             bool success = false;
             string responseContent = string.Empty;
             if (!string.IsNullOrEmpty(fileId) && !string.IsNullOrEmpty(fileName))
@@ -713,10 +684,6 @@ namespace DriveImport.Services
                     metadata.title = fileName;
 
                     var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
-
-                    Console.WriteLine(jsonSerializedMetadata);
-
-                    //string query = $"addParents '{folderId}' and removeParents 'root'";
 
                     var request = new HttpRequestMessage
                     {
@@ -737,20 +704,15 @@ namespace DriveImport.Services
                     var response = await client.SendAsync(request);
                     responseContent = await response.Content.ReadAsStringAsync();
 
-                    //Console.WriteLine($"RenameFile {response.StatusCode} {responseContent}");
-                    Console.WriteLine($"RenameFile {response.StatusCode}");
-
                     success = response.IsSuccessStatusCode;
                 }
                 else
                 {
-                    Console.WriteLine("Token error.");
                     _context.Vtex.Logger.Info("RenameFile", null, "Token error.");
                 }
             }
             else
             {
-                Console.WriteLine("Parameter missing.");
                 _context.Vtex.Logger.Info("RenameFile", null, "Parameter missing.");
             }
 
@@ -775,8 +737,6 @@ namespace DriveImport.Services
 
                 var jsonSerializedMetadata = JsonConvert.SerializeObject(watchRequest);
 
-                Console.WriteLine(jsonSerializedMetadata);
-
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Post,
@@ -798,7 +758,6 @@ namespace DriveImport.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"SetWatch {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
                 }
 
@@ -806,7 +765,6 @@ namespace DriveImport.Services
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("SetWatch", null, "Token error.");
             }
 
@@ -831,8 +789,6 @@ namespace DriveImport.Services
 
                 var jsonSerializedMetadata = JsonConvert.SerializeObject(watchRequest);
 
-                Console.WriteLine(jsonSerializedMetadata);
-
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Post,
@@ -841,8 +797,6 @@ namespace DriveImport.Services
                 };
 
                 request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
-
-                //Console.WriteLine($"{token.TokenType} {token.AccessToken}");
 
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
                 if (authToken != null)
@@ -856,7 +810,6 @@ namespace DriveImport.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"SetWatch {response.StatusCode} {responseContent}");
                     _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
                 }
 
@@ -864,7 +817,6 @@ namespace DriveImport.Services
             }
             else
             {
-                Console.WriteLine("Token error.");
                 _context.Vtex.Logger.Info("SetWatch", null, "Token error.");
             }
 

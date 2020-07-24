@@ -33,19 +33,6 @@
             this._clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
             this._googleDriveService = googleDriveService ?? throw new ArgumentNullException(nameof(googleDriveService));
             this._vtexAPIService = vtexAPIService ?? throw new ArgumentNullException(nameof(vtexAPIService));
-
-            // DoWork();
-        }
-
-        public async Task DoWork()
-        {
-            Console.WriteLine("DoWork Init");
-            TimeSpan timeSpan = new TimeSpan(0, 5, 0);
-            for (int i = 0; i < 5; i++)
-            {
-                Console.WriteLine($"------------------>>>>>>>>>>>>>>>>> {i} <<<<<<<<<<<<<<<<<<<<<----------------------------");
-                await Task.Delay(timeSpan);
-            }
         }
 
         public async Task<IActionResult> DriveImport()
@@ -96,18 +83,13 @@
                 }
             }
 
-            //Console.WriteLine($"{doneFolderId} {errorFolderId}");
-
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
             if (imageFiles != null)
             {
-                foreach (Models.GoogleFile file in imageFiles.Files)
+                foreach (GoogleFile file in imageFiles.Files)
                 {
-                    Console.WriteLine($"'{file.Name}' [{file.Id}]");
-                    //byte[] imageStream = await _googleDriveService.GetFile(file.Id);
                     if (!string.IsNullOrEmpty(file.WebContentLink.ToString()))
                     {
-                        //updated = await _vtexAPIService.ProcessImageFile(file.Name, imageStream);
                         UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
                         updated = updateResponse.Success;
                         bool moved = false;
@@ -128,7 +110,6 @@
                             errorFileNames.Add(file.Name);
                             moved = await _googleDriveService.MoveFile(file.Id, errorFolderId);
                             string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
-                            //string newFileName = $"{file.Name}-{errorText}";
                             string newFileName = $"{errorText}-{file.Name}";
                             await _googleDriveService.RenameFile(file.Id, newFileName);
 
@@ -149,12 +130,6 @@
 
         public async Task<IActionResult> ProcessReturnUrl()
         {
-            Console.WriteLine("ProcessReturnUrl");
-            foreach (string key in _httpContextAccessor.HttpContext.Request.Query.Keys)
-            {
-                Console.WriteLine($"-]|[- {key} = {_httpContextAccessor.HttpContext.Request.Query[key]}");
-            }
-
             string code = _httpContextAccessor.HttpContext.Request.Query["code"];
             string siteUrl = _httpContextAccessor.HttpContext.Request.Query["state"];
 
@@ -174,11 +149,6 @@
         public async Task<IActionResult> ProcessReturnCode()
         {
             bool success = false;
-            Console.WriteLine("ProcessReturnCode");
-            foreach (string key in _httpContextAccessor.HttpContext.Request.Query.Keys)
-            {
-                Console.WriteLine($"-]|[- {key} = {_httpContextAccessor.HttpContext.Request.Query[key]}");
-            }
 
             string code = _httpContextAccessor.HttpContext.Request.Query["code"];
 
@@ -253,7 +223,6 @@
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
                 string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-                //Console.WriteLine($"[Credentials] : '{bodyAsText}'");
                 Credentials credentials = JsonConvert.DeserializeObject<Credentials>(bodyAsText);
 
                 await _googleDriveService.SaveCredentials(credentials);
@@ -262,14 +231,12 @@
 
         public async Task<IActionResult> ListFiles()
         {
-            Console.WriteLine("ListFiles.........");
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json(await _googleDriveService.ListFiles());
         }
 
         public async Task<IActionResult> ListImages()
         {
-            Console.WriteLine("ListImages.........");
             Response.Headers.Add("Cache-Control", "no-cache");
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
@@ -299,20 +266,8 @@
 
             string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
 
-            //ListFilesResponse imageFiles = await _googleDriveService.ListImages();
             Dictionary<string, string> images = new Dictionary<string, string>();
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
-            //if (imageFiles != null)
-            //{
-            //    string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
-            //    string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
-            //    Console.WriteLine($"{doneFolderId} {errorFolderId}");
-            //    foreach (Models.File file in imageFiles.Files)
-            //    {
-            //        Console.WriteLine($"{file.Name} {file.WebViewLink}");
-            //        await _googleDriveService.MoveFile(file.Id, doneFolderId);
-            //    }
-            //}
 
             return Json(imageFiles);
         }
@@ -371,9 +326,7 @@
 
         public async Task<IActionResult> SetWatch()
         {
-            Console.WriteLine("SetWatch.........");
             Response.Headers.Add("Cache-Control", "no-cache");
-            //return Json(await _googleDriveService.SetWatch());
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
             string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
             return Json(await _googleDriveService.SetWatch(newFolderId));
@@ -381,11 +334,9 @@
 
         public async Task ProcessChange()
         {
-            Console.WriteLine("ProcessChange.........");
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
                 string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-                //Console.WriteLine($"[Credentials] : '{bodyAsText}'");
                 GoogleWatch watch = JsonConvert.DeserializeObject<GoogleWatch>(bodyAsText);
                 Console.WriteLine($"Watch: {bodyAsText}");
             }

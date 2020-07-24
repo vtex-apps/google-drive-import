@@ -61,9 +61,9 @@ namespace DriveImport.Data
 
         public class FolderNames
         {
-            public const string NEW = "New";
-            public const string ERROR = "Error";
-            public const string DONE = "Done";
+            public const string NEW = "VTEX Import - New";
+            public const string ERROR = "VTEX Import - Error";
+            public const string DONE = "VTEX Import - Done";
         }
 
         public class IdentificatorType

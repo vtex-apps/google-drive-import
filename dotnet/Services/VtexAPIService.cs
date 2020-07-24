@@ -46,8 +46,6 @@ namespace DriveImport.Services
 
         public async Task<UpdateResponse> UpdateSkuImage(string skuId, string imageName, string imageLabel, bool isMain, string imageUrl)
         {
-            Console.WriteLine($"UpdateSkuImage '{skuId}' {imageName}");
-
             //POST https://{{accountName}}.vtexcommercestable.com.br/api/catalog/pvt/stockkeepingunit/{{skuId}}/file
             //    {
             //                    "IsMain": true,
@@ -79,8 +77,6 @@ namespace DriveImport.Services
 
                     string jsonSerializedData = JsonConvert.SerializeObject(imageUpdate);
 
-                    Console.WriteLine($"jsonSerializedData = {jsonSerializedData}");
-
                     var request = new HttpRequestMessage
                     {
                         Method = HttpMethod.Post,
@@ -88,13 +84,8 @@ namespace DriveImport.Services
                         Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                     };
 
-                    //Console.WriteLine($"RequestUri [{request.RequestUri}]");
-
                     request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-                    //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
-                    //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
                     string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                    //Console.WriteLine($"Token = '{authToken}'");
                     if (authToken != null)
                     {
                         request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
@@ -105,13 +96,11 @@ namespace DriveImport.Services
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
                     responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"UpdateSkuImage Response: {response.StatusCode} {responseContent}");
 
                     success = response.IsSuccessStatusCode;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"UpdateSkuImage Error: {ex.Message}");
                     _context.Vtex.Logger.Error("UpdateSkuImage", null, $"Error updating sku '{skuId}' {imageName}", ex);
                 }
             }
@@ -127,8 +116,6 @@ namespace DriveImport.Services
 
         public async Task<bool> UpdateSkuImageByFormData(string skuId, string imageName, string imageLabel, bool isMain, byte[] imageStream)
         {
-            Console.WriteLine($"UpdateSkuImageByFormData '{skuId}' {imageName}");
-
             //POST https://{{accountName}}.vtexcommercestable.com.br/api/catalog/pvt/stockkeepingunit/{{skuId}}/file
             //    {
             //                    "IsMain": true,
@@ -161,10 +148,7 @@ namespace DriveImport.Services
 
                 request.Headers.Add(DriveImportConstants.ACCEPT, DriveImportConstants.APPLICATION_JSON);
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-                //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
-                //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                //Console.WriteLine($"Token = '{authToken}'");
                 if (authToken != null)
                 {
                     request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
@@ -173,30 +157,18 @@ namespace DriveImport.Services
                 }
 
                 MerchantSettings merchantSettings = await _driveImportRepository.GetMerchantSettings();
-                if(string.IsNullOrEmpty(merchantSettings.AppKey) || string.IsNullOrEmpty(merchantSettings.AppToken))
-                {
-                    Console.WriteLine("Missing Settings");
-                }
-                //else
-                //{
-                //    Console.WriteLine($"Token:{merchantSettings.AppToken} Key:{merchantSettings.AppKey}");
-                //}
 
                 request.Headers.Add(DriveImportConstants.APP_TOKEN, merchantSettings.AppToken);
                 request.Headers.Add(DriveImportConstants.APP_KEY, merchantSettings.AppKey);
 
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
-                //Console.WriteLine($"PostAsync {request.RequestUri}");
-                //var response = await client.PostAsync(request.RequestUri, form);
                 string responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"UpdateSkuImageByFormData Response: {response.StatusCode} {responseContent}");
 
                 success = response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"UpdateSkuImageByFormData Error: {ex.Message}");
                 _context.Vtex.Logger.Error("UpdateSkuImageByFormData", null, $"Error updating sku '{skuId}' {imageName}", ex);
             }
 
@@ -218,10 +190,7 @@ namespace DriveImport.Services
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-                //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
-                //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                //Console.WriteLine($"Token = '{authToken}'");
                 if (authToken != null)
                 {
                     request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
@@ -238,13 +207,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"Could not get sku for reference id '{skuRefId}'");
                     _context.Vtex.Logger.Error("GetSkuIdFromReference", null, $"Could not get sku for reference id '{skuRefId}'");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"GetSkuIdFromReference Error: {ex.Message}");
                 _context.Vtex.Logger.Error("GetSkuIdFromReference", null, $"Error getting sku for reference id '{skuRefId}'", ex);
             }
 
@@ -266,10 +233,7 @@ namespace DriveImport.Services
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-                //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
-                //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                //Console.WriteLine($"Token = '{authToken}'");
                 if (authToken != null)
                 {
                     request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
@@ -286,13 +250,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"Could not get product id for reference '{productRefId}'");
                     _context.Vtex.Logger.Error("GetProductIdFromReference", null, $"Could not get product id for reference '{productRefId}'");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"GetProductIdFromReference Error: {ex.Message}");
                 _context.Vtex.Logger.Error("GetProductIdFromReference", null, $"Error getting product id for reference '{productRefId}'", ex);
             }
 
@@ -314,10 +276,7 @@ namespace DriveImport.Services
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-                //request.Headers.Add(Constants.ACCEPT, Constants.APPLICATION_JSON);
-                //request.Headers.Add(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                //Console.WriteLine($"Token = '{authToken}'");
                 if (authToken != null)
                 {
                     request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
@@ -339,13 +298,11 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    Console.WriteLine($"Could not get skus for product id '{productId}'");
                     _context.Vtex.Logger.Error("GetSkusFromProductId", null, $"Could not get skus for product id '{productId}'");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"GetSkusFromProductId Error: {ex.Message}");
                 _context.Vtex.Logger.Error("GetSkusFromProductId", null, $"Error getting skus for product id '{productId}'", ex);
             }
 
@@ -379,9 +336,6 @@ namespace DriveImport.Services
                     {
                         isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
                     }
-
-                    Console.WriteLine($"ProcessImageFile {identificatorType} {id} Main?{isMain}");
-                    //_context.Vtex.Logger.Info("ProcessImageFile", null, $"{identificatorType} {id} Main?{isMain}");
 
                     switch(identificatorType)
                     {
@@ -478,7 +432,6 @@ namespace DriveImport.Services
                         isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
                     }
 
-                    Console.WriteLine($"ProcessImageFile {identificatorType} {id} Main?{isMain}");
                     _context.Vtex.Logger.Info("ProcessImageFile", null, $"{identificatorType} {id} Main?{isMain}");
 
                     switch (identificatorType)
