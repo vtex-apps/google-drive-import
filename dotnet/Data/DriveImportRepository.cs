@@ -41,7 +41,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://vbase.{this._environmentVariableProvider.Region}.vtex.io/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}")
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}")
             };
 
             string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
@@ -85,7 +85,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Put,
-                RequestUri = new Uri($"http://vbase.{this._environmentVariableProvider.Region}.vtex.io/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}"),
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}"),
                 Content = new StringContent(jsonSerializedCredentials, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
             };
 
@@ -111,7 +111,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://vbase.{this._environmentVariableProvider.Region}.vtex.io/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.TOKEN}")
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.TOKEN}")
             };
 
             string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
@@ -146,7 +146,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Put,
-                RequestUri = new Uri($"http://vbase.{this._environmentVariableProvider.Region}.vtex.io/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.TOKEN}"),
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.TOKEN}"),
                 Content = new StringContent(jsonSerializedToken, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
             };
 
@@ -171,7 +171,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://apps.{this._environmentVariableProvider.Region}.vtex.io/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_WORKSPACE]}/apps/{DriveImportConstants.APP_SETTINGS}/settings"),
+                RequestUri = new Uri($"http://apps.{this._environmentVariableProvider.Region}.vtex.io/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_WORKSPACE_HEADER_NAME]}/apps/{DriveImportConstants.APP_SETTINGS}/settings"),
             };
 
             //Console.WriteLine($"Request URL = {request.RequestUri}");
@@ -188,6 +188,95 @@
             string responseContent = await response.Content.ReadAsStringAsync();
 
             return JsonConvert.DeserializeObject<MerchantSettings>(responseContent);
+        }
+
+        public async Task SetImportLock(DateTime importStartTime)
+        {
+            var importLock = new Lock
+            {
+                ImportStarted = importStartTime,
+            };
+            var jsonSerializedLock = JsonConvert.SerializeObject(importLock);
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Put,
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_WORKSPACE_HEADER_NAME]}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.LOCK}"),
+                Content = new StringContent(jsonSerializedLock, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+            };
+
+            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            if (authToken != null)
+            {
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            }
+
+            var client = _clientFactory.CreateClient();
+            var response = await client.SendAsync(request);
+
+            response.EnsureSuccessStatusCode();
+        }
+        public async Task<DateTime> CheckImportLock()
+        {
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_WORKSPACE_HEADER_NAME]}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.LOCK}")
+            };
+
+            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            if (authToken != null)
+            {
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            }
+
+            var client = _clientFactory.CreateClient();
+            var response = await client.SendAsync(request);
+            string responseContent = await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return new DateTime();
+            }
+
+            // A helper method is in order for this as it does not return the stack trace etc.
+            response.EnsureSuccessStatusCode();
+
+            Lock importLock = JsonConvert.DeserializeObject<Lock>(responseContent);
+
+            if (importLock.ImportStarted == null)
+            {
+                return new DateTime();
+            }
+
+            return importLock.ImportStarted;
+        }
+        public async Task ClearImportLock()
+        {
+            var importLock = new Lock
+            {
+                ImportStarted = new DateTime(),
+            };
+            var jsonSerializedLock = JsonConvert.SerializeObject(importLock);
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Put,
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_WORKSPACE_HEADER_NAME]}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.LOCK}"),
+                Content = new StringContent(jsonSerializedLock, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+            };
+
+            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            if (authToken != null)
+            {
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            }
+
+            var client = _clientFactory.CreateClient();
+            var response = await client.SendAsync(request);
+
+            response.EnsureSuccessStatusCode();
         }
     }
 }

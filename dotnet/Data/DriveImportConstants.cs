@@ -24,7 +24,7 @@ namespace DriveImport.Data
         public const string ENVIRONMENT = "vtexcommercestable";
         public const string LOCAL_ENVIRONMENT = "myvtex";
         public const string VTEX_ID_HEADER_NAME = "VtexIdclientAutCookie";
-        public const string HEADER_VTEX_WORKSPACE = "X-Vtex-Workspace";
+        public const string VTEX_WORKSPACE_HEADER_NAME = "X-Vtex-Workspace";
         public const string APP_SETTINGS = "vtex.google-drive-import";
         public const string ACCEPT = "Accept";
         public const string CONTENT_TYPE = "Content-Type";
@@ -33,6 +33,7 @@ namespace DriveImport.Data
         public const string BUCKET = "google-drive";
         public const string CREDENTIALS = "google-credentials";
         public const string TOKEN = "google-token";
+        public const string LOCK = "import-lock";
 
         public const string GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/auth";
         public const string GOOGLE_TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
@@ -58,6 +59,7 @@ namespace DriveImport.Data
 
         public const string DATA_ENTITY = "DriveImport";
         public const string SCHEMA = "DriveImport";
+        public const string PROCESSED_PREFIX = "Done";
 
         public class FolderNames
         {

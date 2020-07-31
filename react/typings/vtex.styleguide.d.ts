@@ -37,4 +37,5 @@ declare module 'vtex.styleguide' {
   export const Tag
   export const Layout
   export const Tabs
+  export const Divider
 }

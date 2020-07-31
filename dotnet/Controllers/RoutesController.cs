@@ -25,18 +25,21 @@
         private readonly IHttpClientFactory _clientFactory;
         private readonly IGoogleDriveService _googleDriveService;
         private readonly IVtexAPIService _vtexAPIService;
+        private readonly IDriveImportRepository _driveImportRepository;
 
-        public RoutesController(IIOServiceContext context, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory, IGoogleDriveService googleDriveService, IVtexAPIService vtexAPIService)
+        public RoutesController(IIOServiceContext context, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory, IGoogleDriveService googleDriveService, IVtexAPIService vtexAPIService, IDriveImportRepository driveImportRepository)
         {
             this._context = context ?? throw new ArgumentNullException(nameof(context));
             this._httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             this._clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
             this._googleDriveService = googleDriveService ?? throw new ArgumentNullException(nameof(googleDriveService));
             this._vtexAPIService = vtexAPIService ?? throw new ArgumentNullException(nameof(vtexAPIService));
+            this._driveImportRepository = driveImportRepository ?? throw new ArgumentNullException(nameof(driveImportRepository));
         }
 
         public async Task<IActionResult> DriveImport()
         {
+            Console.WriteLine("Drive import started");
             bool updated = false;
             int doneCount = 0;
             int errorCount = 0;
@@ -77,7 +80,7 @@
             if (relistFolders)
             {
                 bool setPermission = await _googleDriveService.SetPermission(newFolderId);
-                if(!setPermission)
+                if (!setPermission)
                 {
                     _context.Vtex.Logger.Error("DriveImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
                 }
@@ -86,43 +89,69 @@
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
             if (imageFiles != null)
             {
-                foreach (GoogleFile file in imageFiles.Files)
+                bool thereAreFiles = imageFiles.Files.Count > 0;
+                while (thereAreFiles)
                 {
-                    if (!string.IsNullOrEmpty(file.WebContentLink.ToString()))
+                    bool moveFailed = false;
+                    foreach (GoogleFile file in imageFiles.Files)
                     {
-                        UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
-                        updated = updateResponse.Success;
-                        bool moved = false;
-                        if (updated)
+                        if (!string.IsNullOrEmpty(file.WebContentLink.ToString()))
                         {
-                            doneCount++;
-                            doneFileNames.Add(file.Name);
-                            moved = await _googleDriveService.MoveFile(file.Id, doneFolderId);
-
-                            if (!moved)
+                            UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
+                            updated = updateResponse.Success;
+                            bool moved = false;
+                            if (updated)
                             {
-                                _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.DONE}'");
+                                doneCount++;
+                                doneFileNames.Add(file.Name);
+                                moved = await _googleDriveService.MoveFile(file.Id, doneFolderId);
+                                if (!moved)
+                                {
+                                    _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.DONE}'");
+                                    moveFailed = true;
+                                }
                             }
-                        }
-                        else
-                        {
-                            errorCount++;
-                            errorFileNames.Add(file.Name);
-                            moved = await _googleDriveService.MoveFile(file.Id, errorFolderId);
-                            string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
-                            string newFileName = $"{errorText}-{file.Name}";
-                            await _googleDriveService.RenameFile(file.Id, newFileName);
-
-                            if (!moved)
+                            else
                             {
-                                _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
+                                errorCount++;
+                                errorFileNames.Add(file.Name);
+                                moved = await _googleDriveService.MoveFile(file.Id, errorFolderId);
+                                string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
+                                string newFileName = $"{errorText}-{file.Name}";
+                                await _googleDriveService.RenameFile(file.Id, newFileName);
+                                if (!moved)
+                                {
+                                    _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
+                                    moveFailed = true;
+                                }
                             }
                         }
                     }
+                    if (moveFailed)
+                    {
+                        thereAreFiles = false;
+                    }
+                    else
+                    {
+                        await Task.Delay(5000);
+                        imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                        if (imageFiles == null)
+                        {
+                            thereAreFiles = false;
+                        }
+                        else
+                        {
+                            thereAreFiles = imageFiles.Files.Count > 0;
+                        }
+                    }
+                    Console.WriteLine($"Loop again? {thereAreFiles}");
                 }
             }
 
-            _context.Vtex.Logger.Info("DriveImport", null, $"Imported {doneCount} image(s).  {errorCount} image(s) not imported.  Done:[{string.Join(" ", doneFileNames)}] Error:[{string.Join(" ", errorFileNames)}]");
+            if (doneCount + errorCount > 0)
+            {
+                _context.Vtex.Logger.Info("DriveImport", null, $"Imported {doneCount} image(s).  {errorCount} image(s) not imported.  Done:[{string.Join(" ", doneFileNames)}] Error:[{string.Join(" ", errorFileNames)}]");
+            }
 
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json($"Imported {doneCount} image(s).  {errorCount} image(s) not imported.");
@@ -259,7 +288,7 @@
                 relistFolders = true;
             }
 
-            if(relistFolders)
+            if (relistFolders)
             {
                 folders = await _googleDriveService.ListFolders();
             }
@@ -307,7 +336,7 @@
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"{ex.Message}");
             }
@@ -336,9 +365,40 @@
         {
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
-                string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-                GoogleWatch watch = JsonConvert.DeserializeObject<GoogleWatch>(bodyAsText);
-                Console.WriteLine($"Watch: {bodyAsText}");
+                // string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+                // GoogleWatch watch = JsonConvert.DeserializeObject<GoogleWatch>(bodyAsText);
+                // Console.WriteLine($"Watch: {bodyAsText}");
+                var headers = HttpContext.Request.Headers;
+                if (!string.IsNullOrEmpty(headers["x-goog-resource-state"])
+                    && !string.IsNullOrEmpty(headers["x-goog-changed"]))
+                {
+                    if (headers["x-goog-resource-state"] == "update" && headers["x-goog-changed"] == "children")
+                    {
+                        Console.WriteLine("Triggered");
+                        // Console.Write(PrintHeaders());
+                        // await _driveImportRepository.ClearImportLock();
+
+                        // check lock
+                        DateTime importStarted = await _driveImportRepository.CheckImportLock();
+
+                        Console.WriteLine($"Check lock: {importStarted}");
+
+                        TimeSpan elapsedTime = DateTime.Now - importStarted;
+                        if (elapsedTime.TotalHours < 2)
+                        {
+                            Console.WriteLine("Blocked by lock");
+                            return;
+                        }
+
+                        await _driveImportRepository.SetImportLock(DateTime.Now);
+                        Console.WriteLine($"Set new lock: {DateTime.Now}");
+
+                        await DriveImport();
+                        await Task.Delay(5000);
+                        await _driveImportRepository.ClearImportLock();
+                        Console.WriteLine("Cleared lock");
+                    }
+                }
             }
         }
 

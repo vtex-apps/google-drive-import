@@ -83,6 +83,8 @@ namespace DriveImport.Services
                         RequestUri = new Uri($"https://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
                         Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                     };
+                    Console.WriteLine(request.RequestUri);
+
 
                     request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                     string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
@@ -203,7 +205,7 @@ namespace DriveImport.Services
                 string responseContent = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                 {
-                    skuId = responseContent;
+                    skuId = JsonConvert.DeserializeObject<String>(responseContent);
                 }
                 else
                 {
@@ -323,7 +325,7 @@ namespace DriveImport.Services
 
             // IdentificatorType, Id, ImageName, ImageLabel, Main
             string[] fileNameArr = fileName.Split('.');
-            if(fileNameArr.Count() == 2 && !string.IsNullOrEmpty(fileNameArr[0]))
+            if (fileNameArr.Count() == 2 && !string.IsNullOrEmpty(fileNameArr[0]))
             {
                 string[] fileNameParsed = fileNameArr[0].Split(',');
                 if ((fileNameParsed.Count() == 5 || fileNameParsed.Count() == 4))
@@ -337,7 +339,7 @@ namespace DriveImport.Services
                         isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
                     }
 
-                    switch(identificatorType)
+                    switch (identificatorType)
                     {
                         case DriveImportConstants.IdentificatorType.SKU_ID:
                             updateResponse = await this.UpdateSkuImage(id, imageName, imageLabel, isMain, webLink);
@@ -364,7 +366,7 @@ namespace DriveImport.Services
                             string prodId = await this.GetProductIdFromReference(id);
                             List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
                             success = true;
-                            foreach(string prodRefSku in prodRefSkuIds)
+                            foreach (string prodRefSku in prodRefSkuIds)
                             {
                                 updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
                                 success &= updateResponse.Success;
