@@ -726,72 +726,24 @@ namespace DriveImport.Services
             return success;
         }
 
-        public async Task<bool> SetWatch()
+        public async Task<GoogleWatch> SetWatch(string fileId)
         {
             bool success = false;
+            GoogleWatch googleWatchResponse = null;
             string responseContent = string.Empty;
             Token token = await this.GetGoogleToken();
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
-                string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
-                GoogleWatch watchRequest = new GoogleWatch
-                {
-                    Kind = DriveImportConstants.WATCH_KIND,
-                    Id = Guid.NewGuid().ToString(),
-                    Type = DriveImportConstants.WATCH_TYPE,
-                    Address = $"https://{siteUrl}/{DriveImportConstants.WATCH_ENDPOINT}"
-                };
-
-                var jsonSerializedMetadata = JsonConvert.SerializeObject(watchRequest);
-
-                var request = new HttpRequestMessage
-                {
-                    Method = HttpMethod.Post,
-                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_WATCH}"),
-                    Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
-                };
-
-                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
-
-                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                if (authToken != null)
-                {
-                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-                }
-
-                var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
-                }
-
-                success = response.IsSuccessStatusCode;
-            }
-            else
-            {
-                _context.Vtex.Logger.Info("SetWatch", null, "Token error.");
-            }
-
-            return success;
-        }
-
-        public async Task<bool> SetWatch(string fileId)
-        {
-            bool success = false;
-            string responseContent = string.Empty;
-            Token token = await this.GetGoogleToken();
-            if (token != null && !string.IsNullOrEmpty(token.AccessToken))
-            {
+                DateTime oneYear = DateTime.UtcNow.AddYears(1);
+                long unixTime = ((DateTimeOffset)oneYear).ToUnixTimeMilliseconds();
                 string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
                 GoogleWatch watchRequest = new GoogleWatch
                 {
                     //Kind = DriveImportConstants.WATCH_KIND,
                     Id = Guid.NewGuid().ToString(),
                     Type = DriveImportConstants.WATCH_TYPE,
-                    Address = $"https://{siteUrl}/{DriveImportConstants.WATCH_ENDPOINT}"
+                    Address = $"https://{siteUrl}/{DriveImportConstants.WATCH_ENDPOINT}",
+                    Expiration = unixTime
                 };
 
                 var jsonSerializedMetadata = JsonConvert.SerializeObject(watchRequest);
@@ -816,11 +768,16 @@ namespace DriveImport.Services
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(responseContent);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
                     _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                }
+                else
+                {
+                    googleWatchResponse = JsonConvert.DeserializeObject<GoogleWatch>(responseContent);
                 }
 
                 success = response.IsSuccessStatusCode;
@@ -830,7 +787,7 @@ namespace DriveImport.Services
                 _context.Vtex.Logger.Info("SetWatch", null, "Token error.");
             }
 
-            return success;
+            return googleWatchResponse;
         }
     }
 }

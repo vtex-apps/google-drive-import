@@ -328,7 +328,19 @@
                 }
             }
 
-            bool watch = await _googleDriveService.SetWatch(newFolderId);
+            GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
+            bool watch = googleWatch != null;
+            if(watch)
+            {
+                long expiresIn = googleWatch.Expiration ?? 0;
+                if(expiresIn > 0)
+                {
+                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
+                    DateTime expiresAt = dateTimeOffset.UtcDateTime;
+                    Console.WriteLine($"expiresAt = {expiresAt}");
+                    CreateTask(expiresAt);
+                }
+            }
 
             string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
 
@@ -505,10 +517,23 @@
             Response.Headers.Add("Cache-Control", "no-cache");
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
             string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
-            return Json(await _googleDriveService.SetWatch(newFolderId));
+            GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
+            bool watch = googleWatch != null;
+            if (watch)
+            {
+                long expiresIn = googleWatch.Expiration ?? 0;
+                if (expiresIn > 0)
+                {
+                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
+                    DateTime expiresAt = dateTimeOffset.UtcDateTime;
+                    Console.WriteLine($"expiresAt = {expiresAt}");
+                    CreateTask(expiresAt);
+                }
+            }
+            return Json(googleWatch);
         }
 
-        public void SetWatchAfterDelay(int dueTime)
+        private void SetWatchAfterDelay(int dueTime)
         {
             Console.WriteLine($"Re-setting Watch in {TimeSpan.FromMilliseconds(dueTime)}......");
             Timer timer = new Timer(ThreadFunc, null, dueTime, Timeout.Infinite);
@@ -527,6 +552,29 @@
             {
                 Console.WriteLine($"Keep Awake {DateTime.Now.TimeOfDay}");
                 Thread.Sleep(5 * 1000 * 60);
+            }
+        }
+
+        private void CreateTask(DateTime expiresAt)
+        {
+            DateTime state = expiresAt;
+            Timer keepAwake = new Timer(ReSetWatch, state, 0, Timeout.Infinite);
+        }
+
+        private void ReSetWatch(object state)
+        {
+            DateTime expiresAt = (DateTime)state;
+            int window = 5;
+            while (true)
+            {
+                if(DateTime.Now >= expiresAt.AddMinutes(window))
+                {
+                    SetWatch();
+                    break;
+                }
+
+                Console.WriteLine($"Keep Awake {DateTime.Now.TimeOfDay} ({window} minutes)");
+                Thread.Sleep(window * 1000 * 60);
             }
         }
 

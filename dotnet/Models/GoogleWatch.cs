@@ -23,8 +23,8 @@ namespace DriveImport.Models
         [JsonProperty("token")]
         public string Token { get; set; }
 
-        //[JsonProperty("expiration")]
-        //public long Expiration { get; set; }
+        [JsonProperty("expiration")]
+        public long? Expiration { get; set; }
 
         [JsonProperty("type")]
         public string Type { get; set; }

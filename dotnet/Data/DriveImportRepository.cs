@@ -196,6 +196,7 @@
             {
                 ImportStarted = importStartTime,
             };
+
             var jsonSerializedLock = JsonConvert.SerializeObject(importLock);
             var request = new HttpRequestMessage
             {
@@ -216,6 +217,7 @@
 
             response.EnsureSuccessStatusCode();
         }
+
         public async Task<DateTime> CheckImportLock()
         {
             var request = new HttpRequestMessage
@@ -252,12 +254,14 @@
 
             return importLock.ImportStarted;
         }
+
         public async Task ClearImportLock()
         {
             var importLock = new Lock
             {
                 ImportStarted = new DateTime(),
             };
+
             var jsonSerializedLock = JsonConvert.SerializeObject(importLock);
             var request = new HttpRequestMessage
             {
