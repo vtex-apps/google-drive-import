@@ -63,9 +63,20 @@ namespace DriveImport.Data
 
         public class FolderNames
         {
-            public const string NEW = "VTEX Import - New";
-            public const string ERROR = "VTEX Import - Error";
-            public const string DONE = "VTEX Import - Done";
+            // Folder Structure:
+            // Google Drive root
+            // --VTEX Import
+            // ----{VTEX Account}
+            // ------Images
+            // --------New
+            // --------Error
+            // --------Done
+
+            public const string IMPORT = "VTEX Import";
+            public const string IMAGES = "Images";
+            public const string NEW = "New";
+            public const string ERROR = "Error";
+            public const string DONE = "Done";
         }
 
         public class IdentificatorType

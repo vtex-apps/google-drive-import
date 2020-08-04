@@ -462,7 +462,7 @@ namespace DriveImport.Services
             return listFilesResponse;
         }
 
-        public async Task<bool> CreateFolder(string folderName)
+        public async Task<bool> CreateFolder(string folderName, string parentId = null)
         {
             bool success = false;
             string responseContent = string.Empty;
@@ -477,6 +477,13 @@ namespace DriveImport.Services
                 dynamic metadata = new JObject();
                 metadata.name = folderName;
                 metadata.mimeType = "application/vnd.google-apps.folder";
+                if(!string.IsNullOrEmpty(parentId))
+                {
+                    JArray jarrayObj = new JArray();
+                    jarrayObj.Add(parentId);
+                    metadata.parents = jarrayObj;
+                }
+
                 var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
 
                 var request = new HttpRequestMessage
@@ -796,6 +803,8 @@ namespace DriveImport.Services
                     Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                 };
 
+                Console.WriteLine($"SetWatch '{request.RequestUri}' {jsonSerializedMetadata} {token.TokenType} {token.AccessToken}");
+
                 request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
 
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
@@ -810,6 +819,7 @@ namespace DriveImport.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
                     _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
                 }
 

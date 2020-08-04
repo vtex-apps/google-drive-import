@@ -22,7 +22,7 @@ namespace DriveImport.Services
         Task<ListFilesResponse> ListImagesInFolder(string folderId);
         Task<ListFilesResponse> ListImages();
         Task<Dictionary<string, string>> ListFolders();
-        Task<bool> CreateFolder(string folderName);
+        Task<bool> CreateFolder(string folderName, string parentId = null);
         Task<bool> MoveFile(string fileId, string folderId);
         Task<byte[]> GetFile(string fileId);
         Task<bool> SetPermission(string fileId);
