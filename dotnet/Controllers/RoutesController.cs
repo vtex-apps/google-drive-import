@@ -137,6 +137,8 @@
                 }
             }
 
+            GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
+
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
             if (imageFiles != null)
             {
@@ -530,6 +532,7 @@
                     CreateTask(expiresAt);
                 }
             }
+
             return Json(googleWatch);
         }
 
