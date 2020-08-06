@@ -42,7 +42,7 @@ namespace DriveImport.Data
         public const string GOOGLE_WATCH = "https://www.googleapis.com/drive/v3/changes/watch";
         public const string GOOGLE_REPONSE_TYPE = "code";
         public const string GOOGLE_ACCESS_TYPE = "offline";
-        public const string REDIRECT_SITE_BASE = "https://brian--sandboxusdev.myvtex.com";
+        public const string REDIRECT_SITE_BASE = "https://sandboxusdev.myvtex.com";
         public const string REDIRECT_PATH = "return";
 
         public const string ADMIN_PAGE = "admin/google-drive-import";
@@ -73,7 +73,7 @@ namespace DriveImport.Data
             // --------Done
 
             public const string IMPORT = "VTEX Import";
-            public const string IMAGES = "Images";
+            public const string IMAGES = "SKU Images";
             public const string NEW = "New";
             public const string ERROR = "Error";
             public const string DONE = "Done";

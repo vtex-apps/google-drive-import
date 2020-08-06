@@ -1,6 +1,7 @@
 /* eslint-disable padding-line-between-statements */
 /* eslint-disable no-console */
 import React, { FC, useState, useEffect } from 'react'
+import { useRuntime } from 'vtex.render-runtime'
 import axios from 'axios'
 import {
   Layout,
@@ -26,6 +27,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     authorization: null,
     loading: true,
   })
+  const { account } = useRuntime()
 
   const { fetching, revoking, fetched, authorization, loading } = state
 
@@ -38,7 +40,6 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     axios
       .get(FETCH_URL)
       .then((response: any) => {
-        console.log('response', response)
         setState({
           ...state,
           fetching: false,
@@ -90,7 +91,6 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       axios
         .get(CHECK_URL)
         .then((response: any) => {
-          console.log('response', response)
           setState({
             ...state,
             loading: false,
@@ -105,8 +105,6 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         })
     }
   })
-
-  console.log('authorization', authorization)
 
   return (
     <Layout
@@ -127,22 +125,46 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         {authorization && (
           <div className="flex">
             <div className="w-40">
+              <h3 className="heading-3 mt4 mb4">
+                <FormattedMessage id="admin/google-drive-import.sku-images.title" />
+              </h3>
               <p>
-                <FormattedMessage id="admin/google-drive-import.connected.text" />{' '}
-                <div className="mt4">
-                  <Button
-                    variation="primary"
-                    collapseLeft
-                    isLoading={fetching}
-                    onClick={() => {
-                      fetch()
-                    }}
-                  >
-                    <FormattedMessage id="admin/google-drive-import.fetch.button" />
-                  </Button>
-                </div>
+                <FormattedMessage
+                  id="admin/google-drive-import.connected.text"
+                  values={{ lineBreak: <br /> }}
+                />
               </p>
-
+              <pre>
+                <FormattedMessage
+                  id="admin/google-drive-import.folder-structure"
+                  values={{ lineBreak: <br />, account }}
+                />
+              </pre>
+              <p>
+                <FormattedMessage
+                  id="admin/google-drive-import.instructions"
+                  values={{
+                    lineBreak: <br />,
+                    filenameFormat: (
+                      <b>
+                        <FormattedMessage id="admin/google-drive-import.filename-format" />
+                      </b>
+                    ),
+                  }}
+                />
+              </p>
+              <div className="mt4">
+                <Button
+                  variation="primary"
+                  collapseLeft
+                  isLoading={fetching}
+                  onClick={() => {
+                    fetch()
+                  }}
+                >
+                  <FormattedMessage id="admin/google-drive-import.fetch.button" />
+                </Button>
+              </div>
               {!fetching && fetched && <p>{`${fetched}`}</p>}
             </div>
             <div
@@ -155,20 +177,20 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
               <p>
                 <FormattedMessage id="admin/google-drive-import.connected-as" />{' '}
                 <strong>{`${authorization}`}</strong>
-                <div className="mt4">
-                  <Button
-                    variation="danger-tertiary"
-                    size="regular"
-                    isLoading={revoking}
-                    onClick={() => {
-                      revoke()
-                    }}
-                    collapseLeft
-                  >
-                    <FormattedMessage id="admin/google-drive-import.disconnect.button" />
-                  </Button>
-                </div>
               </p>
+              <div className="mt4">
+                <Button
+                  variation="danger-tertiary"
+                  size="regular"
+                  isLoading={revoking}
+                  onClick={() => {
+                    revoke()
+                  }}
+                  collapseLeft
+                >
+                  <FormattedMessage id="admin/google-drive-import.disconnect.button" />
+                </Button>
+              </div>
             </div>
           </div>
         )}

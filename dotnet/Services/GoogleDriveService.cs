@@ -218,7 +218,7 @@ namespace DriveImport.Services
                 {
                     token = await this.RefreshGoogleAuthorizationToken(token.RefreshToken);
                     token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
-                    if(string.IsNullOrEmpty(token.RefreshToken))
+                    if (string.IsNullOrEmpty(token.RefreshToken))
                     {
                         token.RefreshToken = refreshToken;
                     }
@@ -261,7 +261,7 @@ namespace DriveImport.Services
                 var response = await client.SendAsync(request);
                 responseContent = await response.Content.ReadAsStringAsync();
 
-                if(response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
                     listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
                 }
@@ -278,7 +278,7 @@ namespace DriveImport.Services
             return listFilesResponse;
         }
 
-        public async Task<Dictionary<string,string>> ListFolders()
+        public async Task<Dictionary<string, string>> ListFolders(string parentId = null)
         {
             Dictionary<string, string> folders = new Dictionary<string, string>();
             string responseContent = string.Empty;
@@ -286,7 +286,11 @@ namespace DriveImport.Services
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
                 string fields = "*";
-                string query = "mimeType = 'application/vnd.google-apps.folder'";
+                string query = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+                if (!String.IsNullOrEmpty(parentId))
+                {
+                    query += $" and '{parentId}' in parents";
+                }
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
@@ -309,7 +313,7 @@ namespace DriveImport.Services
                 if (response.IsSuccessStatusCode)
                 {
                     ListFilesResponse listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
-                    foreach(GoogleFile folder in listFilesResponse.Files)
+                    foreach (GoogleFile folder in listFilesResponse.Files)
                     {
                         folders.Add(folder.Id, folder.Name);
                     }
@@ -477,7 +481,7 @@ namespace DriveImport.Services
                 dynamic metadata = new JObject();
                 metadata.name = folderName;
                 metadata.mimeType = "application/vnd.google-apps.folder";
-                if(!string.IsNullOrEmpty(parentId))
+                if (!string.IsNullOrEmpty(parentId))
                 {
                     JArray jarrayObj = new JArray();
                     jarrayObj.Add(parentId);
@@ -508,7 +512,7 @@ namespace DriveImport.Services
                 {
                     _context.Vtex.Logger.Info("CreateFolder", null, $"[{response.StatusCode}] {responseContent}");
                 }
-                
+
                 success = response.IsSuccessStatusCode;
             }
             else

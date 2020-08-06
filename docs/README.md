@@ -8,7 +8,15 @@
 
 # Google Drive Import
 
+This app allows SKU images to be bulk imported into the VTEX Catalog from a user's Google Drive.
+
 ## Configuration
+
+1. [Install](https://vtex.io/docs/recipes/store/installing-an-app) `vtex.google-drive-import` in the desired account.
+
+2. In your account's admin dashboard, go to `Catalog > Google Drive Import`.
+
+3. Follow the instructions provided on the admin page to grant access to your Google Drive and upload your images with the proper naming convention.
 
 ## Contributors ✨
 
