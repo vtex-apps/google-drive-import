@@ -282,5 +282,97 @@
 
             response.EnsureSuccessStatusCode();
         }
+
+        public async Task<WatchExpiration> GetWatchExpiration(string folderId)
+        {
+            IList<WatchExpiration> watchExpirationList = await this.GetWatchExpiration();
+            WatchExpiration watchExpiration = watchExpirationList.Where(e => e.FolderId.Equals(folderId)).FirstOrDefault();
+            if(watchExpiration == null)
+            {
+                watchExpiration = new WatchExpiration { ExpiresAt = DateTime.Now, FolderId = folderId };
+            }
+
+            return watchExpiration;
+        }
+
+        public async Task<IList<WatchExpiration>> GetWatchExpiration()
+        {
+            List<WatchExpiration> watchExpiration = new List<WatchExpiration>();
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.WATCH_EXPIRATION}")
+            };
+
+            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            if (authToken != null)
+            {
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            }
+
+            var client = _clientFactory.CreateClient();
+            var response = await client.SendAsync(request);
+            string responseContent = await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine($"GetWatchExpiration {responseContent}");
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            // A helper method is in order for this as it does not return the stack trace etc.
+            response.EnsureSuccessStatusCode();
+            try
+            {
+                watchExpiration = JsonConvert.DeserializeObject<List<WatchExpiration>>(responseContent);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error : {ex.Message}");
+            }
+
+
+            return watchExpiration;
+        }
+
+        public async Task SetWatchExpiration(WatchExpiration watchExpiration)
+        {
+            IList<WatchExpiration> watchExpirationList = await this.GetWatchExpiration();
+            WatchExpiration watchExpirationTemp = watchExpirationList.Where(e => e.FolderId.Equals(watchExpiration.FolderId)).FirstOrDefault();
+            if (watchExpirationTemp != null)
+            {
+                watchExpirationList.Remove(watchExpirationTemp);
+            }
+
+            watchExpirationList.Add(watchExpiration);
+
+            var jsonSerializedExpiration = JsonConvert.SerializeObject(watchExpirationList);
+
+            //Console.WriteLine(jsonSerializedCredentials);
+
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Put,
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.WATCH_EXPIRATION}"),
+                Content = new StringContent(jsonSerializedExpiration, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+            };
+
+            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            if (authToken != null)
+            {
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            }
+
+            var client = _clientFactory.CreateClient();
+            var response = await client.SendAsync(request);
+
+            string responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"SetWatchExpiration {responseContent}");
+
+            response.EnsureSuccessStatusCode();
+        }
     }
 }

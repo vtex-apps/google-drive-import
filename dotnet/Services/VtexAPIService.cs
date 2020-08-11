@@ -83,7 +83,8 @@ namespace DriveImport.Services
                         RequestUri = new Uri($"https://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
                         Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                     };
-                    Console.WriteLine(request.RequestUri);
+
+                    //Console.WriteLine(request.RequestUri);
 
 
                     request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");

@@ -1,5 +1,6 @@
 ﻿using DriveImport.Models;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace DriveImport.Data
@@ -14,5 +15,8 @@ namespace DriveImport.Data
         Task SetImportLock(DateTime importStartTime);
         Task<DateTime> CheckImportLock();
         Task ClearImportLock();
+        Task<IList<WatchExpiration>> GetWatchExpiration();
+        Task<WatchExpiration> GetWatchExpiration(string folderId);
+        Task SetWatchExpiration(WatchExpiration watchExpiration);
     }
 }

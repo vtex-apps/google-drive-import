@@ -34,6 +34,7 @@ namespace DriveImport.Data
         public const string CREDENTIALS = "google-credentials";
         public const string TOKEN = "google-token";
         public const string LOCK = "import-lock";
+        public const string WATCH_EXPIRATION = "watch-expiration";
 
         public const string GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/auth";
         public const string GOOGLE_TOKEN_URL = "https://accounts.google.com/o/oauth2/token";

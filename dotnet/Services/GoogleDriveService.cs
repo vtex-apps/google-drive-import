@@ -88,16 +88,25 @@ namespace DriveImport.Services
             }
 
             var client = _clientFactory.CreateClient();
-            var response = await client.SendAsync(request);
-            string responseContent = await response.Content.ReadAsStringAsync();
-            //Console.WriteLine($"Token = {responseContent}");
-            if (response.IsSuccessStatusCode)
+
+            try
             {
-                tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                //Console.WriteLine($"Token = {responseContent}");
+                if (response.IsSuccessStatusCode)
+                {
+                    tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
+                }
+                else
+                {
+                    _context.Vtex.Logger.Info("GetGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                }
             }
-            else
+            catch(Exception ex)
             {
-                _context.Vtex.Logger.Info("GetGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                _context.Vtex.Logger.Error("GetGoogleAuthorizationToken", null,  $"Error Posting request. {postData}", ex);
+                tokenObj = null;
             }
 
             return tokenObj;
@@ -135,16 +144,23 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                string responseContent = await response.Content.ReadAsStringAsync();
-                //Console.WriteLine($"REFRESHED Token = {responseContent}");
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
+                    var response = await client.SendAsync(request);
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    //Console.WriteLine($"REFRESHED Token = {responseContent}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("RefreshGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                    }
                 }
-                else
+                catch(Exception ex)
                 {
-                    _context.Vtex.Logger.Info("RefreshGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Error("RefreshGoogleAuthorizationToken", null, $"Error refreshing token", ex);
                 }
             }
 
@@ -198,8 +214,28 @@ namespace DriveImport.Services
         public async Task<bool> ProcessReturn(string code)
         {
             Token token = await this.GetGoogleAuthorizationToken(code);
+            if(token == null)
+            {
+                for (int i = 1; i < 5; i++)
+                {
+                    Console.WriteLine($"ProcessReturn Retry #{i}");
+                    await Task.Delay(500 * i);
+                    token = await this.GetGoogleAuthorizationToken(code);
+                    if(token != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
             token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
             bool saved = await _driveImportRepository.SaveToken(token);
+            if(!saved)
+            {
+                Console.WriteLine($"Did not save token. {JsonConvert.SerializeObject(token)}");
+                _context.Vtex.Logger.Info("ProcessReturn", null, $"Did not save token. {JsonConvert.SerializeObject(token)}");
+            }
+
             return saved;
         }
 
@@ -228,8 +264,8 @@ namespace DriveImport.Services
             }
             else
             {
-                Console.WriteLine("Did not load token.");
-                _context.Vtex.Logger.Info("GetGoogleToken", null, "Could not load token.");
+                Console.WriteLine($"Did not load token. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)} Have Refresh token?{!string.IsNullOrEmpty(token.RefreshToken)}");
+                _context.Vtex.Logger.Info("GetGoogleToken", null, $"Could not load token. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)} Have Refresh token?{!string.IsNullOrEmpty(token.RefreshToken)}");
             }
 
             return token;
@@ -280,7 +316,7 @@ namespace DriveImport.Services
 
         public async Task<Dictionary<string, string>> ListFolders(string parentId = null)
         {
-            Dictionary<string, string> folders = new Dictionary<string, string>();
+            Dictionary<string, string> folders = null;
             string responseContent = string.Empty;
             Token token = await this.GetGoogleToken();
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
@@ -289,7 +325,7 @@ namespace DriveImport.Services
                 string query = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
                 if (!String.IsNullOrEmpty(parentId))
                 {
-                    query += $" and '{parentId}' in parents";
+                    query = $"{query} and '{parentId}' in parents";
                 }
                 var request = new HttpRequestMessage
                 {
@@ -307,25 +343,34 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    ListFilesResponse listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
-                    foreach (GoogleFile folder in listFilesResponse.Files)
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
                     {
-                        folders.Add(folder.Id, folder.Name);
+                        folders = new Dictionary<string, string>();
+                        ListFilesResponse listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                        foreach (GoogleFile folder in listFilesResponse.Files)
+                        {
+                            folders.Add(folder.Id, folder.Name);
+                            //Console.WriteLine($"ListFolders [{folder.Id}] = [{folder.Name}]");
+                        }
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("ListFolders", parentId, $"[{response.StatusCode}] {responseContent}");
                     }
                 }
-                else
+                catch(Exception ex)
                 {
-                    _context.Vtex.Logger.Info("ListFolders", null, $"[{response.StatusCode}] {responseContent}");
+                    _context.Vtex.Logger.Error("ListFolders", parentId, $"List folders error. {parentId}", ex);
                 }
             }
             else
             {
-                _context.Vtex.Logger.Info("ListFolders", null, "Token error.");
+                _context.Vtex.Logger.Info("ListFolders", parentId, "Token error.");
             }
 
             return folders;
@@ -455,29 +500,24 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Info("ListImagesInFolder", null, $"[{response.StatusCode}] {responseContent}");
+                    _context.Vtex.Logger.Info("ListImagesInFolder", folderId, $"[{response.StatusCode}] {responseContent}");
                 }
             }
             else
             {
-                _context.Vtex.Logger.Info("ListImagesInFolder", null, "Token error.");
+                _context.Vtex.Logger.Info("ListImagesInFolder", folderId, "Token error.");
             }
 
             return listFilesResponse;
         }
 
-        public async Task<bool> CreateFolder(string folderName, string parentId = null)
+        public async Task<string> CreateFolder(string folderName, string parentId = null)
         {
-            bool success = false;
+            string folderId = string.Empty;
             string responseContent = string.Empty;
             Token token = await this.GetGoogleToken();
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
-                //string query = $"mimeType = 'application/vnd.google-apps.folder' and name = '{folderName}' and 'root' in parents";
-                //StringBuilder postData = new StringBuilder();
-                //postData.Append("mimeType=" + HttpUtility.UrlEncode("application/vnd.google-apps.folder") + "&");
-                //postData.Append("name=" + HttpUtility.UrlEncode(folderName));
-
                 dynamic metadata = new JObject();
                 metadata.name = folderName;
                 metadata.mimeType = "application/vnd.google-apps.folder";
@@ -506,21 +546,29 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    _context.Vtex.Logger.Info("CreateFolder", null, $"[{response.StatusCode}] {responseContent}");
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+                    _context.Vtex.Logger.Info("CreateFolder", folderName, $"[{response.StatusCode}] {responseContent}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        CreateFolderResponse createFolderResponse = JsonConvert.DeserializeObject<CreateFolderResponse>(responseContent);
+                        folderId = createFolderResponse.Id;
+                        Console.WriteLine($"CreateFolder {folderName} Id:{folderId} ParentId?{parentId}");
+                    }
                 }
-
-                success = response.IsSuccessStatusCode;
+                catch(Exception ex)
+                {
+                    _context.Vtex.Logger.Error("CreateFolder", folderName, $"Error. ParentId?{parentId}", ex);
+                }
             }
             else
             {
-                _context.Vtex.Logger.Info("CreateFolder", null, "Token error.");
+                _context.Vtex.Logger.Info("CreateFolder", folderName, "Token error.");
             }
 
-            return success;
+            return folderId;
         }
 
         public async Task<bool> MoveFile(string fileId, string folderId)
@@ -732,63 +780,80 @@ namespace DriveImport.Services
 
         public async Task<GoogleWatch> SetWatch(string fileId)
         {
+            Console.WriteLine("SetWatch");
             bool success = false;
             GoogleWatch googleWatchResponse = null;
-            string responseContent = string.Empty;
-            Token token = await this.GetGoogleToken();
-            if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+            WatchExpiration watchExpiration = await _driveImportRepository.GetWatchExpiration(fileId);
+            DateTime expiresAt = watchExpiration.ExpiresAt;
+            int expirationWindowInHours = 1;
+            Console.WriteLine($"expiresAt {expiresAt}  <  {DateTime.Now.AddHours(expirationWindowInHours)}");
+            if (expiresAt < DateTime.Now.AddHours(expirationWindowInHours))
             {
-                DateTime oneYear = DateTime.UtcNow.AddYears(1);
-                long unixTime = ((DateTimeOffset)oneYear).ToUnixTimeMilliseconds();
-                string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
-                GoogleWatch watchRequest = new GoogleWatch
+                string responseContent = string.Empty;
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
                 {
-                    //Kind = DriveImportConstants.WATCH_KIND,
-                    Id = Guid.NewGuid().ToString(),
-                    Type = DriveImportConstants.WATCH_TYPE,
-                    Address = $"https://{siteUrl}/{DriveImportConstants.WATCH_ENDPOINT}",
-                    Expiration = unixTime
-                };
+                    DateTime oneYear = DateTime.UtcNow.AddYears(1);
+                    long unixTime = ((DateTimeOffset)oneYear).ToUnixTimeMilliseconds();
+                    string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
+                    GoogleWatch watchRequest = new GoogleWatch
+                    {
+                        //Kind = DriveImportConstants.WATCH_KIND,
+                        Id = Guid.NewGuid().ToString(),
+                        Type = DriveImportConstants.WATCH_TYPE,
+                        Address = $"https://{siteUrl}/{DriveImportConstants.WATCH_ENDPOINT}",
+                        Expiration = unixTime
+                    };
 
-                var jsonSerializedMetadata = JsonConvert.SerializeObject(watchRequest);
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(watchRequest);
 
-                var request = new HttpRequestMessage
-                {
-                    Method = HttpMethod.Post,
-                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}/{fileId}/watch"),
-                    Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
-                };
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}/{fileId}/watch"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
 
-                Console.WriteLine($"SetWatch '{request.RequestUri}' {jsonSerializedMetadata} {token.TokenType} {token.AccessToken}");
+                    Console.WriteLine($"SetWatch '{request.RequestUri}' {jsonSerializedMetadata} {token.TokenType} {token.AccessToken}");
 
-                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
 
-                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                if (authToken != null)
-                {
-                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-                }
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
 
-                var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(responseContent);
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+                    //Console.WriteLine(responseContent);
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
-                    _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
+                        _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                    }
+                    else
+                    {
+                        googleWatchResponse = JsonConvert.DeserializeObject<GoogleWatch>(responseContent);
+                        long expiresIn = googleWatchResponse.Expiration ?? 0;
+                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
+                        expiresAt = dateTimeOffset.UtcDateTime;
+                        watchExpiration = new WatchExpiration { ExpiresAt = expiresAt, FolderId = fileId };
+                        await _driveImportRepository.SetWatchExpiration(watchExpiration);
+                    }
+
+                    success = response.IsSuccessStatusCode;
                 }
                 else
                 {
-                    googleWatchResponse = JsonConvert.DeserializeObject<GoogleWatch>(responseContent);
+                    _context.Vtex.Logger.Info("SetWatch", null, "Token error.");
                 }
-
-                success = response.IsSuccessStatusCode;
             }
             else
             {
-                _context.Vtex.Logger.Info("SetWatch", null, "Token error.");
+                Console.WriteLine($"Watch will expire at {expiresAt}");
             }
 
             return googleWatchResponse;
