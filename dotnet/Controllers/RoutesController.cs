@@ -51,17 +51,24 @@
 
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
-            bool relistFolders = false;
-            if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
+            if(folders == null)
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders();
-                }
+                return Json($"Error accessing Drive.");
             }
 
-            string importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
+            string importFolderId;
+            string accountFolderId;
+            string imagesFolderId;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
+            {
+                importFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
+            }
+            else
+            {
+                importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
+            }
+
             if (string.IsNullOrEmpty(importFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
@@ -70,17 +77,15 @@
 
             folders = await _googleDriveService.ListFolders(importFolderId);
 
-            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
             if (!folders.ContainsValue(accountName))
             {
-                relistFolders = await _googleDriveService.CreateFolder(accountName, importFolderId);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders(importFolderId);
-                }
+                accountFolderId = await _googleDriveService.CreateFolder(accountName, importFolderId);
+            }
+            else
+            {
+                accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
             }
 
-            string accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
             if (string.IsNullOrEmpty(accountFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {accountFolderId} folder");
@@ -91,14 +96,13 @@
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMAGES))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders(accountFolderId);
-                }
+                imagesFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
+            }
+            else
+            {
+                imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
             }
 
-            string imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
             if (string.IsNullOrEmpty(imagesFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {imagesFolderId} folder");
@@ -107,41 +111,43 @@
 
             folders = await _googleDriveService.ListFolders(imagesFolderId);
 
+            string newFolderId;
+            string doneFolderId;
+            string errorFolderId;
+
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
-            }
-
-            if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
-            {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
-            }
-
-            if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
-            {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
-            }
-
-            if (relistFolders)
-            {
-                folders = await _googleDriveService.ListFolders(imagesFolderId);
-            }
-
-            //ListFilesResponse imageFiles = await _googleDriveService.ListImages();
-            Dictionary<string, string> images = new Dictionary<string, string>();
-
-            string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
-            string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
-            string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
-
-            if (relistFolders)
-            {
+                newFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
                 bool setPermission = await _googleDriveService.SetPermission(newFolderId);
                 if (!setPermission)
                 {
                     _context.Vtex.Logger.Error("DriveImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
                 }
             }
+            else
+            {
+                newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+            }
+
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
+            {
+                doneFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
+            }
+            else
+            {
+                doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
+            }
+
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
+            {
+                errorFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
+            }
+            else
+            {
+                errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+            }
+
+            Dictionary<string, string> images = new Dictionary<string, string>();
 
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
 
@@ -238,29 +244,44 @@
         public async Task<IActionResult> ProcessReturnCode()
         {
             bool success = false;
-
+            bool watch = false;
+            string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
             string code = _httpContextAccessor.HttpContext.Request.Query["code"];
 
             _context.Vtex.Logger.Info("ProcessReturnCode", null, $"code=[{code}]");
 
-            if (!string.IsNullOrEmpty(code))
+            if (string.IsNullOrEmpty(code))
             {
-                success = await _googleDriveService.ProcessReturn(code);
+                return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Missing return code.");
+            }
+
+            success = await _googleDriveService.ProcessReturn(code);
+
+            if (!success)
+            {
+                return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not process code.");
             }
 
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
-            bool relistFolders = false;
-            if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
+            if(folders == null)
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders();
-                }
+                return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not Access Drive.");
             }
 
-            string importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
+            string importFolderId;
+            string accountFolderId;
+            string imagesFolderId;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
+            {
+                importFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
+            }
+            else
+            {
+                importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
+            }
+
             if (string.IsNullOrEmpty(importFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
@@ -269,17 +290,15 @@
 
             folders = await _googleDriveService.ListFolders(importFolderId);
 
-            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
             if (!folders.ContainsValue(accountName))
             {
-                relistFolders = await _googleDriveService.CreateFolder(accountName, importFolderId);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders(importFolderId);
-                }
+                accountFolderId = await _googleDriveService.CreateFolder(accountName, importFolderId);
+            }
+            else
+            {
+                accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
             }
 
-            string accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
             if (string.IsNullOrEmpty(accountFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {accountFolderId} folder");
@@ -290,14 +309,13 @@
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMAGES))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders(accountFolderId);
-                }
+                imagesFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
+            }
+            else
+            {
+                imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
             }
 
-            string imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
             if (string.IsNullOrEmpty(imagesFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {imagesFolderId} folder");
@@ -306,44 +324,44 @@
 
             folders = await _googleDriveService.ListFolders(imagesFolderId);
 
+            string newFolderId;
+            string doneFolderId;
+            string errorFolderId;
+
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
-            }
-
-            if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
-            {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
-            }
-
-            if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
-            {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
-            }
-
-            if (relistFolders)
-            {
-                folders = await _googleDriveService.ListFolders(imagesFolderId);
-            }
-
-            //ListFilesResponse imageFiles = await _googleDriveService.ListImages();
-            Dictionary<string, string> images = new Dictionary<string, string>();
-
-            string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
-            string doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
-            string errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
-
-            if (relistFolders)
-            {
+                newFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
                 bool setPermission = await _googleDriveService.SetPermission(newFolderId);
                 if (!setPermission)
                 {
                     _context.Vtex.Logger.Error("DriveImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
                 }
             }
+            else
+            {
+                newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+            }
+
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
+            {
+                doneFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
+            }
+            else
+            {
+                doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
+            }
+
+            if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
+            {
+                errorFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
+            }
+            else
+            {
+                errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+            }
 
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
-            bool watch = googleWatch != null;
+            watch = googleWatch != null;
             if (watch)
             {
                 long expiresIn = googleWatch.Expiration ?? 0;
@@ -355,8 +373,6 @@
                     CreateTask(expiresAt);
                 }
             }
-
-            string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
 
             return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}");
         }
@@ -396,17 +412,19 @@
             Response.Headers.Add("Cache-Control", "no-cache");
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
-            bool relistFolders = false;
+            string importFolderId;
+            string accountFolderId;
+            string imagesFolderId;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders();
-                }
+                importFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
+            }
+            else
+            {
+                importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
             }
 
-            string importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
             if (string.IsNullOrEmpty(importFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
@@ -415,17 +433,15 @@
 
             folders = await _googleDriveService.ListFolders(importFolderId);
 
-            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
             if (!folders.ContainsValue(accountName))
             {
-                relistFolders = await _googleDriveService.CreateFolder(accountName, importFolderId);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders(importFolderId);
-                }
+                accountFolderId = await _googleDriveService.CreateFolder(accountName, importFolderId);
+            }
+            else
+            {
+                accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
             }
 
-            string accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
             if (string.IsNullOrEmpty(accountFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {accountFolderId} folder");
@@ -436,14 +452,13 @@
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMAGES))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
-                if (relistFolders)
-                {
-                    folders = await _googleDriveService.ListFolders(accountFolderId);
-                }
+                imagesFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
+            }
+            else
+            {
+                imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
             }
 
-            string imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
             if (string.IsNullOrEmpty(imagesFolderId))
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {imagesFolderId} folder");
@@ -452,27 +467,41 @@
 
             folders = await _googleDriveService.ListFolders(imagesFolderId);
 
+            string newFolderId;
+            string doneFolderId;
+            string errorFolderId;
+
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
+                newFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
+                bool setPermission = await _googleDriveService.SetPermission(newFolderId);
+                if (!setPermission)
+                {
+                    _context.Vtex.Logger.Error("DriveImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
+                }
+            }
+            else
+            {
+                newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
             }
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
+                doneFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
+            }
+            else
+            {
+                doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
             }
 
             if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
             {
-                relistFolders = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
+                errorFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
             }
-
-            if (relistFolders)
+            else
             {
-                folders = await _googleDriveService.ListFolders(imagesFolderId);
+                errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
             }
-
-            string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
 
             Dictionary<string, string> images = new Dictionary<string, string>();
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
@@ -609,9 +638,6 @@
         {
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
-                // string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-                // GoogleWatch watch = JsonConvert.DeserializeObject<GoogleWatch>(bodyAsText);
-                // Console.WriteLine($"Watch: {bodyAsText}");
                 var headers = HttpContext.Request.Headers;
                 if (!string.IsNullOrEmpty(headers["x-goog-resource-state"])
                     && !string.IsNullOrEmpty(headers["x-goog-changed"]))
@@ -619,7 +645,7 @@
                     if (headers["x-goog-resource-state"] == "update" && headers["x-goog-changed"] == "children")
                     {
                         Console.WriteLine("Triggered");
-                        //Console.Write(PrintHeaders());
+                        Console.Write(PrintHeaders());
                         // await _driveImportRepository.ClearImportLock();
 
                         string watchExpiresAtHeader = headers["x-goog-channel-expiration"];
@@ -628,8 +654,9 @@
                         {
                             DateTime.TryParse(watchExpiresAtHeader, out watchExpiresAt);
                             Console.WriteLine($"ExpiresAt {watchExpiresAt} ({watchExpiresAtHeader})");
-                            int timeInMilliseconds = (int)(watchExpiresAt - DateTime.Now).TotalMilliseconds;
+                            //int timeInMilliseconds = (int)(watchExpiresAt - DateTime.Now).TotalMilliseconds;
                             // SetWatchAfterDelay(timeInMilliseconds);
+                            //_driveImportRepository.SetWatchExpiration(watchExpiresAt);
                         }
 
                         // check lock

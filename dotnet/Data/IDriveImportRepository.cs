@@ -14,5 +14,7 @@ namespace DriveImport.Data
         Task SetImportLock(DateTime importStartTime);
         Task<DateTime> CheckImportLock();
         Task ClearImportLock();
+        Task<WatchExpiration> GetWatchExpiration();
+        Task SetWatchExpiration(WatchExpiration watchExpiration);
     }
 }
