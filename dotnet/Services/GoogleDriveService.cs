@@ -355,7 +355,7 @@ namespace DriveImport.Services
                         foreach (GoogleFile folder in listFilesResponse.Files)
                         {
                             folders.Add(folder.Id, folder.Name);
-                            Console.WriteLine($"ListFolders [{folder.Id}] = [{folder.Name}]");
+                            //Console.WriteLine($"ListFolders [{folder.Id}] = [{folder.Name}]");
                         }
                     }
                     else
@@ -827,7 +827,7 @@ namespace DriveImport.Services
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
                     responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine(responseContent);
+                    //Console.WriteLine(responseContent);
 
                     if (!response.IsSuccessStatusCode)
                     {
