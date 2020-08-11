@@ -783,9 +783,10 @@ namespace DriveImport.Services
             Console.WriteLine("SetWatch");
             bool success = false;
             GoogleWatch googleWatchResponse = null;
-            WatchExpiration watchExpiration = await _driveImportRepository.GetWatchExpiration();
+            WatchExpiration watchExpiration = await _driveImportRepository.GetWatchExpiration(fileId);
             DateTime expiresAt = watchExpiration.ExpiresAt;
             int expirationWindowInHours = 1;
+            Console.WriteLine($"expiresAt {expiresAt}  <  {DateTime.Now.AddHours(expirationWindowInHours)}");
             if (expiresAt < DateTime.Now.AddHours(expirationWindowInHours))
             {
                 string responseContent = string.Empty;

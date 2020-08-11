@@ -283,9 +283,21 @@
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task<WatchExpiration> GetWatchExpiration()
+        public async Task<WatchExpiration> GetWatchExpiration(string folderId)
         {
-            WatchExpiration watchExpiration = new WatchExpiration();
+            IList<WatchExpiration> watchExpirationList = await this.GetWatchExpiration();
+            WatchExpiration watchExpiration = watchExpirationList.Where(e => e.FolderId.Equals(folderId)).FirstOrDefault();
+            if(watchExpiration == null)
+            {
+                watchExpiration = new WatchExpiration { ExpiresAt = DateTime.Now, FolderId = folderId };
+            }
+
+            return watchExpiration;
+        }
+
+        public async Task<IList<WatchExpiration>> GetWatchExpiration()
+        {
+            List<WatchExpiration> watchExpiration = new List<WatchExpiration>();
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
@@ -303,7 +315,7 @@
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
 
-            //Console.WriteLine(responseContent);
+            Console.WriteLine($"GetWatchExpiration {responseContent}");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -314,7 +326,7 @@
             response.EnsureSuccessStatusCode();
             try
             {
-                watchExpiration = JsonConvert.DeserializeObject<WatchExpiration>(responseContent);
+                watchExpiration = JsonConvert.DeserializeObject<List<WatchExpiration>>(responseContent);
             }
             catch(Exception ex)
             {
@@ -327,12 +339,16 @@
 
         public async Task SetWatchExpiration(WatchExpiration watchExpiration)
         {
-            if (watchExpiration == null)
+            IList<WatchExpiration> watchExpirationList = await this.GetWatchExpiration();
+            WatchExpiration watchExpirationTemp = watchExpirationList.Where(e => e.FolderId.Equals(watchExpiration.FolderId)).FirstOrDefault();
+            if (watchExpirationTemp != null)
             {
-                watchExpiration = new WatchExpiration();
+                watchExpirationList.Remove(watchExpirationTemp);
             }
 
-            var jsonSerializedExpiration = JsonConvert.SerializeObject(watchExpiration);
+            watchExpirationList.Add(watchExpiration);
+
+            var jsonSerializedExpiration = JsonConvert.SerializeObject(watchExpirationList);
 
             //Console.WriteLine(jsonSerializedCredentials);
 
@@ -353,8 +369,8 @@
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
 
-            //string responseContent = await response.Content.ReadAsStringAsync();
-            //Console.WriteLine(responseContent);
+            string responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"SetWatchExpiration {responseContent}");
 
             response.EnsureSuccessStatusCode();
         }
