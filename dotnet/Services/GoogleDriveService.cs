@@ -106,6 +106,7 @@ namespace DriveImport.Services
             catch(Exception ex)
             {
                 _context.Vtex.Logger.Error("GetGoogleAuthorizationToken", null,  $"Error Posting request. {postData}", ex);
+                tokenObj = null;
             }
 
             return tokenObj;
@@ -213,6 +214,20 @@ namespace DriveImport.Services
         public async Task<bool> ProcessReturn(string code)
         {
             Token token = await this.GetGoogleAuthorizationToken(code);
+            if(token == null)
+            {
+                for (int i = 1; i < 5; i++)
+                {
+                    Console.WriteLine($"ProcessReturn Retry #{i}");
+                    await Task.Delay(500 * i);
+                    token = await this.GetGoogleAuthorizationToken(code);
+                    if(token != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
             token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
             bool saved = await _driveImportRepository.SaveToken(token);
             if(!saved)
