@@ -195,16 +195,23 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                string responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"RevokeGoogleAuthorizationToken = {responseContent}");
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    success = true;
+                    var response = await client.SendAsync(request);
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"RevokeGoogleAuthorizationToken = {responseContent}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        success = true;
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                    }
                 }
-                else
+                catch(Exception ex)
                 {
-                    _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                    _context.Vtex.Logger.Error("RevokeGoogleAuthorizationToken", null, $"Have Access Token? {!string.IsNullOrEmpty(token.AccessToken)} Have Refresh Token?{!string.IsNullOrEmpty(token.RefreshToken)}", ex);
                 }
             }
 
@@ -294,16 +301,23 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("ListFiles", null, $"[{response.StatusCode}] {responseContent}");
+                    }
                 }
-                else
+                catch(Exception ex)
                 {
-                    _context.Vtex.Logger.Info("ListFiles", null, $"[{response.StatusCode}] {responseContent}");
+                    _context.Vtex.Logger.Error("ListFiles", null, $"Error", ex);
                 }
             }
             else
@@ -401,16 +415,23 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("ListImages", null, $"[{response.StatusCode}] {responseContent}");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _context.Vtex.Logger.Info("ListImages", null, $"[{response.StatusCode}] {responseContent}");
+                    _context.Vtex.Logger.Error("ListImages", null, $"Error", ex);
                 }
             }
             else
@@ -446,16 +467,23 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("ListImagesInRootFolder", null, $"[{response.StatusCode}] {responseContent}");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _context.Vtex.Logger.Info("ListImagesInRootFolder", null, $"[{response.StatusCode}] {responseContent}");
+                    _context.Vtex.Logger.Error("ListImagesInRootFolder", null, $"Error", ex);
                 }
             }
             else
@@ -491,16 +519,23 @@ namespace DriveImport.Services
                 }
 
                 var client = _clientFactory.CreateClient();
-                var response = await client.SendAsync(request);
-                responseContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("ListImagesInFolder", folderId, $"[{response.StatusCode}] {responseContent}");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _context.Vtex.Logger.Info("ListImagesInFolder", folderId, $"[{response.StatusCode}] {responseContent}");
+                    _context.Vtex.Logger.Error("ListImagesInFolder", folderId, $"Error", ex);
                 }
             }
             else
@@ -601,15 +636,22 @@ namespace DriveImport.Services
                     }
 
                     var client = _clientFactory.CreateClient();
-                    var response = await client.SendAsync(request);
-                    responseContent = await response.Content.ReadAsStringAsync();
-
-                    if (!response.IsSuccessStatusCode)
+                    try
                     {
-                        _context.Vtex.Logger.Info("MoveFile", null, $"[{response.StatusCode}] {responseContent}");
-                    }
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
 
-                    success = response.IsSuccessStatusCode;
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            _context.Vtex.Logger.Info("MoveFile", null, $"[{response.StatusCode}] {responseContent}");
+                        }
+
+                        success = response.IsSuccessStatusCode;
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("MoveFile", folderId, $"FileId {fileId}", ex);
+                    }
                 }
                 else
                 {
@@ -650,17 +692,24 @@ namespace DriveImport.Services
                     }
 
                     var client = _clientFactory.CreateClient();
-                    var response = await client.SendAsync(request);
-
-                    if (!response.IsSuccessStatusCode)
+                    try
                     {
-                        _context.Vtex.Logger.Info("GetFile", null, $"[{response.StatusCode}] {responseContent}");
+                        var response = await client.SendAsync(request);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            _context.Vtex.Logger.Info("GetFile", null, $"[{response.StatusCode}] {responseContent}");
+                        }
+
+                        contentStream = await response.Content.ReadAsStreamAsync();
+                        contentByteArray = await response.Content.ReadAsByteArrayAsync();
+
+                        success = response.IsSuccessStatusCode;
                     }
-
-                    contentStream = await response.Content.ReadAsStreamAsync();
-                    contentByteArray = await response.Content.ReadAsByteArrayAsync();
-
-                    success = response.IsSuccessStatusCode;
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("GetFile", null, $"FileId {fileId}", ex);
+                    }
                 }
                 else
                 {
@@ -707,15 +756,22 @@ namespace DriveImport.Services
                     }
 
                     var client = _clientFactory.CreateClient();
-                    var response = await client.SendAsync(request);
-                    responseContent = await response.Content.ReadAsStringAsync();
-
-                    if (!response.IsSuccessStatusCode)
+                    try
                     {
-                        _context.Vtex.Logger.Info("SetPermission", null, $"[{response.StatusCode}] {responseContent}");
-                    }
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
 
-                    success = response.IsSuccessStatusCode;
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            _context.Vtex.Logger.Info("SetPermission", null, $"[{response.StatusCode}] {responseContent}");
+                        }
+
+                        success = response.IsSuccessStatusCode;
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("SetPermission", null, $"FileId {fileId}", ex);
+                    }
                 }
                 else
                 {
@@ -760,10 +816,17 @@ namespace DriveImport.Services
                     }
 
                     var client = _clientFactory.CreateClient();
-                    var response = await client.SendAsync(request);
-                    responseContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
 
-                    success = response.IsSuccessStatusCode;
+                        success = response.IsSuccessStatusCode;
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("RenameFile", null, $"FileId {fileId}, Filename '{fileName}'", ex);
+                    }
                 }
                 else
                 {
@@ -825,26 +888,33 @@ namespace DriveImport.Services
                     }
 
                     var client = _clientFactory.CreateClient();
-                    var response = await client.SendAsync(request);
-                    responseContent = await response.Content.ReadAsStringAsync();
-                    //Console.WriteLine(responseContent);
-
-                    if (!response.IsSuccessStatusCode)
+                    try
                     {
-                        Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
-                        _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
-                    }
-                    else
-                    {
-                        googleWatchResponse = JsonConvert.DeserializeObject<GoogleWatch>(responseContent);
-                        long expiresIn = googleWatchResponse.Expiration ?? 0;
-                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
-                        expiresAt = dateTimeOffset.UtcDateTime;
-                        watchExpiration = new WatchExpiration { ExpiresAt = expiresAt, FolderId = fileId };
-                        await _driveImportRepository.SetWatchExpiration(watchExpiration);
-                    }
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
+                        //Console.WriteLine(responseContent);
 
-                    success = response.IsSuccessStatusCode;
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
+                            _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                        }
+                        else
+                        {
+                            googleWatchResponse = JsonConvert.DeserializeObject<GoogleWatch>(responseContent);
+                            long expiresIn = googleWatchResponse.Expiration ?? 0;
+                            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
+                            expiresAt = dateTimeOffset.UtcDateTime;
+                            watchExpiration = new WatchExpiration { ExpiresAt = expiresAt, FolderId = fileId };
+                            await _driveImportRepository.SetWatchExpiration(watchExpiration);
+                        }
+
+                        success = response.IsSuccessStatusCode;
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("SetWatch", null, $"FileId {fileId}", ex);
+                    }
                 }
                 else
                 {
