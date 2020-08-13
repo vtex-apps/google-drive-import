@@ -645,7 +645,7 @@
                     if (headers["x-goog-resource-state"] == "update" && headers["x-goog-changed"] == "children")
                     {
                         Console.WriteLine("Triggered");
-                        Console.Write(PrintHeaders());
+                        //Console.Write(PrintHeaders());
                         // await _driveImportRepository.ClearImportLock();
 
                         string watchExpiresAtHeader = headers["x-goog-channel-expiration"];
