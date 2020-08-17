@@ -285,8 +285,13 @@
 
         public async Task<WatchExpiration> GetWatchExpiration(string folderId)
         {
+            WatchExpiration watchExpiration = null;
             IList<WatchExpiration> watchExpirationList = await this.GetWatchExpiration();
-            WatchExpiration watchExpiration = watchExpirationList.Where(e => e.FolderId.Equals(folderId)).FirstOrDefault();
+            if (watchExpirationList != null)
+            {
+                watchExpiration = watchExpirationList.Where(e => e.FolderId.Equals(folderId)).FirstOrDefault();
+            }
+
             if(watchExpiration == null)
             {
                 watchExpiration = new WatchExpiration { ExpiresAt = DateTime.Now, FolderId = folderId };

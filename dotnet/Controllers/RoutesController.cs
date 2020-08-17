@@ -266,7 +266,12 @@
 
             if(folders == null)
             {
-                return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not Access Drive.");
+                await Task.Delay(500);
+                folders = await _googleDriveService.ListFolders();
+                if (folders == null)
+                {
+                    return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not Access Drive.");
+                }
             }
 
             string importFolderId;
