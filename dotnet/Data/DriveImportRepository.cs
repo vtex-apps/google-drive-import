@@ -38,34 +38,37 @@
         public async Task<Credentials> GetCredentials()
         {
             //Console.WriteLine("-> GetCredentials <-");
-            var request = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}")
-            };
+            //var request = new HttpRequestMessage
+            //{
+            //    Method = HttpMethod.Get,
+            //    RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}")
+            //};
 
-            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-            if (authToken != null)
-            {
-                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
-                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-            }
+            //string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            //if (authToken != null)
+            //{
+            //    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+            //    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            //}
 
-            var client = _clientFactory.CreateClient();
-            var response = await client.SendAsync(request);
-            string responseContent = await response.Content.ReadAsStringAsync();
+            //var client = _clientFactory.CreateClient();
+            //var response = await client.SendAsync(request);
+            //string responseContent = await response.Content.ReadAsStringAsync();
 
-            //Console.WriteLine(responseContent);
+            ////Console.WriteLine(responseContent);
 
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                return null;
-            }
+            //if (response.StatusCode == HttpStatusCode.NotFound)
+            //{
+            //    return null;
+            //}
 
-            // A helper method is in order for this as it does not return the stack trace etc.
-            response.EnsureSuccessStatusCode();
+            //// A helper method is in order for this as it does not return the stack trace etc.
+            //response.EnsureSuccessStatusCode();
+
+            string responseContent = @"{""web"":{""client_id"":""710156231419-0o3687gdsq8e83j8bcdaelsbuj8dniue.apps.googleusercontent.com"",""project_id"":""drive-api-testing-282814"",""auth_uri"":""https://accounts.google.com/o/oauth2/auth"",""token_uri"":""https://oauth2.googleapis.com/token"",""auth_provider_x509_cert_url"":""https://www.googleapis.com/oauth2/v1/certs"",""client_secret"":""kE9-cKhor03VSc8Ek8lsz5jm""}}";
 
             Credentials credentials = JsonConvert.DeserializeObject<Credentials>(responseContent);
+
             return credentials;
         }
 
