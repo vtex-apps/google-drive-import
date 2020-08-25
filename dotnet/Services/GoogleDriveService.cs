@@ -891,25 +891,32 @@ namespace DriveImport.Services
                     try
                     {
                         var response = await client.SendAsync(request);
-                        responseContent = await response.Content.ReadAsStringAsync();
-                        //Console.WriteLine(responseContent);
-
-                        if (!response.IsSuccessStatusCode)
+                        if (response != null)
                         {
-                            Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
-                            _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                            responseContent = await response.Content.ReadAsStringAsync();
+                            //Console.WriteLine(responseContent);
+
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                Console.WriteLine($"SetWatch '{response.StatusCode}' {responseContent}");
+                                _context.Vtex.Logger.Info("SetWatch", null, $"[{response.StatusCode}] {responseContent}");
+                            }
+                            else
+                            {
+                                googleWatchResponse = JsonConvert.DeserializeObject<GoogleWatch>(responseContent);
+                                long expiresIn = googleWatchResponse.Expiration ?? 0;
+                                DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
+                                expiresAt = dateTimeOffset.UtcDateTime;
+                                watchExpiration = new WatchExpiration { ExpiresAt = expiresAt, FolderId = fileId };
+                                await _driveImportRepository.SetWatchExpiration(watchExpiration);
+                            }
+
+                            success = response.IsSuccessStatusCode;
                         }
                         else
                         {
-                            googleWatchResponse = JsonConvert.DeserializeObject<GoogleWatch>(responseContent);
-                            long expiresIn = googleWatchResponse.Expiration ?? 0;
-                            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
-                            expiresAt = dateTimeOffset.UtcDateTime;
-                            watchExpiration = new WatchExpiration { ExpiresAt = expiresAt, FolderId = fileId };
-                            await _driveImportRepository.SetWatchExpiration(watchExpiration);
+                            _context.Vtex.Logger.Info("SetWatch", null, $"Response is Null. FileId {fileId}");
                         }
-
-                        success = response.IsSuccessStatusCode;
                     }
                     catch (Exception ex)
                     {
