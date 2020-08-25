@@ -158,11 +158,14 @@
                 while (thereAreFiles)
                 {
                     bool moveFailed = false;
+                    _context.Vtex.Logger.Info("DriveImport", null, $"Processing {imageFiles.Files.Count} files.");
                     foreach (GoogleFile file in imageFiles.Files)
                     {
+                        _context.Vtex.Logger.Info("DriveImport", null, $"Beginning Processing of '{file.Name}' at {file.WebContentLink}");
                         if (!string.IsNullOrEmpty(file.WebContentLink.ToString()))
                         {
                             UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
+                            _context.Vtex.Logger.Info("DriveImport", "UpdateResponse", $"'{file.Name}' Response: {JsonConvert.SerializeObject(updateResponse)}");
                             updated = updateResponse.Success;
                             bool moved = false;
                             if (updated)
