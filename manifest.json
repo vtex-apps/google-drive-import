@@ -91,6 +91,13 @@
         "path": "/file/*"
       }
     },
+	{
+      "name": "outbound-access",
+      "attrs": {
+        "host": "drive.google.com",
+        "path": "/uc/*"
+      }
+    },
     {
       "name": "outbound-access",
       "attrs": {
