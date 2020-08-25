@@ -105,6 +105,8 @@ namespace DriveImport.Services
                 catch (Exception ex)
                 {
                     _context.Vtex.Logger.Error("UpdateSkuImage", null, $"Error updating sku '{skuId}' {imageName}", ex);
+                    success = false;
+                    responseContent = ex.Message;
                 }
             }
 

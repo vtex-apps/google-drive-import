@@ -331,7 +331,7 @@
             }
 
             // A helper method is in order for this as it does not return the stack trace etc.
-            response.EnsureSuccessStatusCode();
+            //response.EnsureSuccessStatusCode();
             try
             {
                 watchExpiration = JsonConvert.DeserializeObject<List<WatchExpiration>>(responseContent);
@@ -347,11 +347,20 @@
 
         public async Task SetWatchExpiration(WatchExpiration watchExpiration)
         {
+            WatchExpiration watchExpirationTemp = null;
             IList<WatchExpiration> watchExpirationList = await this.GetWatchExpiration();
-            WatchExpiration watchExpirationTemp = watchExpirationList.Where(e => e.FolderId.Equals(watchExpiration.FolderId)).FirstOrDefault();
-            if (watchExpirationTemp != null)
+            if (watchExpirationList != null)
             {
-                watchExpirationList.Remove(watchExpirationTemp);
+                // Check for and remove previous record.
+                watchExpirationTemp = watchExpirationList.Where(e => e.FolderId.Equals(watchExpiration.FolderId)).FirstOrDefault();
+                if (watchExpirationTemp != null)
+                {
+                    watchExpirationList.Remove(watchExpirationTemp);
+                }
+            }
+            else
+            {
+                watchExpirationList = new List<WatchExpiration>();
             }
 
             watchExpirationList.Add(watchExpiration);
