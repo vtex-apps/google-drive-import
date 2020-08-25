@@ -1,7 +1,7 @@
 {
   "name": "google-drive-import",
   "vendor": "vtex",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "title": "Google Drive Import",
   "description": "Import files from Google Drive",
   "categories": [],
@@ -91,7 +91,7 @@
         "path": "/file/*"
       }
     },
-	{
+    {
       "name": "outbound-access",
       "attrs": {
         "host": "drive.google.com",
