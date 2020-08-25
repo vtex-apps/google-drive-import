@@ -99,8 +99,12 @@ namespace DriveImport.Services
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
                     responseContent = await response.Content.ReadAsStringAsync();
-
                     success = response.IsSuccessStatusCode;
+                    if(string.IsNullOrEmpty(responseContent))
+                    {
+                        responseContent = $"Updated:{success}";
+                    }
+
                 }
                 catch (Exception ex)
                 {
