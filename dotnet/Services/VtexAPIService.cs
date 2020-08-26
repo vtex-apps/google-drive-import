@@ -80,14 +80,14 @@ namespace DriveImport.Services
                     var request = new HttpRequestMessage
                     {
                         Method = HttpMethod.Post,
-                        RequestUri = new Uri($"https://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
+                        RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
                         Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                     };
 
                     //Console.WriteLine(request.RequestUri);
 
 
-                    request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                    //request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                     string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
                     if (authToken != null)
                     {
