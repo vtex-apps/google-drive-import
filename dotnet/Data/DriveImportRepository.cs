@@ -124,6 +124,8 @@
                 request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
             }
 
+            request.Headers.Add("Cache-Control", "no-cache");
+
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
@@ -236,6 +238,8 @@
                 request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
             }
 
+            request.Headers.Add("Cache-Control", "no-cache");
+
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
@@ -318,6 +322,8 @@
                 request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
                 request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
             }
+
+            request.Headers.Add("Cache-Control", "no-cache");
 
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
