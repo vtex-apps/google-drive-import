@@ -17,6 +17,7 @@ namespace DriveImport.Services
         Task<GoogleWatch> SetWatch(string fileId);
 
         Task<ListFilesResponse> ListFiles();
+        Task<ListFilesResponse> GetFolders();
         Task<ListFilesResponse> ListImagesInRootFolder();
         Task<ListFilesResponse> ListImagesInFolder(string folderId);
         Task<ListFilesResponse> ListImages();

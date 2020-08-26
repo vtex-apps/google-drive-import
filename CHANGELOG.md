@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Reduce calls to Google API
+
 ## [0.0.9] - 2020-08-26
 
 ### Changed

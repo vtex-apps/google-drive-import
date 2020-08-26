@@ -341,6 +341,7 @@ namespace DriveImport.Services
                 {
                     query = $"{query} and '{parentId}' in parents";
                 }
+
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
@@ -388,6 +389,58 @@ namespace DriveImport.Services
             }
 
             return folders;
+        }
+
+        public async Task<ListFilesResponse> GetFolders()
+        {
+            ListFilesResponse listFilesResponse = null;
+            string responseContent = string.Empty;
+            Token token = await this.GetGoogleToken();
+            if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+            {
+                string fields = "*";
+                string query = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?fields={fields}&q={query}"),
+                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                };
+
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("GetFolders", null, $"[{response.StatusCode}] {responseContent}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _context.Vtex.Logger.Error("GetFolders", null, $"List folders error.", ex);
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Info("GetFolders", null, "Token error.");
+            }
+
+            return listFilesResponse;
         }
 
         public async Task<ListFilesResponse> ListImages()
@@ -931,6 +984,7 @@ namespace DriveImport.Services
             else
             {
                 Console.WriteLine($"Watch will expire at {expiresAt}");
+                _context.Vtex.Logger.Info("SetWatch", null, $"Watch will expire at {expiresAt}");
             }
 
             return googleWatchResponse;
