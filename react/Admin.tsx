@@ -13,7 +13,8 @@ import {
 } from 'vtex.styleguide'
 import { injectIntl, FormattedMessage, WrappedComponentProps } from 'react-intl'
 
-const CHECK_URL = '/google-drive-import/owner-email'
+const CHECK_URL = '/google-drive-import/have-token'
+const EMAIL_URL = '/google-drive-import/owner-email'
 const FETCH_URL = '/google-drive-import/import-images'
 const REVOKE_URL = '/google-drive-import/revoke-token'
 
@@ -24,12 +25,13 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     fetching: false,
     revoking: false,
     fetched: false,
-    authorization: null,
+    authorization: false,
+    email: null,
     loading: true,
   })
   const { account } = useRuntime()
 
-  const { fetching, revoking, fetched, authorization, loading } = state
+  const { fetching, revoking, fetched, authorization, email, loading } = state
 
   const fetch = () => {
     setState({
@@ -74,7 +76,8 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         setState({
           ...state,
           revoking: false,
-          authorization: null,
+          authorizarion: false,
+          email: null,
         })
       })
       .catch(() => {
@@ -90,17 +93,25 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       initialCheck = true
       axios
         .get(CHECK_URL)
-        .then((response: any) => {
+        .then(() => {
           setState({
             ...state,
             loading: false,
-            authorization: response.data,
+            authorization: true,
           })
         })
         .catch(() => {
           setState({
             ...state,
             loading: false,
+          })
+        })
+        .then(() => {
+          axios.get(EMAIL_URL).then((response: any) => {
+            setState({
+              ...state,
+              email: response.data,
+            })
           })
         })
     }
@@ -174,10 +185,12 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
               <Divider orientation="vertical" />
             </div>
             <div className="w-40">
-              <p>
-                <FormattedMessage id="admin/google-drive-import.connected-as" />{' '}
-                <strong>{`${authorization}`}</strong>
-              </p>
+              {email && (
+                <p>
+                  <FormattedMessage id="admin/google-drive-import.connected-as" />{' '}
+                  <strong>{`${email}`}</strong>
+                </p>
+              )}
               <div className="mt4">
                 <Button
                   variation="danger-tertiary"
