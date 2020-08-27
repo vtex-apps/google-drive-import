@@ -408,6 +408,14 @@ namespace DriveImport.Services
                             break;
                     }
                 }
+                else
+                {
+                    messages.Add("Invalid filename format");
+                }
+            }
+            else
+            {
+                messages.Add("Invalid filename");
             }
 
             updateResponse.Success = success;

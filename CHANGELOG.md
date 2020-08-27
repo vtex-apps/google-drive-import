@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Store folder Ids in VBase
+- Reset Watch when signing up
+- Added Error message for invalid filename
+
 ## [0.0.10] - 2020-08-26
 
 ### Changed
