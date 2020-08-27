@@ -109,6 +109,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         })
       })
       .then(() => {
+        if (!accountConnected) return
         axios.get(EMAIL_URL).then((response: any) => {
           setState({
             ...state,
