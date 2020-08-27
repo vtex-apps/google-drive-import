@@ -18,5 +18,7 @@ namespace DriveImport.Data
         Task<IList<WatchExpiration>> GetWatchExpiration();
         Task<WatchExpiration> GetWatchExpiration(string folderId);
         Task SetWatchExpiration(WatchExpiration watchExpiration);
+        Task<FolderIds> LoadFolderIds(string accountName);
+        Task<bool> SaveFolderIds(FolderIds folderIds, string accountName);
     }
 }

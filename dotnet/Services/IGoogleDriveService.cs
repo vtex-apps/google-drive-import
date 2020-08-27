@@ -14,7 +14,7 @@ namespace DriveImport.Services
         Task<bool> ProcessReturn(string code);
         Task SaveCredentials(Credentials credentials);
         Task<Token> GetGoogleToken();
-        Task<GoogleWatch> SetWatch(string fileId);
+        Task<GoogleWatch> SetWatch(string fileId, bool reset = false);
 
         Task<ListFilesResponse> ListFiles();
         Task<ListFilesResponse> GetFolders();

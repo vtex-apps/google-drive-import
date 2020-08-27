@@ -894,7 +894,7 @@ namespace DriveImport.Services
             return success;
         }
 
-        public async Task<GoogleWatch> SetWatch(string fileId)
+        public async Task<GoogleWatch> SetWatch(string fileId, bool reset = false)
         {
             Console.WriteLine("SetWatch");
             bool success = false;
@@ -903,7 +903,7 @@ namespace DriveImport.Services
             DateTime expiresAt = watchExpiration.ExpiresAt;
             int expirationWindowInHours = 1;
             Console.WriteLine($"expiresAt {expiresAt}  <  {DateTime.Now.AddHours(expirationWindowInHours)}");
-            if (expiresAt < DateTime.Now.AddHours(expirationWindowInHours))
+            if (reset || expiresAt < DateTime.Now.AddHours(expirationWindowInHours))
             {
                 string responseContent = string.Empty;
                 Token token = await this.GetGoogleToken();
