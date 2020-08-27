@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- Add ES/PT intl messages
 - Admin page uses `have-token` endpoint to determine if Google account is connected
 
 ## [0.0.11] - 2020-08-27

@@ -110,6 +110,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
           axios.get(EMAIL_URL).then((response: any) => {
             setState({
               ...state,
+              authorization: true,
               email: response.data,
             })
           })
