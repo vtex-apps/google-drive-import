@@ -76,7 +76,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         setState({
           ...state,
           revoking: false,
-          authorizarion: false,
+          authorization: false,
           email: null,
         })
       })
@@ -89,33 +89,35 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
   }
 
   useEffect(() => {
-    if (!initialCheck) {
-      initialCheck = true
-      axios
-        .get(CHECK_URL)
-        .then(() => {
+    if (initialCheck) return
+    initialCheck = true
+    let accountConnected = false
+    axios
+      .get(CHECK_URL)
+      .then((response: any) => {
+        accountConnected = response.data
+        setState({
+          ...state,
+          loading: false,
+          authorization: accountConnected,
+        })
+      })
+      .catch(() => {
+        setState({
+          ...state,
+          loading: false,
+        })
+      })
+      .then(() => {
+        axios.get(EMAIL_URL).then((response: any) => {
           setState({
             ...state,
             loading: false,
-            authorization: true,
+            authorization: accountConnected,
+            email: response.data,
           })
         })
-        .catch(() => {
-          setState({
-            ...state,
-            loading: false,
-          })
-        })
-        .then(() => {
-          axios.get(EMAIL_URL).then((response: any) => {
-            setState({
-              ...state,
-              authorization: true,
-              email: response.data,
-            })
-          })
-        })
-    }
+      })
   })
 
   return (
