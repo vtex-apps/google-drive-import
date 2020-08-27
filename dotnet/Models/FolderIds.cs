@@ -13,3 +13,4 @@ namespace DriveImport.Models
         public string DoneFolderId { get; set; }
         public string ErrorFolderId { get; set; }
     }
+}
