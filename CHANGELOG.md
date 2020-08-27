@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.11] - 2020-08-27
+
 ### Changed
 
 - Store folder Ids in VBase
