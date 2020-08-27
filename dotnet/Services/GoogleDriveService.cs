@@ -254,25 +254,33 @@ namespace DriveImport.Services
         public async Task<Token> GetGoogleToken()
         {
             Token token = await _driveImportRepository.LoadToken();
-            string refreshToken = token.RefreshToken;
-            if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+            if (!string.IsNullOrEmpty(token.RefreshToken))
             {
-                if (token.ExpiresAt <= DateTime.Now)
+                string refreshToken = token.RefreshToken;
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
                 {
-                    token = await this.RefreshGoogleAuthorizationToken(token.RefreshToken);
-                    token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
-                    if (string.IsNullOrEmpty(token.RefreshToken))
+                    if (token.ExpiresAt <= DateTime.Now)
                     {
-                        token.RefreshToken = refreshToken;
-                    }
+                        token = await this.RefreshGoogleAuthorizationToken(token.RefreshToken);
+                        token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
+                        if (string.IsNullOrEmpty(token.RefreshToken))
+                        {
+                            token.RefreshToken = refreshToken;
+                        }
 
-                    bool saved = await _driveImportRepository.SaveToken(token);
+                        bool saved = await _driveImportRepository.SaveToken(token);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Did not load token. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)} Have Refresh token?{!string.IsNullOrEmpty(token.RefreshToken)}");
+                    _context.Vtex.Logger.Info("GetGoogleToken", null, $"Could not load token. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)} Have Refresh token?{!string.IsNullOrEmpty(token.RefreshToken)}");
+                    token = null;
                 }
             }
             else
             {
-                Console.WriteLine($"Did not load token. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)} Have Refresh token?{!string.IsNullOrEmpty(token.RefreshToken)}");
-                _context.Vtex.Logger.Info("GetGoogleToken", null, $"Could not load token. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)} Have Refresh token?{!string.IsNullOrEmpty(token.RefreshToken)}");
+                _context.Vtex.Logger.Info("GetGoogleToken", null, $"Could not load token.  Refresh token was null. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)}");
             }
 
             return token;

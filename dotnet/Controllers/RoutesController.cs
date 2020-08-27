@@ -627,8 +627,12 @@
 
         public async Task<bool> HaveToken()
         {
+            bool haveToken = false;
             Token token = await _googleDriveService.GetGoogleToken();
-            return token != null && !string.IsNullOrEmpty(token.RefreshToken);
+            haveToken = token != null && !string.IsNullOrEmpty(token.RefreshToken);
+            Console.WriteLine($"Have Token? {false}");
+            Response.Headers.Add("Cache-Control", "no-cache");
+            return haveToken;
         }
 
         public async Task<IActionResult> GetOwners()
