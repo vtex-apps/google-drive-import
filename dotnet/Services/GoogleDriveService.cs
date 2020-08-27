@@ -208,6 +208,8 @@ namespace DriveImport.Services
                     {
                         _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
                     }
+
+                    await _driveImportRepository.SaveToken(new Token());
                 }
                 catch(Exception ex)
                 {
@@ -288,7 +290,7 @@ namespace DriveImport.Services
 
         public async Task<ListFilesResponse> ListFiles()
         {
-            ListFilesResponse listFilesResponse = new ListFilesResponse();
+            ListFilesResponse listFilesResponse = null;
             string responseContent = string.Empty;
             Token token = await this.GetGoogleToken();
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
