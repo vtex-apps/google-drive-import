@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.16] - 2020-08-28
+
 ### Changed
 
 - Revoke any existing token before redirecting user when `Grant Access` is clicked on admin page

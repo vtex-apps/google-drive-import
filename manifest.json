@@ -1,7 +1,7 @@
 {
   "name": "google-drive-import",
   "vendor": "vtex",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "title": "Google Drive Import",
   "description": "Import files from Google Drive",
   "categories": [],
