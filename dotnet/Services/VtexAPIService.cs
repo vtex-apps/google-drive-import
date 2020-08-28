@@ -165,10 +165,10 @@ namespace DriveImport.Services
                     request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
                 }
 
-                MerchantSettings merchantSettings = await _driveImportRepository.GetMerchantSettings();
+                //MerchantSettings merchantSettings = await _driveImportRepository.GetMerchantSettings();
 
-                request.Headers.Add(DriveImportConstants.APP_TOKEN, merchantSettings.AppToken);
-                request.Headers.Add(DriveImportConstants.APP_KEY, merchantSettings.AppKey);
+                //request.Headers.Add(DriveImportConstants.APP_TOKEN, merchantSettings.AppToken);
+                //request.Headers.Add(DriveImportConstants.APP_KEY, merchantSettings.AppKey);
 
                 var client = _clientFactory.CreateClient();
                 var response = await client.SendAsync(request);
