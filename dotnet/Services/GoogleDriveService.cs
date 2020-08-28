@@ -240,9 +240,14 @@ namespace DriveImport.Services
                 }
             }
 
-            token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
-            bool saved = await _driveImportRepository.SaveToken(token);
-            _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Saved? {saved} {JsonConvert.SerializeObject(token)}");
+            bool saved = false;
+            if (token != null)
+            {
+                token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
+                saved = await _driveImportRepository.SaveToken(token);
+                _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Saved? {saved} {JsonConvert.SerializeObject(token)}");
+            }
+
             if (!saved)
             {
                 Console.WriteLine($"Did not save token. {JsonConvert.SerializeObject(token)}");

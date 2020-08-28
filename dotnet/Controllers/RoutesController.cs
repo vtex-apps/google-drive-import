@@ -97,6 +97,7 @@
             // If any essential folders are missing verify and create the folder structure.
             if (string.IsNullOrEmpty(newFolderId) || string.IsNullOrEmpty(doneFolderId) || string.IsNullOrEmpty(errorFolderId))
             {
+                folderIds = null;
                 _context.Vtex.Logger.Info("DriveImport", null, "Verifying folder structure.");
                 Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
 
@@ -652,6 +653,7 @@
         public async Task<IActionResult> GetOwnerEmail()
         {
             string email = null;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
             try
             {
                 Token token = await _googleDriveService.GetGoogleToken();
@@ -676,16 +678,16 @@
                         }
 
                         _context.Vtex.Logger.Info("GetOwnerEmail", null, $"Revoked Token? {revoked}");
-                        //if(revoked)
-                        //{
-                        //    await this._driveImportRepository.SaveToken(new Token());
-                        //}
+
+                        if (revoked)
+                        {
+                            await _driveImportRepository.SaveFolderIds(null, accountName);
+                        }
 
                         return Json(null);
                     }
 
                     string newFolderId = string.Empty;
-                    string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
                     FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
                     if (folderIds != null)
                     {
@@ -743,6 +745,13 @@
                     }
                 }
             }
+
+            if(revoked)
+            {
+                string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+                await _driveImportRepository.SaveFolderIds(null, accountName);
+            }
+
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json(revoked);
         }
