@@ -17,6 +17,7 @@ const CHECK_URL = '/google-drive-import/have-token'
 const EMAIL_URL = '/google-drive-import/owner-email'
 const FETCH_URL = '/google-drive-import/import-images'
 const REVOKE_URL = '/google-drive-import/revoke-token'
+const AUTH_URL = '/google-drive-import/auth'
 
 let initialCheck = false
 
@@ -64,7 +65,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       })
   }
 
-  const revoke = () => {
+  const revoke = async () => {
     setState({
       ...state,
       revoking: true,
@@ -85,6 +86,18 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
           ...state,
           revoking: false,
         })
+      })
+
+    return true
+  }
+
+  const auth = () => {
+    revoke()
+      .then(() => {
+        window.top.location.href = AUTH_URL
+      })
+      .catch(() => {
+        window.top.location.href = AUTH_URL
       })
   }
 
@@ -230,8 +243,9 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                     <Button
                       variation="primary"
                       collapseLeft
-                      href="/google-drive-import/auth"
-                      target="_top"
+                      onClick={() => {
+                        auth()
+                      }}
                     >
                       <FormattedMessage id="admin/google-drive-import.setup.button" />
                     </Button>
