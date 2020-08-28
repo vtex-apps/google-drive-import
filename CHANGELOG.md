@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- On Revoke Token, clear folder map
+
 ## [0.0.14] - 2020-08-28
 
 ### Added
