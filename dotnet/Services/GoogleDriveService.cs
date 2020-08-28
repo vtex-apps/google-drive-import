@@ -177,6 +177,8 @@ namespace DriveImport.Services
             {
                 Console.WriteLine("Token Empty");
                 _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, "Token Empty");
+                await _driveImportRepository.SaveToken(new Token());
+                success = true;
             }
             else
             {
@@ -202,14 +204,13 @@ namespace DriveImport.Services
                     Console.WriteLine($"RevokeGoogleAuthorizationToken = {responseContent}");
                     if (response.IsSuccessStatusCode)
                     {
+                        await _driveImportRepository.SaveToken(new Token());
                         success = true;
                     }
                     else
                     {
                         _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
                     }
-
-                    await _driveImportRepository.SaveToken(new Token());
                 }
                 catch(Exception ex)
                 {
@@ -222,12 +223,14 @@ namespace DriveImport.Services
 
         public async Task<bool> ProcessReturn(string code)
         {
+            _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Processing Code [{code}]");
             Token token = await this.GetGoogleAuthorizationToken(code);
             if(token == null)
             {
                 for (int i = 1; i < 5; i++)
                 {
                     Console.WriteLine($"ProcessReturn Retry #{i}");
+                    _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Retry #{i}");
                     await Task.Delay(500 * i);
                     token = await this.GetGoogleAuthorizationToken(code);
                     if(token != null)
@@ -239,10 +242,11 @@ namespace DriveImport.Services
 
             token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
             bool saved = await _driveImportRepository.SaveToken(token);
-            if(!saved)
+            _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Saved? {saved} {JsonConvert.SerializeObject(token)}");
+            if (!saved)
             {
                 Console.WriteLine($"Did not save token. {JsonConvert.SerializeObject(token)}");
-                _context.Vtex.Logger.Info("ProcessReturn", null, $"Did not save token. {JsonConvert.SerializeObject(token)}");
+                _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Did not save token. {JsonConvert.SerializeObject(token)}");
             }
 
             return saved;

@@ -319,6 +319,7 @@
 
             if (string.IsNullOrEmpty(code))
             {
+                _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Missing return code. [{code}]");
                 return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Missing return code.");
             }
 
@@ -326,12 +327,14 @@
 
             if (!success)
             {
+                _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not process code. [{code}]");
                 return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not process code.");
             }
 
             FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
             if (folderIds != null)
             {
+                _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Folder Ids loaded from storage. [{code}]");
                 importFolderId = folderIds.ImagesFolderId;
                 accountFolderId = folderIds.AccountFolderId;
                 imagesFolderId = folderIds.ImagesFolderId;
@@ -349,6 +352,7 @@
                     folders = await _googleDriveService.ListFolders();
                     if (folders == null)
                     {
+                        _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not Access Drive. [{code}]");
                         return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not Access Drive.");
                     }
                 }
@@ -364,7 +368,7 @@
 
                 if (string.IsNullOrEmpty(importFolderId))
                 {
-                    _context.Vtex.Logger.Info("DriveImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
+                    _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
                     return Json($"Could not find {DriveImportConstants.FolderNames.IMPORT} folder");
                 }
 
@@ -381,7 +385,7 @@
 
                 if (string.IsNullOrEmpty(accountFolderId))
                 {
-                    _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {accountFolderId} folder");
+                    _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not find {accountFolderId} folder");
                     return Json($"Could not find {accountFolderId} folder");
                 }
 
@@ -398,7 +402,7 @@
 
                 if (string.IsNullOrEmpty(imagesFolderId))
                 {
-                    _context.Vtex.Logger.Info("DriveImport", null, $"Could not find {imagesFolderId} folder");
+                    _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not find {imagesFolderId} folder");
                     return Json($"Could not find {imagesFolderId} folder");
                 }
 
@@ -410,7 +414,7 @@
                     bool setPermission = await _googleDriveService.SetPermission(newFolderId);
                     if (!setPermission)
                     {
-                        _context.Vtex.Logger.Error("DriveImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
+                        _context.Vtex.Logger.Error("ProcessReturnCode", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
                     }
                 }
                 else
@@ -446,11 +450,13 @@
                     NewFolderId = newFolderId
                 };
 
-                _driveImportRepository.SaveFolderIds(folderIds, accountName);
+                bool folderIdsSaved = await _driveImportRepository.SaveFolderIds(folderIds, accountName);
+                _context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder Ids Saved? {folderIdsSaved}");
             }
 
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId, true);
             watch = (googleWatch != null);
+            _context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder [{newFolderId}] Watch Set? {watch}");
             if (watch)
             {
                 long expiresIn = googleWatch.Expiration ?? 0;
@@ -654,11 +660,26 @@
                     if (string.IsNullOrEmpty(token.RefreshToken))
                     {
                         bool revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
-                        _context.Vtex.Logger.Info("GetOwnerEmail", null, $"Revoked Token? {revoked}");
-                        if(revoked)
+                        if (!revoked)
                         {
-                            await this._driveImportRepository.SaveToken(new Token());
+                            for (int i = 1; i < 5; i++)
+                            {
+                                Console.WriteLine($"RevokeGoogleAuthorizationToken Retry #{i}");
+                                _context.Vtex.Logger.Info("GetOwnerEmail", "RevokeGoogleAuthorizationToken", $"Retry #{i}");
+                                await Task.Delay(500 * i);
+                                revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
+                                if (revoked)
+                                {
+                                    break;
+                                }
+                            }
                         }
+
+                        _context.Vtex.Logger.Info("GetOwnerEmail", null, $"Revoked Token? {revoked}");
+                        //if(revoked)
+                        //{
+                        //    await this._driveImportRepository.SaveToken(new Token());
+                        //}
 
                         return Json(null);
                     }
@@ -683,7 +704,7 @@
                         }
                         else
                         {
-                            _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not owner.");
+                            _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not find owners.");
                         }
                     }
                 }
@@ -706,10 +727,24 @@
 
         public async Task<IActionResult> RevokeToken()
         {
-            bool success = false;
-            success = await _googleDriveService.RevokeGoogleAuthorizationToken();
+            bool revoked = false;
+            revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
+            if (!revoked)
+            {
+                for (int i = 1; i < 5; i++)
+                {
+                    Console.WriteLine($"RevokeGoogleAuthorizationToken Retry #{i}");
+                    _context.Vtex.Logger.Info("GetOwnerEmail", "RevokeGoogleAuthorizationToken", $"Retry #{i}");
+                    await Task.Delay(500 * i);
+                    revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
+                    if (revoked)
+                    {
+                        break;
+                    }
+                }
+            }
             Response.Headers.Add("Cache-Control", "no-cache");
-            return Json(success);
+            return Json(revoked);
         }
 
         public async Task<IActionResult> SetWatch()
@@ -822,13 +857,18 @@
                         _context.Vtex.Logger.Info("ProcessChange", null, $"Set new lock: {DateTime.Now}");
 
                         await DriveImport();
-                        await Task.Delay(5000);
-                        await _driveImportRepository.ClearImportLock();
-                        Console.WriteLine("Cleared lock");
-                        _context.Vtex.Logger.Info("ProcessChange", null, $"Cleared lock: {DateTime.Now}");
+                        ClearLockAfterDelay(5000);
                     }
                 }
             }
+        }
+
+        public async void ClearLockAfterDelay(int delayInMilliseconds)
+        {
+            await Task.Delay(delayInMilliseconds);
+            await _driveImportRepository.ClearImportLock();
+            Console.WriteLine("Cleared lock");
+            _context.Vtex.Logger.Info("ProcessChange", null, $"Cleared lock: {DateTime.Now}");
         }
 
         public string PrintHeaders()

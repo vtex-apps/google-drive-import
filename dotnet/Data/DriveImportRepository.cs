@@ -11,15 +11,17 @@
     using DriveImport.Services;
     using Microsoft.AspNetCore.Http;
     using Newtonsoft.Json;
+    using Vtex.Api.Context;
 
     public class DriveImportRepository : IDriveImportRepository
     {
         private readonly IVtexEnvironmentVariableProvider _environmentVariableProvider;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHttpClientFactory _clientFactory;
+        private readonly IIOServiceContext _context;
         private readonly string _applicationName;
 
-        public DriveImportRepository(IVtexEnvironmentVariableProvider environmentVariableProvider, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory)
+        public DriveImportRepository(IVtexEnvironmentVariableProvider environmentVariableProvider, IHttpContextAccessor httpContextAccessor, IHttpClientFactory clientFactory, IIOServiceContext context)
         {
             this._environmentVariableProvider = environmentVariableProvider ??
                                                 throw new ArgumentNullException(nameof(environmentVariableProvider));
@@ -30,6 +32,9 @@
             this._clientFactory = clientFactory ??
                                throw new ArgumentNullException(nameof(clientFactory));
 
+            this._context = context ??
+                               throw new ArgumentNullException(nameof(context));
+
             this._applicationName =
                 $"{this._environmentVariableProvider.ApplicationVendor}.{this._environmentVariableProvider.ApplicationName}";
         }
@@ -37,6 +42,7 @@
 
         public async Task<Credentials> GetCredentials()
         {
+            _context.Vtex.Logger.Info("GetCredentials", null, "Getting Google Credentials.");
             //Console.WriteLine("-> GetCredentials <-");
             //var request = new HttpRequestMessage
             //{
@@ -78,6 +84,7 @@
             if (credentials == null)
             {
                 Console.WriteLine("-> Credentials Null!!! <-");
+                _context.Vtex.Logger.Info("SaveCredentials", null, "Credentials Null!");
                 credentials = new Credentials();
             }
 
@@ -104,6 +111,7 @@
 
             //string responseContent = await response.Content.ReadAsStringAsync();
             //Console.WriteLine(responseContent);
+            _context.Vtex.Logger.Info("SaveCredentials", null, $"Responce Code: [{response.StatusCode}]");
 
             response.EnsureSuccessStatusCode();
         }
@@ -128,17 +136,15 @@
 
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
-            string responseContent = await response.Content.ReadAsStringAsync();
-            //Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
+                _context.Vtex.Logger.Info("LoadToken", null, "Token not found!");
                 return null;
             }
 
-            // A helper method is in order for this as it does not return the stack trace etc.
-            response.EnsureSuccessStatusCode();
-
+            string responseContent = await response.Content.ReadAsStringAsync();
+            _context.Vtex.Logger.Info("LoadToken", null, responseContent);
             Token token = JsonConvert.DeserializeObject<Token>(responseContent);
 
             return token;
@@ -166,6 +172,7 @@
             var response = await client.SendAsync(request);
             //string responseContent = await response.Content.ReadAsStringAsync();
             //Console.WriteLine($"-> SaveToken [{response.StatusCode}] {responseContent} <-");
+            _context.Vtex.Logger.Info("SaveToken", null, $"[{response.StatusCode}] {jsonSerializedToken}");
             return response.IsSuccessStatusCode;
         }
 
@@ -330,6 +337,7 @@
             string responseContent = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine($"GetWatchExpiration {responseContent}");
+            _context.Vtex.Logger.Info("GetWatchExpiration", null, $"[{response.StatusCode}] {responseContent}");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -345,6 +353,7 @@
             catch(Exception ex)
             {
                 Console.WriteLine($"Error : {ex.Message}");
+                _context.Vtex.Logger.Error("GetWatchExpiration", null, "Deserialize Error", ex);
             }
 
 
@@ -393,6 +402,7 @@
             var response = await client.SendAsync(request);
 
             string responseContent = await response.Content.ReadAsStringAsync();
+            _context.Vtex.Logger.Info("SetWatchExpiration", null, $"[{response.StatusCode}] {responseContent}");
             Console.WriteLine($"SetWatchExpiration {responseContent}");
 
             response.EnsureSuccessStatusCode();
@@ -420,14 +430,12 @@
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
             //Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
+            _context.Vtex.Logger.Info("LoadFolderIds", null, $"Account '{accountName}' [{response.StatusCode}] {responseContent}");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
-
-            // A helper method is in order for this as it does not return the stack trace etc.
-            response.EnsureSuccessStatusCode();
 
             FolderIds folderIds = JsonConvert.DeserializeObject<FolderIds>(responseContent);
 
@@ -453,6 +461,7 @@
 
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
+            _context.Vtex.Logger.Info("SaveFolderIds", null, $"Account '{accountName}' [{response.StatusCode}] {jsonSerializedToken}");
 
             return response.IsSuccessStatusCode;
         }
