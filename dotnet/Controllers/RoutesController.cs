@@ -202,7 +202,7 @@
                     NewFolderId = newFolderId
                 };
 
-                _driveImportRepository.SaveFolderIds(folderIds, accountName);
+                await _driveImportRepository.SaveFolderIds(folderIds, accountName);
             }
 
             Dictionary<string, string> images = new Dictionary<string, string>();
@@ -637,7 +637,7 @@
             bool haveToken = false;
             Token token = await _googleDriveService.GetGoogleToken();
             haveToken = token != null && !string.IsNullOrEmpty(token.RefreshToken);
-            Console.WriteLine($"Have Token? {false}");
+            Console.WriteLine($"Have Token? {haveToken}");
             Response.Headers.Add("Cache-Control", "no-cache");
             return haveToken;
         }
@@ -659,39 +659,47 @@
                 Token token = await _googleDriveService.GetGoogleToken();
                 if (token != null)
                 {
-                    if (string.IsNullOrEmpty(token.RefreshToken))
-                    {
-                        bool revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
-                        if (!revoked)
-                        {
-                            for (int i = 1; i < 5; i++)
-                            {
-                                Console.WriteLine($"RevokeGoogleAuthorizationToken Retry #{i}");
-                                _context.Vtex.Logger.Info("GetOwnerEmail", "RevokeGoogleAuthorizationToken", $"Retry #{i}");
-                                await Task.Delay(500 * i);
-                                revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
-                                if (revoked)
-                                {
-                                    break;
-                                }
-                            }
-                        }
+                    //if (string.IsNullOrEmpty(token.RefreshToken))
+                    //{
+                    //    bool revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
+                    //    if (!revoked)
+                    //    {
+                    //        for (int i = 1; i < 5; i++)
+                    //        {
+                    //            Console.WriteLine($"RevokeGoogleAuthorizationToken Retry #{i}");
+                    //            _context.Vtex.Logger.Info("GetOwnerEmail", "RevokeGoogleAuthorizationToken", $"Retry #{i}");
+                    //            await Task.Delay(500 * i);
+                    //            revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
+                    //            if (revoked)
+                    //            {
+                    //                break;
+                    //            }
+                    //        }
+                    //    }
 
-                        _context.Vtex.Logger.Info("GetOwnerEmail", null, $"Revoked Token? {revoked}");
+                    //    _context.Vtex.Logger.Info("GetOwnerEmail", null, $"Revoked Token? {revoked}");
 
-                        if (revoked)
-                        {
-                            await _driveImportRepository.SaveFolderIds(null, accountName);
-                        }
+                    //    if (revoked)
+                    //    {
+                    //        await _driveImportRepository.SaveFolderIds(null, accountName);
+                    //    }
 
-                        return Json(null);
-                    }
+                    //    return Json(null);
+                    //}
 
                     string newFolderId = string.Empty;
                     FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
                     if (folderIds != null)
                     {
                         newFolderId = folderIds.NewFolderId;
+                        Console.WriteLine($"GetOwnerEmail - newFolderId = {newFolderId}");
+                        _context.Vtex.Logger.Info("GetOwnerEmail", null, $"New Folder Id: {newFolderId}");
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not load folder structure from storage.");
+                        newFolderId = await _googleDriveService.FindNewFolderId(accountName);
+                        Console.WriteLine($"GetOwnerEmail - FindNewFolderId = {newFolderId}");
                     }
 
                     //Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
@@ -706,13 +714,26 @@
                         }
                         else
                         {
-                            _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not find owners.");
+                            _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not find owners. (1)");
+                            Console.WriteLine("GetOwnerEmail - Could not find owners. (1)");
+                            newFolderId = await _googleDriveService.FindNewFolderId(accountName);
+                            owners = listFilesResponse.Files.Where(f => f.Id.Equals(newFolderId)).Select(o => o.Owners.Distinct()).FirstOrDefault();
+                            if (owners != null)
+                            {
+                                email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+                            }
+                            else
+                            {
+                                _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not find owners. (2)");
+                                Console.WriteLine("GetOwnerEmail - Could not find owners. (2)");
+                            }
                         }
                     }
                 }
                 else
                 {
                     _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not load Token.");
+                    Console.WriteLine("GetOwnerEmail - Could not load Token.");
                 }
             }
             catch (Exception ex)

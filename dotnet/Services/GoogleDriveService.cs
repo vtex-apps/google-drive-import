@@ -152,15 +152,18 @@ namespace DriveImport.Services
                     if (response.IsSuccessStatusCode)
                     {
                         tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
+                        Console.WriteLine($"Refresh Token Response {responseContent}");
                     }
                     else
                     {
                         _context.Vtex.Logger.Info("RefreshGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                        Console.WriteLine($"Refresh Token Response [{response.StatusCode}] {responseContent}");
                     }
                 }
                 catch(Exception ex)
                 {
                     _context.Vtex.Logger.Error("RefreshGoogleAuthorizationToken", null, $"Error refreshing token", ex);
+                    Console.WriteLine($"Error refreshing token [{ex.Message}]");
                 }
             }
 
@@ -268,10 +271,11 @@ namespace DriveImport.Services
             if (!string.IsNullOrEmpty(token.RefreshToken))
             {
                 string refreshToken = token.RefreshToken;
-                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                if (token != null) // && !string.IsNullOrEmpty(token.AccessToken))
                 {
                     if (token.ExpiresAt <= DateTime.Now)
                     {
+                        Console.WriteLine($"ExpiresAt = {token.ExpiresAt} Refreshing token.");
                         token = await this.RefreshGoogleAuthorizationToken(token.RefreshToken);
                         token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
                         if (string.IsNullOrEmpty(token.RefreshToken))
@@ -1007,6 +1011,61 @@ namespace DriveImport.Services
             }
 
             return googleWatchResponse;
+        }
+
+        public async Task<string> FindNewFolderId(string accountName)
+        {
+            string newFolderId = null;
+
+            string importFolderId;
+            string doneFolderId;
+            string errorFolderId;
+            string accountFolderId;
+            string imagesFolderId;
+
+            ListFilesResponse getFoldersResponse = await this.GetFolders();
+            if (getFoldersResponse != null)
+            {
+                importFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMPORT)).Select(f => f.Id).FirstOrDefault();
+                if (!string.IsNullOrEmpty(importFolderId))
+                {
+                    //Console.WriteLine($"importFolderId:{importFolderId}");
+                    accountFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(accountName) && f.Parents.Contains(importFolderId)).Select(f => f.Id).FirstOrDefault();
+                    if (!string.IsNullOrEmpty(accountFolderId))
+                    {
+                        //Console.WriteLine($"accountFolderId:{accountFolderId}");
+                        imagesFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMAGES) && f.Parents.Contains(accountFolderId)).Select(f => f.Id).FirstOrDefault();
+                        if (!string.IsNullOrEmpty(imagesFolderId))
+                        {
+                            //Console.WriteLine($"imagesFolderId:{imagesFolderId}");
+                            newFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.NEW) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                            doneFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.DONE) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                            errorFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.ERROR) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                            //Console.WriteLine($"n:{newFolderId} d:{doneFolderId} e:{errorFolderId}");
+                            if (!string.IsNullOrEmpty(newFolderId) && !string.IsNullOrEmpty(doneFolderId) && !string.IsNullOrEmpty(errorFolderId))
+                            {
+                                // Since we've done the work of looking these up, might as well save.
+                                FolderIds folderIds = new FolderIds
+                                {
+                                    AccountFolderId = accountFolderId,
+                                    DoneFolderId = doneFolderId,
+                                    ErrorFolderId = errorFolderId,
+                                    ImagesFolderId = imagesFolderId,
+                                    ImportFolderId = imagesFolderId,
+                                    NewFolderId = newFolderId
+                                };
+
+                                _context.Vtex.Logger.Info("FindNewFolderId", null, $"Saveing Folder Ids: {JsonConvert.SerializeObject(folderIds)}");
+                                await _driveImportRepository.SaveFolderIds(folderIds, accountName);
+                            }
+                        }
+                    }
+                }
+            }
+
+            _context.Vtex.Logger.Info("FindNewFolderId", null, $"New Fodler Id: {newFolderId}");
+
+            return newFolderId;
         }
     }
 }

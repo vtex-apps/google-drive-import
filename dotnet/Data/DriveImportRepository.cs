@@ -144,6 +144,7 @@
             }
 
             string responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
             _context.Vtex.Logger.Info("LoadToken", null, responseContent);
             Token token = JsonConvert.DeserializeObject<Token>(responseContent);
 
@@ -171,7 +172,7 @@
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
             //string responseContent = await response.Content.ReadAsStringAsync();
-            //Console.WriteLine($"-> SaveToken [{response.StatusCode}] {responseContent} <-");
+            Console.WriteLine($"-> SaveToken [{response.StatusCode}] {jsonSerializedToken} <-");
             _context.Vtex.Logger.Info("SaveToken", null, $"[{response.StatusCode}] {jsonSerializedToken}");
             return response.IsSuccessStatusCode;
         }
