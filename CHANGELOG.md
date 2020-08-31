@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- If email not found, re-map folder ids
+
 ## [0.0.16] - 2020-08-28
 
 ### Changed
