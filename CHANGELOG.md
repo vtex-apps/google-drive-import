@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Changed authentication server to googleauth
+
 ## [0.0.17] - 2020-08-31
 
 ### Changed
