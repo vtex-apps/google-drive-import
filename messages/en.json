@@ -13,7 +13,7 @@
   "admin/google-drive-import.instructions-description-Main": "If this should be the main image for the SKU, include the word 'Main' here",
   "admin/google-drive-import.instructions-examples": "Examples:{lineBreak}{lineBreak} SkuId,123456,TShirt,Front,Main.jpg{lineBreak}{lineBreak} or{lineBreak}{lineBreak} SkuRefId,ABC123,TShirt,Back.png",
   "admin/google-drive-import.instructions-line-02": "After import, the images will be moved to either the Error or Done folders. For images that encountered an error, the error message will be prepended to the filename.",
-  "admin/google-drive-import.instructions-line-03": "The app will attempt to automatically import images when they are uploaded to the New folder, but you may also trigger an import manually with the button below.",
+  "admin/google-drive-import.instructions-line-03": "The app will attempt to automatically import images when they are uploaded to the New folder, but you may also trigger an import manually with the button 'Fetch new images'.",
   "admin/google-drive-import.filename-format": "[IdType],[Id],[ImageName],[ImageLabel],[Main?].jpg (or .png)",
   "admin/google-drive-import.fetch.button": "Fetch new images",
   "admin/google-drive-import.fetched.text": "All new images will be updated shortly",
