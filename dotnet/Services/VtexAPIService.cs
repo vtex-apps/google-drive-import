@@ -255,7 +255,8 @@ namespace DriveImport.Services
                 string responseContent = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                 {
-                    productId = responseContent;
+                    ProductResponse productResponse = JsonConvert.DeserializeObject<ProductResponse>(responseContent);
+                    productId = productResponse.Id.ToString();
                 }
                 else
                 {
