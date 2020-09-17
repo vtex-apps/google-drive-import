@@ -211,6 +211,14 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                   <th className="flex justify-left bt pa4">ImageLabel</th>
                   <td className="bt bl pa4">
                     <FormattedMessage
+                      id="admin/google-drive-import.instructions-description-ImageLabel"
+                    />
+                  </td>
+                </tr>
+				<tr className={`${styles.striped}`}>
+                  <th className="flex justify-left bt pa4">Main</th>
+                  <td className="bt bl pa4">
+                    <FormattedMessage
                       id="admin/google-drive-import.instructions-description-Main"
                     />
                   </td>
