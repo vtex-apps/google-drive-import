@@ -13,6 +13,7 @@ import {
 } from 'vtex.styleguide'
 import { injectIntl, FormattedMessage, WrappedComponentProps } from 'react-intl'
 import styles from './styles.css'
+import GoogleSignIn from '../public/metadata/google_signin.png'
 
 const CHECK_URL = '/google-drive-import/have-token'
 const EMAIL_URL = '/google-drive-import/owner-email'
@@ -300,15 +301,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                 <p>
                   <FormattedMessage id="admin/google-drive-import.setup.description" />{' '}
                   <div className="mt4">
-                    <Button
-                      variation="primary"
-                      collapseLeft
-                      onClick={() => {
-                        auth()
-                      }}
-                    >
-                      <FormattedMessage id="admin/google-drive-import.setup.button" />
-                    </Button>
+					  <img src={GoogleSignIn} onClick={() => {auth()}} />
                   </div>
                 </p>
               </div>
