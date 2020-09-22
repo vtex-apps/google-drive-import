@@ -8,11 +8,14 @@ import {
   PageHeader,
   Card,
   Button,
+  ButtonPlain,
   Divider,
   Spinner,
 } from 'vtex.styleguide'
 import { injectIntl, FormattedMessage, WrappedComponentProps } from 'react-intl'
+
 import styles from './styles.css'
+import GoogleSignIn from '../public/metadata/google_signin.png'
 
 const CHECK_URL = '/google-drive-import/have-token'
 const EMAIL_URL = '/google-drive-import/owner-email'
@@ -170,61 +173,53 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                 />
               </pre>
               <p>
-                <FormattedMessage
-                  id="admin/google-drive-import.instructions-line-01"
-                />
+                <FormattedMessage id="admin/google-drive-import.instructions-line-01" />
               </p>
 
               <table className={`${styles.borderCollapse} ba collapse w-100`}>
-              <thead>
-                <tr>
-                  <th></th>
-                  <th className="pa4">Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th className="flex justify-left bt items-center pa4">IdType</th>
-                  <td className="bt bl pa4">
-                    <FormattedMessage
-                      id="admin/google-drive-import.instructions-description-IdType"
-                    />
-                  </td>
-                </tr>
-                <tr className={`${styles.striped}`}>
-                  <th className="flex justify-left bt pa4">Id</th>
-                  <td className="bt bl pa4">
-                    <FormattedMessage
-                      id="admin/google-drive-import.instructions-description-Id"
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <th className="flex justify-left bt items-center pa4">ImageName</th>
-                  <td className="bt bl pa4">
-                    <FormattedMessage
-                      id="admin/google-drive-import.instructions-description-ImageName"
-                    />
-                  </td>
-                </tr>
-                <tr className={`${styles.striped}`}>
-                  <th className="flex justify-left bt pa4">ImageLabel</th>
-                  <td className="bt bl pa4">
-                    <FormattedMessage
-                      id="admin/google-drive-import.instructions-description-ImageLabel"
-                    />
-                  </td>
-                </tr>
-				<tr className={`${styles.striped}`}>
-                  <th className="flex justify-left bt pa4">Main?</th>
-                  <td className="bt bl pa4">
-                    <FormattedMessage
-                      id="admin/google-drive-import.instructions-description-Main"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-              </table>              
+                <thead>
+                  <tr>
+                    <th />
+                    <th className="pa4">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th className="flex justify-left bt items-center pa4">
+                      IdType
+                    </th>
+                    <td className="bt bl pa4">
+                      <FormattedMessage id="admin/google-drive-import.instructions-description-IdType" />
+                    </td>
+                  </tr>
+                  <tr className={`${styles.striped}`}>
+                    <th className="flex justify-left bt pa4">Id</th>
+                    <td className="bt bl pa4">
+                      <FormattedMessage id="admin/google-drive-import.instructions-description-Id" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="flex justify-left bt items-center pa4">
+                      ImageName
+                    </th>
+                    <td className="bt bl pa4">
+                      <FormattedMessage id="admin/google-drive-import.instructions-description-ImageName" />
+                    </td>
+                  </tr>
+                  <tr className={`${styles.striped}`}>
+                    <th className="flex justify-left bt pa4">ImageLabel</th>
+                    <td className="bt bl pa4">
+                      <FormattedMessage id="admin/google-drive-import.instructions-description-ImageLabel" />
+                    </td>
+                  </tr>
+                  <tr className={`${styles.striped}`}>
+                    <th className="flex justify-left bt pa4">Main?</th>
+                    <td className="bt bl pa4">
+                      <FormattedMessage id="admin/google-drive-import.instructions-description-Main" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               <p>
                 <strong>
                   <FormattedMessage
@@ -234,14 +229,10 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                 </strong>
               </p>
               <p>
-                <FormattedMessage
-                  id="admin/google-drive-import.instructions-line-02"
-                />
+                <FormattedMessage id="admin/google-drive-import.instructions-line-02" />
               </p>
               <p>
-                <FormattedMessage
-                  id="admin/google-drive-import.instructions-line-03"
-                />
+                <FormattedMessage id="admin/google-drive-import.instructions-line-03" />
               </p>
             </div>
             <div
@@ -280,7 +271,11 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
               >
                 <FormattedMessage id="admin/google-drive-import.fetch.button" />
               </Button>
-              {!fetching && fetched && <p><strong>{`${fetched}`}</strong></p>}
+              {!fetching && fetched && (
+                <p>
+                  <strong>{`${fetched}`}</strong>
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -300,15 +295,15 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                 <p>
                   <FormattedMessage id="admin/google-drive-import.setup.description" />{' '}
                   <div className="mt4">
-                    <Button
+                    <ButtonPlain
                       variation="primary"
                       collapseLeft
                       onClick={() => {
                         auth()
                       }}
                     >
-                      <FormattedMessage id="admin/google-drive-import.setup.button" />
-                    </Button>
+                      <img src={GoogleSignIn} alt="Sign in with Google" />
+                    </ButtonPlain>
                   </div>
                 </p>
               </div>
