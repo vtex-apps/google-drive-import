@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.22] - 2020-09-22
+
 ### Changed
 
 - Changed Grant Access button to official Google Signin image on admin page
