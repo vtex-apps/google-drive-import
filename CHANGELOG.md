@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Added parameter to set Google file page size to maximum of 1000
+
 ## [0.0.22] - 2020-09-22
 
 ### Changed
