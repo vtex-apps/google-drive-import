@@ -102,7 +102,7 @@ namespace DriveImport.Services
                     success = response.IsSuccessStatusCode;
                     if(string.IsNullOrEmpty(responseContent))
                     {
-                        responseContent = $"Updated:{success}";
+                        responseContent = $"Updated:{success} {response.StatusCode}";
                     }
 
                 }
@@ -347,6 +347,8 @@ namespace DriveImport.Services
                         isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
                     }
 
+                    string parsedFilename = $"[Type:{identificatorType} Id:{id} Name:{imageName} Label:{imageLabel} Main?{isMain}]";
+
                     switch (identificatorType)
                     {
                         case DriveImportConstants.IdentificatorType.SKU_ID:
@@ -357,7 +359,7 @@ namespace DriveImport.Services
                                 messages.Add(updateResponse.Message);
                             }
 
-                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {id} success? {success} '{updateResponse.Message}'");
+                            _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {id} success? {success} '{updateResponse.Message}'");
                             break;
                         case DriveImportConstants.IdentificatorType.SKU_REF_ID:
                             string skuId = await this.GetSkuIdFromReference(id);
@@ -368,7 +370,7 @@ namespace DriveImport.Services
                                 messages.Add(updateResponse.Message);
                             }
 
-                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
+                            _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
                             break;
                         case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
                             string prodId = await this.GetProductIdFromReference(id);
@@ -383,7 +385,7 @@ namespace DriveImport.Services
                                     messages.Add(updateResponse.Message);
                                 }
 
-                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
+                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
                             }
 
                             break;
@@ -399,13 +401,13 @@ namespace DriveImport.Services
                                     messages.Add(updateResponse.Message);
                                 }
 
-                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
+                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
                             }
 
                             break;
                         default:
                             messages.Add($"Type {identificatorType} not recognized.");
-                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"Type '{identificatorType}' is not recognized.  Filename '{fileName}'");
+                            _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Type '{identificatorType}' is not recognized.  Filename '{fileName}'");
                             break;
                     }
                 }
