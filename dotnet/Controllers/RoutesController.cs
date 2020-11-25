@@ -896,9 +896,16 @@
         public async void ClearLockAfterDelay(int delayInMilliseconds)
         {
             await Task.Delay(delayInMilliseconds);
-            await _driveImportRepository.ClearImportLock();
-            Console.WriteLine("Cleared lock");
-            _context.Vtex.Logger.Info("ProcessChange", null, $"Cleared lock: {DateTime.Now}");
+            try
+            {
+                await _driveImportRepository.ClearImportLock();
+                _context.Vtex.Logger.Info("ProcessChange", null, $"Cleared lock: {DateTime.Now}");
+                Console.WriteLine("Cleared lock");
+            }
+            catch(Exception ex)
+            {
+                _context.Vtex.Logger.Error("ProcessChange", null, "Failed to clear lock", ex);
+            }
         }
 
         public string PrintHeaders()

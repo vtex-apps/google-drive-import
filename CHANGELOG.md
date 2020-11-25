@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Retry on Timeout when adding image
+- Error handling releasing lock
+
 ## [0.0.24] - 2020-11-23
 
 ### Added

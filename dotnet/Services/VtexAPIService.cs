@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -98,6 +99,20 @@ namespace DriveImport.Services
 
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
+                    if(response.StatusCode == HttpStatusCode.GatewayTimeout)
+                    {
+                        for(int cnt = 0; cnt < 5; cnt++)
+                        {
+                            await Task.Delay(cnt * 500);
+                            response = await client.SendAsync(request);
+                            _context.Vtex.Logger.Info("UpdateSkuImage", null, $"Sku {skuId} '{imageName}' retry ({cnt}) [{response.StatusCode}]");
+                            if (response.IsSuccessStatusCode)
+                            {
+                                break;
+                            }
+                        }
+                    }
+
                     responseContent = await response.Content.ReadAsStringAsync();
                     success = response.IsSuccessStatusCode;
                     if(string.IsNullOrEmpty(responseContent))
