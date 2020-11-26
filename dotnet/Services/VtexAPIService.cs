@@ -101,9 +101,9 @@ namespace DriveImport.Services
                     var response = await client.SendAsync(request);
                     if(response.StatusCode == HttpStatusCode.GatewayTimeout)
                     {
-                        for(int cnt = 0; cnt < 5; cnt++)
+                        for(int cnt = 1; cnt < 6; cnt++)
                         {
-                            await Task.Delay(cnt * 500);
+                            await Task.Delay(cnt * 1000 * 10);
                             request = new HttpRequestMessage
                             {
                                 Method = HttpMethod.Post,
