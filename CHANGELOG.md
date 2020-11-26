@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Create new request and client for retry
+
 ## [0.0.25] - 2020-11-25
 
 ### Added
