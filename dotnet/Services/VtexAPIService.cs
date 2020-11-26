@@ -104,6 +104,21 @@ namespace DriveImport.Services
                         for(int cnt = 0; cnt < 5; cnt++)
                         {
                             await Task.Delay(cnt * 500);
+                            request = new HttpRequestMessage
+                            {
+                                Method = HttpMethod.Post,
+                                RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
+                                Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                            };
+
+                            if (authToken != null)
+                            {
+                                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                                request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                            }
+
+                            client = _clientFactory.CreateClient();
                             response = await client.SendAsync(request);
                             _context.Vtex.Logger.Info("UpdateSkuImage", null, $"Sku {skuId} '{imageName}' retry ({cnt}) [{response.StatusCode}]");
                             if (response.IsSuccessStatusCode)
