@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Increased retry delay
+
 ## [0.0.26] - 2020-11-26
 
 ### Changed
