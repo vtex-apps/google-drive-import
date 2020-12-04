@@ -24,11 +24,12 @@
     "postreleasy": "vtex publish --verbose"
   },
   "billingOptions": {
-    "termsURL": "https://compliance.vtex.com/gdpr/policies/vtex-privacy-policy",
+    "termsURL": "https://support.vtex.com/hc/requests",
     "support": {
-      "url": "https://support.vtex.com/hc/requests"
+      "url": "https://help-tickets.vtex.com/en/support?app=vtexus.google-drive-import"
     },
-    "free": true
+    "type": "free",
+    "availableCountries": [ "*" ]
   },
   "policies": [
     {
