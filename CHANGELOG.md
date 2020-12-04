@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.28] - 2020-12-04
+
 ### Added
 
 - When applying the same image to multiple skus, use archived image id
