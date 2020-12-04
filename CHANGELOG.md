@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Updated Billing Options
+
+### Added
+
+- Logging and Error handling
+
 ## [0.0.28] - 2020-12-04
 
 ### Added

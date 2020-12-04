@@ -365,7 +365,10 @@ namespace DriveImport.Services
                 if (response.IsSuccessStatusCode)
                 {
                     ProductResponse productResponse = JsonConvert.DeserializeObject<ProductResponse>(responseContent);
-                    productId = productResponse.Id.ToString();
+                    if (productResponse != null)
+                    {
+                        productId = productResponse.Id.ToString();
+                    }
                 }
                 else
                 {
@@ -488,6 +491,7 @@ namespace DriveImport.Services
                             success = true;
                             foreach (string prodRefSku in prodRefSkuIds)
                             {
+                                //Console.WriteLine($"imageId='{imageId}' prodRefSku={prodRefSku}");
                                 if (imageId != null)
                                 {
                                     updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
@@ -511,6 +515,7 @@ namespace DriveImport.Services
                                 {
                                     SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
                                     imageId = skuUpdateResponse.Id;
+                                    _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
                                 }
 
                                 _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
@@ -545,6 +550,7 @@ namespace DriveImport.Services
                                 {
                                     SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
                                     imageId = skuUpdateResponse.Id;
+                                    _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {sku} Image Id: {imageId}");
                                 }
 
                                 _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
