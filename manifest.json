@@ -1,7 +1,7 @@
 {
   "name": "google-drive-import",
   "vendor": "vtex",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "title": "Google Drive Import",
   "description": "Import files from Google Drive",
   "categories": [],
@@ -29,7 +29,9 @@
       "url": "https://help-tickets.vtex.com/en/support?app=vtexus.google-drive-import"
     },
     "type": "free",
-    "availableCountries": [ "*" ]
+    "availableCountries": [
+      "*"
+    ]
   },
   "policies": [
     {
