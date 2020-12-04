@@ -917,5 +917,42 @@
             }
             return headers;
         }
+
+        public async Task HammerGoogleDownload()
+        {
+            Response.Headers.Add("Cache-Control", "no-cache");
+
+            string imageId = "1ZgRDtSAQ3QI1kboolRSPaocZWIuPOwkr";
+
+            for (int cnt = 0; cnt < 5; cnt++)
+            {
+                try
+                {
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Get,
+                        RequestUri = new Uri($"https://drive.google.com/uc?id={imageId}&export=download")
+                    };
+
+                    request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                        request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"({cnt}): [{response.StatusCode}]");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"({cnt}): ![{ex.Message}]!");
+                }
+            }
+        }
     }
 }

@@ -106,6 +106,20 @@
       }
     },
     {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "doc-0g-8o-docs.googleusercontent.com",
+        "path": "*"
+      }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "doc-0g-3s-docs.googleusercontent.com",
+        "path": "*"
+      }
+    },
+    {
       "name": "vbase-read-write"
     }
   ],

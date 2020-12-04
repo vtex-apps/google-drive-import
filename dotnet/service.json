@@ -59,6 +59,10 @@
     "processChange": {
       "path": "/google-drive-import/watch-notification",
       "public": true
+    },
+    "hammerGoogleDownload": {
+      "path": "/google-drive-import/hammer",
+      "public": true
     }
   },
   "events": {
