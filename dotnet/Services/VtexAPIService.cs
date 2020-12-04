@@ -99,9 +99,9 @@ namespace DriveImport.Services
 
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
-                    if(response.StatusCode == HttpStatusCode.GatewayTimeout)
+                    if (response.StatusCode == HttpStatusCode.GatewayTimeout)
                     {
-                        for(int cnt = 1; cnt < 6; cnt++)
+                        for (int cnt = 1; cnt < 6; cnt++)
                         {
                             await Task.Delay(cnt * 1000 * 10);
                             request = new HttpRequestMessage
@@ -139,6 +139,85 @@ namespace DriveImport.Services
                 catch (Exception ex)
                 {
                     _context.Vtex.Logger.Error("UpdateSkuImage", null, $"Error updating sku '{skuId}' {imageName}", ex);
+                    success = false;
+                    responseContent = ex.Message;
+                }
+            }
+
+            UpdateResponse updateResponse = new UpdateResponse
+            {
+                Success = success,
+                Message = responseContent
+            };
+
+            return updateResponse;
+        }
+
+        public async Task<UpdateResponse> UpdateSkuImageArchive(string skuId, string imageName, string imageLabel, bool isMain, string imageId)
+        {
+            //POST https://{{accountname}}.vtexcommercestable.com.br/api/catalog/pvt/stockkeepingunit/{{skuId}}/archive/{{imageId}}
+            //    {
+            //     "IsMain": true,
+            //     "Label": null,
+            //     "Name": "ImageName",
+            //     "Text": null,
+            //    }
+
+            bool success = false;
+            string responseContent = string.Empty;
+
+            if (string.IsNullOrEmpty(skuId) || string.IsNullOrEmpty(imageId))
+            {
+                responseContent = "Missing Parameter";
+            }
+            else
+            {
+                try
+                {
+                    ImageUpdate imageUpdate = new ImageUpdate
+                    {
+                        IsMain = isMain,
+                        Label = imageLabel,
+                        Name = imageName,
+                        Text = null
+                    };
+
+                    string jsonSerializedData = JsonConvert.SerializeObject(imageUpdate);
+
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/archive/{imageId}"),
+                        Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    //Console.WriteLine(request.RequestUri);
+
+
+                    //request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                        request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    var response = await client.SendAsync(request);
+
+                    responseContent = await response.Content.ReadAsStringAsync();
+                    success = response.IsSuccessStatusCode;
+                    if (string.IsNullOrEmpty(responseContent))
+                    {
+                        responseContent = $"Updated:{success} {response.StatusCode}";
+                    }
+
+                    _context.Vtex.Logger.Info("UpdateSkuImageArchive", null, $"Updating sku '{skuId}' '{imageName}' from archive '{imageId}' [{response.StatusCode}]");
+                }
+                catch (Exception ex)
+                {
+                    _context.Vtex.Logger.Error("UpdateSkuImageArchive", null, $"Error updating sku '{skuId}' {imageName}", ex);
                     success = false;
                     responseContent = ex.Message;
                 }
@@ -378,6 +457,7 @@ namespace DriveImport.Services
                     }
 
                     string parsedFilename = $"[Type:{identificatorType} Id:{id} Name:{imageName} Label:{imageLabel} Main?{isMain}]";
+                    long? imageId = null;
 
                     switch (identificatorType)
                     {
@@ -408,11 +488,29 @@ namespace DriveImport.Services
                             success = true;
                             foreach (string prodRefSku in prodRefSkuIds)
                             {
-                                updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                if (imageId != null)
+                                {
+                                    updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
+                                    if (!updateResponse.Success)
+                                    {
+                                        imageId = null;
+                                        updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                    }
+                                }
+                                else
+                                {
+                                    updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                }
+
                                 success &= updateResponse.Success;
                                 if (!updateResponse.Success)
                                 {
                                     messages.Add(updateResponse.Message);
+                                }
+                                else if(imageId == null)
+                                {
+                                    SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
+                                    imageId = skuUpdateResponse.Id;
                                 }
 
                                 _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
@@ -424,11 +522,29 @@ namespace DriveImport.Services
                             success = true;
                             foreach (string sku in skuIds)
                             {
-                                updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                if (imageId != null)
+                                {
+                                    updateResponse = await this.UpdateSkuImageArchive(sku, imageName, imageLabel, isMain, imageId.ToString());
+                                    if (!updateResponse.Success)
+                                    {
+                                        imageId = null;
+                                        updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                    }
+                                }
+                                else
+                                {
+                                    updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                }
+
                                 success &= updateResponse.Success;
                                 if (!updateResponse.Success)
                                 {
                                     messages.Add(updateResponse.Message);
+                                }
+                                else if (imageId == null)
+                                {
+                                    SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
+                                    imageId = skuUpdateResponse.Id;
                                 }
 
                                 _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
@@ -521,6 +637,21 @@ namespace DriveImport.Services
             }
 
             return success;
+        }
+
+        private async Task<SkuUpdateResponse> ParseSkuUpdateResponse(string responseContent)
+        {
+            SkuUpdateResponse updateResponse = null;
+            try
+            {
+                updateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(responseContent);
+            }
+            catch(Exception ex)
+            {
+                _context.Vtex.Logger.Error("ParseSkuUpdateResponse", null, $"Error parsing '{responseContent}'", ex);
+            }
+
+            return updateResponse;
         }
     }
 }

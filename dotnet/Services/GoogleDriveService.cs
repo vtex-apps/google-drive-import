@@ -917,6 +917,61 @@ namespace DriveImport.Services
             return success;
         }
 
+        public async Task<bool> SaveFile(string fileName, StringBuilder fileContents)
+        {
+            bool success = false;
+            string responseContent = string.Empty;
+            if (!string.IsNullOrEmpty(fileName))
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    dynamic metadata = new JObject();
+                    metadata.title = fileName;
+
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
+
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_UPLOAD_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    try
+                    {
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
+
+                        success = response.IsSuccessStatusCode;
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("SaveFile", null, $"Filename '{fileName}'", ex);
+                    }
+                }
+                else
+                {
+                    _context.Vtex.Logger.Info("SaveFile", null, "Token error.");
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Info("SaveFile", null, "Parameter missing.");
+            }
+
+            return success;
+        }
+
         public async Task<GoogleWatch> SetWatch(string fileId, bool reset = false)
         {
             Console.WriteLine("SetWatch");
