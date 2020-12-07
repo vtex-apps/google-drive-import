@@ -431,6 +431,49 @@ namespace DriveImport.Services
             return skuIds;
         }
 
+        public async Task<GetSkuContextResponse> GetSkuContext(string skuId)
+        {
+            // GET https://{accountName}.{environment}.com.br/api/catalog_system/pvt/sku/stockkeepingunitbyid/skuId
+
+            GetSkuContextResponse getSkuContextResponse = null;
+
+            try
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitbyid/{skuId}")
+                };
+
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    getSkuContextResponse = JsonConvert.DeserializeObject<GetSkuContextResponse>(responseContent);
+                }
+                else
+                {
+                    _context.Vtex.Logger.Error("GetSkuContext", null, $"Could not get sku for id '{skuId}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("GetSkuContext", null, $"Error getting sku for id '{skuId}'", ex);
+            }
+
+            return getSkuContextResponse;
+        }
+
         public async Task<UpdateResponse> ProcessImageFile(string fileName, string webLink)
         {
             UpdateResponse updateResponse = new UpdateResponse();
@@ -514,7 +557,7 @@ namespace DriveImport.Services
                                 else if(imageId == null)
                                 {
                                     SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                    imageId = skuUpdateResponse.Id;
+                                    imageId = await this.GetArchiveId(skuUpdateResponse, imageName);
                                     _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
                                 }
 
@@ -549,7 +592,7 @@ namespace DriveImport.Services
                                 else if (imageId == null)
                                 {
                                     SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                    imageId = skuUpdateResponse.Id;
+                                    imageId = await this.GetArchiveId(skuUpdateResponse, imageName);
                                     _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {sku} Image Id: {imageId}");
                                 }
 
@@ -643,6 +686,20 @@ namespace DriveImport.Services
             }
 
             return success;
+        }
+
+        private async Task<long?> GetArchiveId(SkuUpdateResponse skuUpdateResponse, string imageName)
+        {
+            long? archiveId = null;
+            GetSkuContextResponse getSkuContextResponse = await this.GetSkuContext(skuUpdateResponse.SkuId.ToString());
+            if(getSkuContextResponse != null)
+            {
+                archiveId = getSkuContextResponse.Images.Where(i => i.ImageName.Equals(imageName)).Select(i => i.FileId).FirstOrDefault();
+            }
+
+            _context.Vtex.Logger.Info("GetArchiveId", null, $"FileId: '{archiveId}' for '{imageName}' (sku:{skuUpdateResponse.SkuId} id:{skuUpdateResponse.Id})");
+
+            return archiveId;
         }
 
         private async Task<SkuUpdateResponse> ParseSkuUpdateResponse(string responseContent)
