@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- If upload fails because the image already exists, consider it a success.
+
+### Fixed
+
+- Fixed archive id lookup
+
 ## [0.0.30] - 2020-12-07
 
 ### Added

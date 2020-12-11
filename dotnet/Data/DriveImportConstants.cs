@@ -64,6 +64,8 @@ namespace DriveImport.Data
         public const string SCHEMA = "DriveImport";
         public const string PROCESSED_PREFIX = "Done";
 
+        public const string ARCHIVE_CREATED = "Sku archive already created";
+
         public class FolderNames
         {
             // Folder Structure:
