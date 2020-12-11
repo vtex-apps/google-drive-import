@@ -134,7 +134,11 @@ namespace DriveImport.Services
                     {
                         responseContent = $"Updated:{success} {response.StatusCode}";
                     }
-
+                    else if(responseContent.Contains(DriveImportConstants.ARCHIVE_CREATED))
+                    {
+                        // If the image was already added to the sku, consider it a success
+                        success = true;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -211,6 +215,11 @@ namespace DriveImport.Services
                     if (string.IsNullOrEmpty(responseContent))
                     {
                         responseContent = $"Updated:{success} {response.StatusCode}";
+                    }
+                    else if (responseContent.Contains(DriveImportConstants.ARCHIVE_CREATED))
+                    {
+                        // If the image was already added to the sku, consider it a success
+                        success = true;
                     }
 
                     _context.Vtex.Logger.Info("UpdateSkuImageArchive", null, $"Updating sku '{skuId}' '{imageName}' from archive '{imageId}' [{response.StatusCode}]");
@@ -556,9 +565,16 @@ namespace DriveImport.Services
                                 }
                                 else if(imageId == null)
                                 {
-                                    SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                    imageId = await this.GetArchiveId(skuUpdateResponse, imageName);
-                                    _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
+                                    try
+                                    {
+                                        SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
+                                        imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                        _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
+                                    }
+                                    catch(Exception ex)
+                                    {
+                                        _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message}", ex);
+                                    }
                                 }
 
                                 _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
@@ -591,9 +607,16 @@ namespace DriveImport.Services
                                 }
                                 else if (imageId == null)
                                 {
-                                    SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                    imageId = await this.GetArchiveId(skuUpdateResponse, imageName);
-                                    _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {sku} Image Id: {imageId}");
+                                    try
+                                    {
+                                        SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
+                                        imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                        _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {sku} Image Id: {imageId}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message}", ex);
+                                    }
                                 }
 
                                 _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
@@ -691,10 +714,30 @@ namespace DriveImport.Services
         private async Task<long?> GetArchiveId(SkuUpdateResponse skuUpdateResponse, string imageName)
         {
             long? archiveId = null;
-            GetSkuContextResponse getSkuContextResponse = await this.GetSkuContext(skuUpdateResponse.SkuId.ToString());
-            if(getSkuContextResponse != null)
+            for (int i = 0; i < 10; i++)
             {
-                archiveId = getSkuContextResponse.Images.Where(i => i.ImageName.Equals(imageName)).Select(i => i.FileId).FirstOrDefault();
+                GetSkuContextResponse getSkuContextResponse = await this.GetSkuContext(skuUpdateResponse.SkuId.ToString());
+                if (getSkuContextResponse != null)
+                {
+                    foreach (Image image in getSkuContextResponse.Images)
+                    {
+                        Console.WriteLine($"GetSkuContextResponse '{image.ImageName}'='{imageName}' [{image.FileId}]");
+                        if (image.ImageName != null && image.ImageName.Equals(imageName))
+                        {
+                            archiveId = image.FileId;
+                            break;
+                        }
+                    }
+                }
+
+                if(archiveId != null)
+                {
+                    break;
+                }
+                else
+                {
+                    await Task.Delay(500);
+                }
             }
 
             _context.Vtex.Logger.Info("GetArchiveId", null, $"FileId: '{archiveId}' for '{imageName}' (sku:{skuUpdateResponse.SkuId} id:{skuUpdateResponse.Id})");
