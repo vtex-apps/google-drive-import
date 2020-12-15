@@ -339,7 +339,7 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Error("GetSkuIdFromReference", null, $"Could not get sku for reference id '{skuRefId}'");
+                    _context.Vtex.Logger.Warn("GetSkuIdFromReference", null, $"Could not get sku for reference id '{skuRefId}'  [{response.StatusCode}]");
                 }
             }
             catch (Exception ex)
@@ -386,7 +386,7 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Error("GetProductIdFromReference", null, $"Could not get product id for reference '{productRefId}'");
+                    _context.Vtex.Logger.Warn("GetProductIdFromReference", null, $"Could not get product id for reference '{productRefId}' [{response.StatusCode}]");
                 }
             }
             catch (Exception ex)
@@ -434,7 +434,7 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Error("GetSkusFromProductId", null, $"Could not get skus for product id '{productId}'");
+                    _context.Vtex.Logger.Warn("GetSkusFromProductId", null, $"Could not get skus for product id '{productId}'  [{response.StatusCode}]");
                 }
             }
             catch (Exception ex)
@@ -477,7 +477,7 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Error("GetSkuContext", null, $"Could not get sku for id '{skuId}'");
+                    _context.Vtex.Logger.Warn("GetSkuContext", null, $"Could not get sku for id '{skuId}'");
                 }
             }
             catch (Exception ex)
@@ -533,56 +533,80 @@ namespace DriveImport.Services
                             break;
                         case DriveImportConstants.IdentificatorType.SKU_REF_ID:
                             string skuId = await this.GetSkuIdFromReference(id);
-                            updateResponse = await this.UpdateSkuImage(skuId, imageName, imageLabel, isMain, webLink);
-                            success = updateResponse.Success;
-                            if (!updateResponse.Success)
+                            if (!string.IsNullOrEmpty(skuId))
                             {
-                                messages.Add(updateResponse.Message);
+                                updateResponse = await this.UpdateSkuImage(skuId, imageName, imageLabel, isMain, webLink);
+                                success = updateResponse.Success;
+                                if (!updateResponse.Success)
+                                {
+                                    messages.Add(updateResponse.Message);
+                                }
+                            }
+                            else
+                            {
+                                success = false;
+                                messages.Add($"Failed to find sku id from reference {id}");
                             }
 
                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
                             break;
                         case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
                             string prodId = await this.GetProductIdFromReference(id);
-                            List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
-                            success = true;
-                            foreach (string prodRefSku in prodRefSkuIds)
+                            if (!string.IsNullOrEmpty(prodId))
                             {
-                                //Console.WriteLine($"imageId='{imageId}' prodRefSku={prodRefSku}");
-                                if (imageId != null)
+                                List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
+                                if (prodRefSkuIds != null && prodRefSkuIds.Count > 0)
                                 {
-                                    updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
-                                    if (!updateResponse.Success)
+                                    success = true;
+                                    foreach (string prodRefSku in prodRefSkuIds)
                                     {
-                                        imageId = null;
-                                        updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                        //Console.WriteLine($"imageId='{imageId}' prodRefSku={prodRefSku}");
+                                        if (imageId != null)
+                                        {
+                                            updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
+                                            if (!updateResponse.Success)
+                                            {
+                                                imageId = null;
+                                                updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                        }
+
+                                        success &= updateResponse.Success;
+                                        if (!updateResponse.Success)
+                                        {
+                                            messages.Add(updateResponse.Message);
+                                        }
+                                        else if (imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
+                                        {
+                                            try
+                                            {
+                                                SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
+                                                imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message} [{updateResponse.StatusCode}]", ex);
+                                            }
+                                        }
+
+                                        _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
                                     }
                                 }
                                 else
                                 {
-                                    updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                    success = false;
+                                    messages.Add($"Failed to find skus for prodcu id {prodId}");
                                 }
-
-                                success &= updateResponse.Success;
-                                if (!updateResponse.Success)
-                                {
-                                    messages.Add(updateResponse.Message);
-                                }
-                                else if(imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
-                                {
-                                    try
-                                    {
-                                        SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                        imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
-                                        _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
-                                    }
-                                    catch(Exception ex)
-                                    {
-                                        _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message} [{updateResponse.StatusCode}]", ex);
-                                    }
-                                }
-
-                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
+                            }
+                            else
+                            {
+                                success = false;
+                                messages.Add($"Failed to find product id from reference {id}");
                             }
 
                             break;
