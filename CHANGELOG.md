@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.32] - 2020-12-15
+
 ### Changed
 
 - Memory allocation and replica settings
