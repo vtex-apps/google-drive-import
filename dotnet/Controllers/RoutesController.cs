@@ -213,7 +213,7 @@
             if (imageFiles != null)
             {
                 bool thereAreFiles = imageFiles.Files.Count > 0;
-                while (thereAreFiles)
+                //while (thereAreFiles)
                 {
                     bool moveFailed = false;
                     _context.Vtex.Logger.Info("DriveImport", null, $"Processing {imageFiles.Files.Count} files.");
@@ -254,25 +254,25 @@
                         }
                     }
 
-                    if (moveFailed)
-                    {
-                        thereAreFiles = false;
-                    }
-                    else
-                    {
-                        await Task.Delay(5000);
-                        imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
-                        if (imageFiles == null)
-                        {
-                            thereAreFiles = false;
-                        }
-                        else
-                        {
-                            thereAreFiles = imageFiles.Files.Count > 0;
-                        }
-                    }
+                    //if (moveFailed)
+                    //{
+                    //    thereAreFiles = false;
+                    //}
+                    //else
+                    //{
+                    //    await Task.Delay(5000);
+                    //    imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                    //    if (imageFiles == null)
+                    //    {
+                    //        thereAreFiles = false;
+                    //    }
+                    //    else
+                    //    {
+                    //        thereAreFiles = imageFiles.Files.Count > 0;
+                    //    }
+                    //}
 
-                    Console.WriteLine($"Loop again? {thereAreFiles}");
+                    //Console.WriteLine($"Loop again? {thereAreFiles}");
                 }
             }
 
