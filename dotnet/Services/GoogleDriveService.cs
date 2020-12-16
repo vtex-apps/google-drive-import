@@ -603,10 +603,11 @@ namespace DriveImport.Services
                     if (response.IsSuccessStatusCode)
                     {
                         listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                        _context.Vtex.Logger.Info("ListImagesInFolder", folderId, $"{listFilesResponse.Files.Count} files.  Complete list? {!listFilesResponse.IncompleteSearch}");
                     }
                     else
                     {
-                        _context.Vtex.Logger.Info("ListImagesInFolder", folderId, $"[{response.StatusCode}] {responseContent}");
+                        _context.Vtex.Logger.Warn("ListImagesInFolder", folderId, $"[{response.StatusCode}] {responseContent}");
                     }
                 }
                 catch (Exception ex)
