@@ -86,9 +86,6 @@ namespace DriveImport.Services
                         Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                     };
 
-                    //Console.WriteLine(request.RequestUri);
-
-
                     //request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                     string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
                     if (authToken != null)
@@ -133,6 +130,11 @@ namespace DriveImport.Services
 
                     responseContent = await response.Content.ReadAsStringAsync();
                     success = response.IsSuccessStatusCode;
+                    if(!success)
+                    {
+                        _context.Vtex.Logger.Info("UpdateSkuImage", null, $"Response: {responseContent}  [{response.StatusCode}] for request '{jsonSerializedData}' to {request.RequestUri}");
+                    }
+
                     statusCode = response.StatusCode.ToString();
                     if(string.IsNullOrEmpty(responseContent))
                     {
@@ -200,9 +202,6 @@ namespace DriveImport.Services
                         Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                     };
 
-                    //Console.WriteLine(request.RequestUri);
-
-
                     //request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                     string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
                     if (authToken != null)
@@ -217,6 +216,11 @@ namespace DriveImport.Services
 
                     responseContent = await response.Content.ReadAsStringAsync();
                     success = response.IsSuccessStatusCode;
+                    if (!success)
+                    {
+                        _context.Vtex.Logger.Info("UpdateSkuImageArchive", null, $"Response: {responseContent}  [{response.StatusCode}] for request '{jsonSerializedData}' to {request.RequestUri}");
+                    }
+
                     if (string.IsNullOrEmpty(responseContent))
                     {
                         responseContent = $"Updated:{success} {response.StatusCode}";
@@ -743,14 +747,14 @@ namespace DriveImport.Services
         private async Task<long?> GetArchiveId(SkuUpdateResponse skuUpdateResponse, string imageName)
         {
             long? archiveId = null;
-            for (int i = 0; i < 10; i++)
-            {
+            //for (int i = 0; i < 10; i++)
+            //{
                 GetSkuContextResponse getSkuContextResponse = await this.GetSkuContext(skuUpdateResponse.SkuId.ToString());
                 if (getSkuContextResponse != null)
                 {
                     foreach (Image image in getSkuContextResponse.Images)
                     {
-                        Console.WriteLine($"GetSkuContextResponse '{image.ImageName}'='{imageName}' [{image.FileId}]");
+                        //Console.WriteLine($"GetSkuContextResponse '{image.ImageName}'='{imageName}' [{image.FileId}]");
                         if (image.ImageName != null && image.ImageName.Equals(imageName))
                         {
                             archiveId = image.FileId;
@@ -759,15 +763,15 @@ namespace DriveImport.Services
                     }
                 }
 
-                if(archiveId != null)
-                {
-                    break;
-                }
-                else
-                {
-                    await Task.Delay(500);
-                }
-            }
+            //    if(archiveId != null)
+            //    {
+            //        break;
+            //    }
+            //    else
+            //    {
+            //        await Task.Delay(500);
+            //    }
+            //}
 
             _context.Vtex.Logger.Info("GetArchiveId", null, $"FileId: '{archiveId}' for '{imageName}' (sku:{skuUpdateResponse.SkuId} id:{skuUpdateResponse.Id})");
 

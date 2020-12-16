@@ -1110,7 +1110,7 @@ namespace DriveImport.Services
                                     NewFolderId = newFolderId
                                 };
 
-                                _context.Vtex.Logger.Info("FindNewFolderId", null, $"Saveing Folder Ids: {JsonConvert.SerializeObject(folderIds)}");
+                                _context.Vtex.Logger.Info("FindNewFolderId", null, $"Saving Folder Ids: {JsonConvert.SerializeObject(folderIds)}");
                                 await _driveImportRepository.SaveFolderIds(folderIds, accountName);
                             }
                         }
