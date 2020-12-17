@@ -6,10 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### Fixed
-
-- Fixed import lock
-- Disabled folder watch
+## [0.0.36] - 2020-12-17
 
 ## [0.0.35] - 2020-12-16
 
