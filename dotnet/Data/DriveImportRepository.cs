@@ -144,7 +144,7 @@
             }
 
             string responseContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
+            //Console.WriteLine($"-> LoadToken [{response.StatusCode}] {responseContent} <-");
             _context.Vtex.Logger.Info("LoadToken", null, responseContent);
             Token token = JsonConvert.DeserializeObject<Token>(responseContent);
 
@@ -257,9 +257,6 @@
                 return new DateTime();
             }
 
-            // A helper method is in order for this as it does not return the stack trace etc.
-            response.EnsureSuccessStatusCode();
-
             Lock importLock = JsonConvert.DeserializeObject<Lock>(responseContent);
 
             if (importLock.ImportStarted == null)
@@ -285,6 +282,8 @@
                 Content = new StringContent(jsonSerializedLock, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
             };
 
+            request.Headers.Add("Cache-Control", "no-cache");
+
             string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
             if (authToken != null)
             {
@@ -295,7 +294,7 @@
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
 
-            response.EnsureSuccessStatusCode();
+            Console.WriteLine($" -   ClearImportLock -   [{response.StatusCode}]");
         }
 
         public async Task<WatchExpiration> GetWatchExpiration(string folderId)

@@ -41,6 +41,24 @@
         public async Task<IActionResult> DriveImport()
         {
             Response.Headers.Add("Cache-Control", "no-cache");
+
+            // check lock
+            DateTime importStarted = await _driveImportRepository.CheckImportLock();
+
+            Console.WriteLine($"Check lock: {importStarted}");
+
+            TimeSpan elapsedTime = DateTime.Now - importStarted;
+            if (elapsedTime.TotalHours < 2)
+            {
+                Console.WriteLine("Blocked by lock");
+                _context.Vtex.Logger.Info("DriveImport", null, $"Blocked by lock.  Import started: {importStarted}");
+                return Json($"Import started {importStarted} in progress.");
+            }
+
+            await _driveImportRepository.SetImportLock(DateTime.Now);
+            Console.WriteLine($"Set new lock: {DateTime.Now}");
+            _context.Vtex.Logger.Info("DriveImport", null, $"Set new lock: {DateTime.Now}");
+
             Console.WriteLine("Drive import started");
             bool updated = false;
             int doneCount = 0;
@@ -213,7 +231,7 @@
             if (imageFiles != null)
             {
                 bool thereAreFiles = imageFiles.Files.Count > 0;
-                //while (thereAreFiles)
+                while (thereAreFiles)
                 {
                     bool moveFailed = false;
                     _context.Vtex.Logger.Info("DriveImport", null, $"Processing {imageFiles.Files.Count} files.");
@@ -254,25 +272,25 @@
                         }
                     }
 
-                    //if (moveFailed)
-                    //{
-                    //    thereAreFiles = false;
-                    //}
-                    //else
-                    //{
-                    //    await Task.Delay(5000);
-                    //    imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
-                    //    if (imageFiles == null)
-                    //    {
-                    //        thereAreFiles = false;
-                    //    }
-                    //    else
-                    //    {
-                    //        thereAreFiles = imageFiles.Files.Count > 0;
-                    //    }
-                    //}
+                    if (moveFailed)
+                    {
+                        thereAreFiles = false;
+                    }
+                    else
+                    {
+                        await Task.Delay(5000);
+                        imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                        if (imageFiles == null)
+                        {
+                            thereAreFiles = false;
+                        }
+                        else
+                        {
+                            thereAreFiles = imageFiles.Files.Count > 0;
+                        }
+                    }
 
-                    //Console.WriteLine($"Loop again? {thereAreFiles}");
+                    Console.WriteLine($"Loop again? {thereAreFiles}");
                 }
             }
 
@@ -280,6 +298,8 @@
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Imported {doneCount} image(s).  {errorCount} image(s) not imported.  Done:[{string.Join(" ", doneFileNames)}] Error:[{string.Join(" ", errorFileNames)}]");
             }
+
+            await ClearLockAfterDelay(5000);
 
             return Json($"Imported {doneCount} image(s).  {errorCount} image(s) not imported.");
         }
@@ -780,6 +800,7 @@
         public async Task<IActionResult> SetWatch()
         {
             Response.Headers.Add("Cache-Control", "no-cache");
+            return Json("disabled");
             Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
             string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
@@ -846,6 +867,8 @@
 
         public async Task ProcessChange()
         {
+            return;
+
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
                 var headers = HttpContext.Request.Headers;
@@ -863,48 +886,48 @@
                         if (!string.IsNullOrEmpty(watchExpiresAtHeader))
                         {
                             DateTime.TryParse(watchExpiresAtHeader, out watchExpiresAt);
-                            Console.WriteLine($"ExpiresAt {watchExpiresAt} ({watchExpiresAtHeader})");
+                            Console.WriteLine($"ExpiresAt {watchExpiresAt} ({watchExpiresAtHeader})  {watchExpiresAt - DateTime.Now}");
                             //int timeInMilliseconds = (int)(watchExpiresAt - DateTime.Now).TotalMilliseconds;
                             // SetWatchAfterDelay(timeInMilliseconds);
                             //_driveImportRepository.SetWatchExpiration(watchExpiresAt);
                         }
 
                         // check lock
-                        DateTime importStarted = await _driveImportRepository.CheckImportLock();
+                        //DateTime importStarted = await _driveImportRepository.CheckImportLock();
 
-                        Console.WriteLine($"Check lock: {importStarted}");
+                        //Console.WriteLine($"Check lock: {importStarted}");
 
-                        TimeSpan elapsedTime = DateTime.Now - importStarted;
-                        if (elapsedTime.TotalHours < 2)
-                        {
-                            Console.WriteLine("Blocked by lock");
-                            _context.Vtex.Logger.Info("ProcessChange", null, $"Blocked by lock.  Import started: {importStarted}");
-                            return;
-                        }
+                        //TimeSpan elapsedTime = DateTime.Now - importStarted;
+                        //if (elapsedTime.TotalHours < 2)
+                        //{
+                        //    Console.WriteLine("Blocked by lock");
+                        //    _context.Vtex.Logger.Info("ProcessChange", null, $"Blocked by lock.  Import started: {importStarted}");
+                        //    return;
+                        //}
 
-                        await _driveImportRepository.SetImportLock(DateTime.Now);
-                        Console.WriteLine($"Set new lock: {DateTime.Now}");
-                        _context.Vtex.Logger.Info("ProcessChange", null, $"Set new lock: {DateTime.Now}");
+                        //await _driveImportRepository.SetImportLock(DateTime.Now);
+                        //Console.WriteLine($"Set new lock: {DateTime.Now}");
+                        //_context.Vtex.Logger.Info("ProcessChange", null, $"Set new lock: {DateTime.Now}");
 
                         await DriveImport();
-                        ClearLockAfterDelay(5000);
+                        //ClearLockAfterDelay(5000);
                     }
                 }
             }
         }
 
-        public async void ClearLockAfterDelay(int delayInMilliseconds)
+        public async Task ClearLockAfterDelay(int delayInMilliseconds)
         {
             await Task.Delay(delayInMilliseconds);
             try
             {
                 await _driveImportRepository.ClearImportLock();
-                _context.Vtex.Logger.Info("ProcessChange", null, $"Cleared lock: {DateTime.Now}");
+                _context.Vtex.Logger.Info("DriveImport", null, $"Cleared lock: {DateTime.Now}");
                 Console.WriteLine("Cleared lock");
             }
             catch(Exception ex)
             {
-                _context.Vtex.Logger.Error("ProcessChange", null, "Failed to clear lock", ex);
+                _context.Vtex.Logger.Error("DriveImport", null, "Failed to clear lock", ex);
             }
         }
 
@@ -953,6 +976,14 @@
                     Console.WriteLine($"({cnt}): ![{ex.Message}]!");
                 }
             }
+        }
+
+        public async Task ClearLock()
+        {
+            Response.Headers.Add("Cache-Control", "no-cache");
+            Console.WriteLine($"CheckImportLock: {await _driveImportRepository.CheckImportLock()}");
+            await _driveImportRepository.ClearImportLock();
+            Console.WriteLine($"CheckImportLock: {await _driveImportRepository.CheckImportLock()}");
         }
     }
 }

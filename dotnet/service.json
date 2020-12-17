@@ -62,8 +62,8 @@
       "path": "/google-drive-import/watch-notification",
       "public": true
     },
-    "hammerGoogleDownload": {
-      "path": "/google-drive-import/hammer",
+    "clearLock": {
+      "path": "/google-drive-import/clear-lock",
       "public": true
     }
   },
