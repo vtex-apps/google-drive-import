@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.37] - 2020-12-21
+
 ### Changed
 
 - Skip files that return GatewayTimeout and attempt to process on next loop
