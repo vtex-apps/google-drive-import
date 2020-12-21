@@ -224,6 +224,9 @@
             }
 
             Dictionary<string, string> images = new Dictionary<string, string>();
+            //StringBuilder results = new StringBuilder("Sku,Name,Label,isMain,Status,Message");
+            List<string> results = new List<string>();
+            results.Add("Sku,Name,Label,isMain,Status,Message");
 
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
 
@@ -231,9 +234,11 @@
             if (imageFiles != null)
             {
                 bool thereAreFiles = imageFiles.Files.Count > 0;
+                int skipCount = 0;
                 while (thereAreFiles)
                 {
                     bool moveFailed = false;
+                    bool didSkip = false;
                     _context.Vtex.Logger.Info("DriveImport", null, $"Processing {imageFiles.Files.Count} files.");
                     foreach (GoogleFile file in imageFiles.Files)
                     {
@@ -242,6 +247,10 @@
                         {
                             UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
                             _context.Vtex.Logger.Info("DriveImport", "UpdateResponse", $"'{file.Name}' Response: {JsonConvert.SerializeObject(updateResponse)}");
+                            //_context.Vtex.Logger.Info("DriveImport", "UpdateResponse", updateResponse.Results.ToString());
+                            //results.AppendLine();
+                            //results.Append(updateResponse.Results);
+                            results.AddRange(updateResponse.Results);
                             updated = updateResponse.Success;
                             bool moved = false;
                             if (updated)
@@ -257,16 +266,24 @@
                             }
                             else
                             {
-                                errorCount++;
-                                errorFileNames.Add(file.Name);
-                                moved = await _googleDriveService.MoveFile(file.Id, errorFolderId);
-                                string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
-                                string newFileName = $"{errorText}-{file.Name}";
-                                await _googleDriveService.RenameFile(file.Id, newFileName);
-                                if (!moved)
+                                if (!string.IsNullOrEmpty(updateResponse.StatusCode) && updateResponse.StatusCode.Equals(DriveImportConstants.GATEWAY_TIMEOUT))
                                 {
-                                    _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
-                                    moveFailed = true;
+                                    didSkip = true;
+                                    _context.Vtex.Logger.Warn("DriveImport", null, $"Skipping {file.Name} {JsonConvert.SerializeObject(updateResponse)}");
+                                }
+                                else
+                                {
+                                    errorCount++;
+                                    errorFileNames.Add(file.Name);
+                                    moved = await _googleDriveService.MoveFile(file.Id, errorFolderId);
+                                    string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
+                                    string newFileName = $"{errorText}-{file.Name}";
+                                    await _googleDriveService.RenameFile(file.Id, newFileName);
+                                    if (!moved)
+                                    {
+                                        _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
+                                        moveFailed = true;
+                                    }
                                 }
                             }
                         }
@@ -278,7 +295,7 @@
                     }
                     else
                     {
-                        await Task.Delay(5000);
+                        await Task.Delay(10000);
                         imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
                         if (imageFiles == null)
                         {
@@ -287,6 +304,19 @@
                         else
                         {
                             thereAreFiles = imageFiles.Files.Count > 0;
+                        }
+
+                        if(thereAreFiles && didSkip)
+                        {
+                            if (skipCount > 10)
+                            {
+                                // Prevent endless loop
+                                thereAreFiles = false;
+                            }
+                            else
+                            {
+                                skipCount++;
+                            }
                         }
                     }
 
@@ -297,6 +327,7 @@
             if (doneCount + errorCount > 0)
             {
                 _context.Vtex.Logger.Info("DriveImport", null, $"Imported {doneCount} image(s).  {errorCount} image(s) not imported.  Done:[{string.Join(" ", doneFileNames)}] Error:[{string.Join(" ", errorFileNames)}]");
+                _context.Vtex.Logger.Info("DriveImport", "Results", JsonConvert.SerializeObject(results));
             }
 
             await ClearLockAfterDelay(5000);

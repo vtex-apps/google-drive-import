@@ -65,6 +65,7 @@ namespace DriveImport.Data
         public const string PROCESSED_PREFIX = "Done";
 
         public const string ARCHIVE_CREATED = "Sku archive already created";
+        public const string GATEWAY_TIMEOUT = "GatewayTimeout";
 
         public class FolderNames
         {

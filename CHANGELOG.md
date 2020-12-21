@@ -6,7 +6,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Skip files that return GatewayTimeout and attempt to process on next loop
+
+### Added
+
+- Log error list by sku
+
 ## [0.0.36] - 2020-12-17
+
+### Fixed	## [0.0.36] - 2020-12-17
+
+- Fixed import lock	
+- Disabled folder watch
 
 ## [0.0.35] - 2020-12-16
 

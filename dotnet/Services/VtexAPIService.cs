@@ -502,7 +502,7 @@ namespace DriveImport.Services
             string imageName = string.Empty;
             string imageLabel = string.Empty;
             bool isMain = false;
-
+            List<string> resultsList = new List<string>();
 
             // IdentificatorType, Id, ImageName, ImageLabel, Main
             string[] fileNameArr = fileName.Split('.');
@@ -520,7 +520,7 @@ namespace DriveImport.Services
                         isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
                     }
 
-                    string parsedFilename = $"[Type:{identificatorType} Id:{id} Name:{imageName} Label:{imageLabel} Main?{isMain}]";
+                    string parsedFilename = $"[Type:{identificatorType} Id:{id} Name:{imageName} Label:{imageLabel} Main? {isMain}]";
                     long? imageId = null;
 
                     switch (identificatorType)
@@ -531,9 +531,12 @@ namespace DriveImport.Services
                             if (!updateResponse.Success)
                             {
                                 messages.Add(updateResponse.Message);
+                                string resultLine = $"{id},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
+                                resultsList.Add(resultLine);
                             }
 
                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
+                            //resultsList.AppendLine($"{identificatorType},{id},{imageName},{imageLabel},{isMain},{updateResponse.Success},{updateResponse.StatusCode}");
                             break;
                         case DriveImportConstants.IdentificatorType.SKU_REF_ID:
                             string skuId = await this.GetSkuIdFromReference(id);
@@ -544,15 +547,20 @@ namespace DriveImport.Services
                                 if (!updateResponse.Success)
                                 {
                                     messages.Add(updateResponse.Message);
+                                    string resultLine = $"{skuId},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
+                                    resultsList.Add(resultLine);
                                 }
                             }
                             else
                             {
                                 success = false;
                                 messages.Add($"Failed to find sku id from reference {id}");
+                                string resultLine = $",{imageName},{imageLabel},{isMain},,Failed to find sku id from reference {id}";
+                                resultsList.Add(resultLine);
                             }
 
                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
+                            //resultsList.AppendLine($"{identificatorType},{id},{imageName},{imageLabel},{isMain},{updateResponse.Success},{updateResponse.StatusCode}");
                             break;
                         case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
                             string prodId = await this.GetProductIdFromReference(id);
@@ -583,6 +591,8 @@ namespace DriveImport.Services
                                         if (!updateResponse.Success)
                                         {
                                             messages.Add(updateResponse.Message);
+                                            string resultLine = $"{prodRefSku},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
+                                            resultsList.Add(resultLine);
                                         }
                                         else if (imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
                                         {
@@ -604,13 +614,17 @@ namespace DriveImport.Services
                                 else
                                 {
                                     success = false;
-                                    messages.Add($"Failed to find skus for prodcu id {prodId}");
+                                    messages.Add($"Failed to find skus for product id {prodId}");
+                                    string resultLine = $",{imageName},{imageLabel},{isMain},,Failed to find skus for product id {prodId}";
+                                    resultsList.Add(resultLine);
                                 }
                             }
                             else
                             {
                                 success = false;
                                 messages.Add($"Failed to find product id from reference {id}");
+                                string resultLine = $",{imageName},{imageLabel},{isMain},,Failed to find product id from reference {id}";
+                                resultsList.Add(resultLine);
                             }
 
                             break;
@@ -637,6 +651,8 @@ namespace DriveImport.Services
                                 if (!updateResponse.Success)
                                 {
                                     messages.Add(updateResponse.Message);
+                                    string resultLine = $"{sku},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
+                                    resultsList.Add(resultLine);
                                 }
                                 else if (imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
                                 {
@@ -652,13 +668,13 @@ namespace DriveImport.Services
                                     }
                                 }
 
-                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success} '{updateResponse.Message}'");
+                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {updateResponse.Success} '{updateResponse.Message}'");
                             }
 
                             break;
                         default:
                             messages.Add($"Type {identificatorType} not recognized.");
-                            _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Type '{identificatorType}' is not recognized.  Filename '{fileName}'");
+                            _context.Vtex.Logger.Warn("ProcessImageFile", parsedFilename, $"Type '{identificatorType}' is not recognized.  Filename '{fileName}'");
                             break;
                     }
                 }
@@ -674,6 +690,12 @@ namespace DriveImport.Services
 
             updateResponse.Success = success;
             updateResponse.Message = string.Join("-", messages);
+            updateResponse.Results = resultsList;
+
+            if (resultsList != null && resultsList.Count > 0)
+            {
+                _context.Vtex.Logger.Info("ProcessImageFile", "resultsList", JsonConvert.SerializeObject(resultsList));
+            }
 
             return updateResponse;
         }
@@ -747,14 +769,14 @@ namespace DriveImport.Services
         private async Task<long?> GetArchiveId(SkuUpdateResponse skuUpdateResponse, string imageName)
         {
             long? archiveId = null;
-            //for (int i = 0; i < 10; i++)
-            //{
+            for (int i = 1; i < 5; i++)
+            {
                 GetSkuContextResponse getSkuContextResponse = await this.GetSkuContext(skuUpdateResponse.SkuId.ToString());
                 if (getSkuContextResponse != null)
                 {
                     foreach (Image image in getSkuContextResponse.Images)
                     {
-                        //Console.WriteLine($"GetSkuContextResponse '{image.ImageName}'='{imageName}' [{image.FileId}]");
+                        Console.WriteLine($"GetSkuContextResponse '{image.ImageName}'='{imageName}' [{image.FileId}]");
                         if (image.ImageName != null && image.ImageName.Equals(imageName))
                         {
                             archiveId = image.FileId;
@@ -763,15 +785,15 @@ namespace DriveImport.Services
                     }
                 }
 
-            //    if(archiveId != null)
-            //    {
-            //        break;
-            //    }
-            //    else
-            //    {
-            //        await Task.Delay(500);
-            //    }
-            //}
+                if (archiveId != null)
+                {
+                    break;
+                }
+                else
+                {
+                    await Task.Delay(500);
+                }
+            }
 
             _context.Vtex.Logger.Info("GetArchiveId", null, $"FileId: '{archiveId}' for '{imageName}' (sku:{skuUpdateResponse.SkuId} id:{skuUpdateResponse.Id})");
 
