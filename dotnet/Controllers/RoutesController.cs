@@ -330,6 +330,29 @@
                 _context.Vtex.Logger.Info("DriveImport", "Results", JsonConvert.SerializeObject(results));
             }
 
+            if(errorCount > 0)
+            {
+                try
+                {
+                    StringBuilder sb = new StringBuilder();
+                    foreach (string textLine in results)
+                    {
+                        sb.AppendLine(textLine);
+                    }
+
+                    string fileId = await _googleDriveService.SaveFile(sb);
+                    if (!string.IsNullOrEmpty(fileId))
+                    {
+                        await _googleDriveService.RenameFile(fileId, $"ImportErrors_{DateTime.Now}");
+                        await _googleDriveService.MoveFile(fileId, errorFolderId);
+                    }
+                }
+                catch(Exception ex)
+                {
+                    _context.Vtex.Logger.Error("DriveImport", "Results", $"Error saving error list", ex);
+                }
+            }
+
             await ClearLockAfterDelay(5000);
 
             return Json($"Imported {doneCount} image(s).  {errorCount} image(s) not imported.");

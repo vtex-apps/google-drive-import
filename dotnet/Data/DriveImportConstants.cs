@@ -14,6 +14,7 @@ namespace DriveImport.Data
         public const string FORWARDED_HEADER = "X-Forwarded-For";
         public const string FORWARDED_HOST = "X-Forwarded-Host";
         public const string APPLICATION_JSON = "application/json";
+        public const string TEXT = "text/plain";
         public const string APPLICATION_FORM = "application/x-www-form-urlencoded";
         public const string HEADER_VTEX_CREDENTIAL = "X-Vtex-Credential";
         public const string AUTHORIZATION_HEADER_NAME = "Authorization";

@@ -1,6 +1,7 @@
 ﻿using DriveImport.Models;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace DriveImport.Services
@@ -28,5 +29,6 @@ namespace DriveImport.Services
         Task<bool> SetPermission(string fileId);
         Task<bool> RenameFile(string fileId, string fileName);
         Task<string> FindNewFolderId(string accountName);
+        Task<string> SaveFile(StringBuilder file);
     }
 }
