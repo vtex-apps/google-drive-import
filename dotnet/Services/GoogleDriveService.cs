@@ -732,12 +732,12 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Info("MoveFile", null, "Token error.");
+                    _context.Vtex.Logger.Warn("MoveFile", null, "Token error.");
                 }
             }
             else
             {
-                _context.Vtex.Logger.Info("MoveFile", null, "Parameter missing.");
+                _context.Vtex.Logger.Warn("MoveFile", null, "Parameter missing.");
             }
 
             return success;
@@ -790,12 +790,12 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Info("GetFile", null, "Token error.");
+                    _context.Vtex.Logger.Warn("GetFile", null, "Token error.");
                 }
             }
             else
             {
-                _context.Vtex.Logger.Info("GetFile", null, "Parameer missing.");
+                _context.Vtex.Logger.Warn("GetFile", null, "Parameer missing.");
             }
 
             return contentByteArray;
@@ -852,12 +852,12 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Info("SetPermission", null, "Token error.");
+                    _context.Vtex.Logger.Warn("SetPermission", null, "Token error.");
                 }
             }
             else
             {
-                _context.Vtex.Logger.Info("MoveFile", null, "Parameter missing.");
+                _context.Vtex.Logger.Warn("MoveFile", null, "Parameter missing.");
             }
 
             return success;
@@ -907,36 +907,32 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Info("RenameFile", null, "Token error.");
+                    _context.Vtex.Logger.Warn("RenameFile", null, "Token error.");
                 }
             }
             else
             {
-                _context.Vtex.Logger.Info("RenameFile", null, "Parameter missing.");
+                _context.Vtex.Logger.Warn("RenameFile", null, "Parameter missing.");
             }
 
             return success;
         }
 
-        public async Task<bool> SaveFile(string fileName, StringBuilder fileContents)
+        public async Task<string> SaveFile(StringBuilder file)
         {
-            bool success = false;
+            string fileId = string.Empty;
+            CreateFolderResponse createResponse = null;
             string responseContent = string.Empty;
-            if (!string.IsNullOrEmpty(fileName))
+            if (file != null)
             {
                 Token token = await this.GetGoogleToken();
                 if (token != null && !string.IsNullOrEmpty(token.AccessToken))
                 {
-                    dynamic metadata = new JObject();
-                    metadata.title = fileName;
-
-                    var jsonSerializedMetadata = JsonConvert.SerializeObject(metadata);
-
                     var request = new HttpRequestMessage
                     {
                         Method = HttpMethod.Post,
-                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_UPLOAD_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}"),
-                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_UPLOAD_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?uploadType=media&supportsAllDrives=true"),
+                        Content = new StringContent(file.ToString(), Encoding.UTF8, DriveImportConstants.TEXT)
                     };
 
                     request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
@@ -952,25 +948,30 @@ namespace DriveImport.Services
                     {
                         var response = await client.SendAsync(request);
                         responseContent = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"[|]     SaveFile {responseContent}");
 
-                        success = response.IsSuccessStatusCode;
+                        if(response.IsSuccessStatusCode)
+                        {
+                            createResponse = JsonConvert.DeserializeObject<CreateFolderResponse>(responseContent);
+                            fileId = createResponse.Id;
+                        }
                     }
                     catch (Exception ex)
                     {
-                        _context.Vtex.Logger.Error("SaveFile", null, $"Filename '{fileName}'", ex);
+                        _context.Vtex.Logger.Error("SaveFile", null, "Error saving file", ex);
                     }
                 }
                 else
                 {
-                    _context.Vtex.Logger.Info("SaveFile", null, "Token error.");
+                    _context.Vtex.Logger.Warn("SaveFile", null, "Token error.");
                 }
             }
             else
             {
-                _context.Vtex.Logger.Info("SaveFile", null, "Parameter missing.");
+                _context.Vtex.Logger.Warn("SaveFile", null, "Parameter missing.");
             }
 
-            return success;
+            return fileId;
         }
 
         public async Task<GoogleWatch> SetWatch(string fileId, bool reset = false)
