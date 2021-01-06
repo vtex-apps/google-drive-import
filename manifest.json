@@ -24,7 +24,6 @@
     "postreleasy": "vtex publish --verbose"
   },
   "billingOptions": {
-    "termsURL": "https://support.vtex.com/hc/requests",
     "support": {
       "url": "https://help-tickets.vtex.com/en/support?app=vtexus.google-drive-import"
     },
