@@ -1,0 +1,15 @@
+{
+  "name": "Importação do Google Drive",
+  "headline": "Importação em massa de imagens SKU do Google Drive.",
+  "overview": "Este aplicativo permite que as imagens SKU sejam importadas em massa para o Catálogo VTEX a partir do Google Drive.",
+  "features": [
+    "Importação em massa de imagens do SKU para o Catálogo VTEX de uma pasta do Google Drive",
+    "Importação de imagens automaticamente assim que forem carregadas",
+    "As imagens importadas são movidas para as pastas \"Done\" e \"Error\"",
+    "Usar a mesma conta do Google Drive para importar imagens para várias contas de loja VTEX"
+  ],
+  "websiteURL": "https://vtex.com/",
+  "support": {
+    "url": "https://help-tickets.vtex.com/en/support?app=vtexus.google-drive-import"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Google Drive Import",
+  "headline": "Bulk import SKU images from Google Drive.",
+  "overview": "This app allows SKU images to be bulk imported into the VTEX Catalog from a user's Google Drive.",
+  "features": [
+    "Bulk import SKU images into the VTEX Catalog from a Google Drive folder",
+    "Automatically import images as soon as they are uploaded",
+    "Imported images are moved to \"Done\" and \"Error\" folders",
+    "Use the same Google Drive account to import images into multiple VTEX store accounts"
+  ],
+  "websiteURL": "https://vtex.com/",
+  "support": {
+    "url": "https://help-tickets.vtex.com/en/support?app=vtexus.google-drive-import"
+  }
+}
