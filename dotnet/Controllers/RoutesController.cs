@@ -261,6 +261,8 @@
                                 if (!moved)
                                 {
                                     _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.DONE}'");
+                                    string newFileName = $"Move_to_{DriveImportConstants.FolderNames.DONE}_{file.Name}";
+                                    await _googleDriveService.RenameFile(file.Id, newFileName);
                                     moveFailed = true;
                                 }
                             }
@@ -282,6 +284,8 @@
                                     if (!moved)
                                     {
                                         _context.Vtex.Logger.Error("DriveImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
+                                        newFileName = $"Move_to_{DriveImportConstants.FolderNames.ERROR}_{newFileName}";
+                                        await _googleDriveService.RenameFile(file.Id, newFileName);
                                         moveFailed = true;
                                     }
                                 }
@@ -343,7 +347,7 @@
                     string fileId = await _googleDriveService.SaveFile(sb);
                     if (!string.IsNullOrEmpty(fileId))
                     {
-                        await _googleDriveService.RenameFile(fileId, $"ImportErrors_{DateTime.Now}");
+                        await _googleDriveService.RenameFile(fileId, $"ImportErrors_{DateTime.Now.Date}");
                         await _googleDriveService.MoveFile(fileId, errorFolderId);
                     }
                 }
