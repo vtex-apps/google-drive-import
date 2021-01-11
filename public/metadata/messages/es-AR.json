@@ -5,7 +5,7 @@
   "features": [
     "Importación masiva de imágenes SKU al catálogo VTEX desde una carpeta de Google Drive",
     "Importar imágenes automáticamente tan pronto como se carguen",
-    "Las imágenes importadas se mueven a las carpetas \"Listo\" y \"Error\"",
+    "Las imágenes importadas se mueven a las carpetas \"Done\" y \"Error\"",
     "Utilice la misma cuenta de Google Drive para importar imágenes a varias cuentas de la tienda VTEX"
   ],
   "websiteURL": "https://vtex.com/",
