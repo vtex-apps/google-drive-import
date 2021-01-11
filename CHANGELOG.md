@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fix
+- metadata to app store
+
 ## [0.0.40] - 2021-01-07
 
 ### Fix

@@ -66,11 +66,5 @@
       "path": "/google-drive-import/clear-lock",
       "public": true
     }
-  },
-  "events": {
-    "onAppsLinked": {
-      "sender": "apps",
-      "keys": ["linked"]
-    }
   }
 }
