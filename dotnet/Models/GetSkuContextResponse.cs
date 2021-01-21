@@ -104,10 +104,10 @@ namespace DriveImport.Models
         public object[] Videos { get; set; }
 
         [JsonProperty("SkuSpecifications")]
-        public object[] SkuSpecifications { get; set; }
+        public Specification[] SkuSpecifications { get; set; }
 
         [JsonProperty("ProductSpecifications")]
-        public ProductSpecification[] ProductSpecifications { get; set; }
+        public Specification[] ProductSpecifications { get; set; }
 
         [JsonProperty("ProductClustersIds")]
         public string ProductClustersIds { get; set; }
@@ -140,7 +140,7 @@ namespace DriveImport.Models
         public string[] AlternateIdValues { get; set; }
 
         [JsonProperty("EstimatedDateArrival")]
-        public DateTimeOffset EstimatedDateArrival { get; set; }
+        public string EstimatedDateArrival { get; set; }
 
         [JsonProperty("MeasurementUnit")]
         public string MeasurementUnit { get; set; }
@@ -158,7 +158,7 @@ namespace DriveImport.Models
         public string KeyWords { get; set; }
 
         [JsonProperty("ReleaseDate")]
-        public DateTimeOffset ReleaseDate { get; set; }
+        public string ReleaseDate { get; set; }
 
         [JsonProperty("ProductIsVisible")]
         public bool ProductIsVisible { get; set; }
@@ -219,7 +219,7 @@ namespace DriveImport.Models
         public string The12 { get; set; }
     }
 
-    public partial class ProductSpecification
+    public class Specification
     {
         [JsonProperty("FieldId")]
         public long FieldId { get; set; }

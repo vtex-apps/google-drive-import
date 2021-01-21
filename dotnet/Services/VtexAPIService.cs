@@ -502,6 +502,9 @@ namespace DriveImport.Services
             string imageName = string.Empty;
             string imageLabel = string.Empty;
             bool isMain = false;
+            string skuContext = string.Empty;
+            string skuContextField = string.Empty;
+            string skuContextValue = string.Empty;
             List<string> resultsList = new List<string>();
 
             // IdentificatorType, Id, ImageName, ImageLabel, Main
@@ -509,15 +512,23 @@ namespace DriveImport.Services
             if (fileNameArr.Count() == 2 && !string.IsNullOrEmpty(fileNameArr[0]))
             {
                 string[] fileNameParsed = fileNameArr[0].Split(',');
-                if ((fileNameParsed.Count() == 5 || fileNameParsed.Count() == 4))
+                if ((fileNameParsed.Count() <= 6 && fileNameParsed.Count() >= 4))
                 {
                     identificatorType = fileNameParsed[0];
                     id = fileNameParsed[1];
                     imageName = fileNameParsed[2];
                     imageLabel = fileNameParsed[3];
-                    if (fileNameParsed.Count() == 5)
+                    if (fileNameParsed.Count() >= 5)
                     {
                         isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
+                    }
+
+                    if (fileNameParsed.Count() >= 6)
+                    {
+                        skuContext = fileNameParsed[5];
+                        string[] skuContextArr = skuContext.Split("=");
+                        skuContextField = skuContextArr[0];
+                        skuContextValue = skuContextArr[1];
                     }
 
                     string parsedFilename = $"[Type:{identificatorType} Id:{id} Name:{imageName} Label:{imageLabel} Main? {isMain}]";
@@ -572,43 +583,84 @@ namespace DriveImport.Services
                                     success = true;
                                     foreach (string prodRefSku in prodRefSkuIds)
                                     {
-                                        //Console.WriteLine($"imageId='{imageId}' prodRefSku={prodRefSku}");
-                                        if (imageId != null)
+                                        bool proceed = true;
+                                        if (!string.IsNullOrEmpty(skuContextField) && !string.IsNullOrEmpty(skuContextValue))
                                         {
-                                            updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
-                                            if (!updateResponse.Success)
+                                            GetSkuContextResponse skuContextResponse = await this.GetSkuContext(prodRefSku);
+                                            if (skuContextResponse != null && skuContextResponse.SkuSpecifications != null)
                                             {
-                                                imageId = null;
+                                                var skuSpecifications = skuContextResponse.SkuSpecifications.Where(s => s.FieldName.Equals(skuContextField, StringComparison.InvariantCultureIgnoreCase));
+
+                                                // debug
+                                                //List<string> specs = new List<string>();
+                                                //foreach (Specification specification in skuContextResponse.SkuSpecifications)
+                                                //{
+                                                //    specs.Add($"1) {specification.FieldName} = {string.Join(",", specification.FieldValues)}");
+                                                //}
+                                                //foreach (Specification specification in skuSpecifications)
+                                                //{
+                                                //    specs.Add($"2) {specification.FieldName} = {string.Join(",", specification.FieldValues)}");
+                                                //}
+                                                //_context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, string.Join(":", specs));
+                                                // end debug
+
+                                                //proceed = skuSpecifications.Any(skuContextField => skuContextField.Equals(skuContextValue, StringComparison.InvariantCultureIgnoreCase));
+                                                proceed = skuSpecifications.Any(s => s.FieldValues.Any(v => v.Equals(skuContextValue, StringComparison.InvariantCultureIgnoreCase)));
+                                                if(proceed)
+                                                {
+                                                    _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Found match '{skuContextField}'='{skuContextValue}' for Sku {prodRefSku}");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Failed to get SkuContext for Sku {prodRefSku}");
+                                            }
+                                        }
+
+                                        //Console.WriteLine($"imageId='{imageId}' prodRefSku={prodRefSku}");
+                                        if (proceed)
+                                        {
+                                            if (imageId != null)
+                                            {
+                                                updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
+                                                if (!updateResponse.Success)
+                                                {
+                                                    imageId = null;
+                                                    updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                                }
+                                            }
+                                            else
+                                            {
                                                 updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
                                             }
+
+                                            success &= updateResponse.Success;
+                                            if (!updateResponse.Success)
+                                            {
+                                                messages.Add(updateResponse.Message);
+                                                string resultLine = $"{prodRefSku},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
+                                                resultsList.Add(resultLine);
+                                            }
+                                            else if (imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
+                                            {
+                                                try
+                                                {
+                                                    SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
+                                                    imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                                    _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message} [{updateResponse.StatusCode}]", ex);
+                                                }
+                                            }
+
+                                            _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
                                         }
                                         else
                                         {
-                                            updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                            _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Did not match '{skuContextField}'='{skuContextValue}' for Sku {prodRefSku}");
                                         }
-
-                                        success &= updateResponse.Success;
-                                        if (!updateResponse.Success)
-                                        {
-                                            messages.Add(updateResponse.Message);
-                                            string resultLine = $"{prodRefSku},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
-                                            resultsList.Add(resultLine);
-                                        }
-                                        else if (imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
-                                        {
-                                            try
-                                            {
-                                                SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                                imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
-                                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message} [{updateResponse.StatusCode}]", ex);
-                                            }
-                                        }
-
-                                        _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
                                     }
                                 }
                                 else
@@ -633,42 +685,68 @@ namespace DriveImport.Services
                             success = true;
                             foreach (string sku in skuIds)
                             {
-                                if (imageId != null)
+                                bool proceed = true;
+                                if (!string.IsNullOrEmpty(skuContextField) && !string.IsNullOrEmpty(skuContextValue))
                                 {
-                                    updateResponse = await this.UpdateSkuImageArchive(sku, imageName, imageLabel, isMain, imageId.ToString());
-                                    if (!updateResponse.Success)
+                                    GetSkuContextResponse skuContextResponse = await this.GetSkuContext(sku);
+                                    if (skuContextResponse != null && skuContextResponse.SkuSpecifications != null)
                                     {
-                                        imageId = null;
+                                        var skuSpecifications = skuContextResponse.SkuSpecifications.Where(s => s.FieldName.Equals(skuContextField, StringComparison.InvariantCultureIgnoreCase));
+                                        proceed = skuSpecifications.Any(s => s.FieldValues.Any(v => v.Equals(skuContextValue, StringComparison.InvariantCultureIgnoreCase)));
+                                        if (proceed)
+                                        {
+                                            _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Found match '{skuContextField}'='{skuContextValue}' for Sku {sku}");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Failed to get SkuContext for Sku {sku}");
+                                    }
+                                }
+
+                                if (proceed)
+                                {
+                                    if (imageId != null)
+                                    {
+                                        updateResponse = await this.UpdateSkuImageArchive(sku, imageName, imageLabel, isMain, imageId.ToString());
+                                        if (!updateResponse.Success)
+                                        {
+                                            imageId = null;
+                                            updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                        }
+                                    }
+                                    else
+                                    {
                                         updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
                                     }
+
+                                    success &= updateResponse.Success;
+                                    if (!updateResponse.Success)
+                                    {
+                                        messages.Add(updateResponse.Message);
+                                        string resultLine = $"{sku},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
+                                        resultsList.Add(resultLine);
+                                    }
+                                    else if (imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
+                                    {
+                                        try
+                                        {
+                                            SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
+                                            imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                            _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {sku} Image Id: {imageId}");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message}", ex);
+                                        }
+                                    }
+
+                                    _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {updateResponse.Success} '{updateResponse.Message}'");
                                 }
                                 else
                                 {
-                                    updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                    _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Did not match '{skuContextField}'='{skuContextValue}' for Sku {sku}");
                                 }
-
-                                success &= updateResponse.Success;
-                                if (!updateResponse.Success)
-                                {
-                                    messages.Add(updateResponse.Message);
-                                    string resultLine = $"{sku},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
-                                    resultsList.Add(resultLine);
-                                }
-                                else if (imageId == null && !updateResponse.Message.Contains(DriveImportConstants.ARCHIVE_CREATED))
-                                {
-                                    try
-                                    {
-                                        SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                        imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
-                                        _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {sku} Image Id: {imageId}");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message}", ex);
-                                    }
-                                }
-
-                                _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {updateResponse.Success} '{updateResponse.Message}'");
                             }
 
                             break;
