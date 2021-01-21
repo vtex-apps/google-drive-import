@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Match sku based on Specification parameter
+
 ## [0.0.41] - 2021-01-11
 
 ### Fix
