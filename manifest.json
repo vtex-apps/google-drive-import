@@ -24,6 +24,7 @@
     "postreleasy": "vtex publish --verbose"
   },
   "billingOptions": {
+    "setupRoute": "/admin/app/google-drive-import/",
     "support": {
       "url": "https://help-tickets.vtex.com/en/support?app=vtexus.google-drive-import"
     },
