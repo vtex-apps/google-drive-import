@@ -925,8 +925,6 @@
 
         public async Task ProcessChange()
         {
-            return;
-
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
                 var headers = HttpContext.Request.Headers;
