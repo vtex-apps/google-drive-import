@@ -617,7 +617,60 @@ namespace DriveImport.Services
             }
             else
             {
-                _context.Vtex.Logger.Info("ListImagesInFolder", folderId, "Token error.");
+                _context.Vtex.Logger.Warn("ListImagesInFolder", folderId, "Token error.");
+            }
+
+            return listFilesResponse;
+        }
+
+        public async Task<ListFilesResponse> ListSheetsInFolder(string folderId)
+        {
+            ListFilesResponse listFilesResponse = null;
+            string responseContent = string.Empty;
+            Token token = await this.GetGoogleToken();
+            if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+            {
+                string fields = "*";
+                string query = $"mimeType contains 'spreadsheet' and '{folderId}' in parents";
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?fields={fields}&q={query}&pageSize={DriveImportConstants.GOOGLE_DRIVE_PAGE_SIZE}"),
+                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                };
+
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    responseContent = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        listFilesResponse = JsonConvert.DeserializeObject<ListFilesResponse>(responseContent);
+                        _context.Vtex.Logger.Info("ListSheetsInFolder", folderId, $"{listFilesResponse.Files.Count} files.  Complete list? {!listFilesResponse.IncompleteSearch}");
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Warn("ListSheetsInFolder", folderId, $"[{response.StatusCode}] {responseContent}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _context.Vtex.Logger.Error("ListSheetsInFolder", folderId, $"Error", ex);
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Warn("ListSheetsInFolder", folderId, "Token error.");
             }
 
             return listFilesResponse;
@@ -795,10 +848,71 @@ namespace DriveImport.Services
             }
             else
             {
-                _context.Vtex.Logger.Warn("GetFile", null, "Parameer missing.");
+                _context.Vtex.Logger.Warn("GetFile", null, "Parameter missing.");
             }
 
             return contentByteArray;
+        }
+
+        public async Task<string> GetSheet(string fileId, string range)
+        {
+            bool success = false;
+            string responseContent = string.Empty;
+            if(string.IsNullOrEmpty(range))
+            {
+                range = "A:Z";
+            }
+
+            if (!string.IsNullOrEmpty(fileId))
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Get,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_SHEET_URL}/{DriveImportConstants.GOOGLE_DRIVE_SHEETS}/{fileId}/values:batchGet?ranges={range}")
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    try
+                    {
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            _context.Vtex.Logger.Info("GetSheet", null, $"FileId:{fileId} [{response.StatusCode}] '{responseContent}'");
+                        }
+
+                        success = response.IsSuccessStatusCode;
+                        Console.WriteLine($"    -   GetSheet responseStatus = '{response.StatusCode}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("GetSheet", null, $"FileId {fileId}", ex);
+                    }
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("GetSheet", null, "Token error.");
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Warn("GetSheet", null, "Parameter missing.");
+            }
+
+            Console.WriteLine($"    -   GetSheet responseContent = '{responseContent}'");
+            return responseContent;
         }
 
         public async Task<bool> SetPermission(string fileId)
@@ -1123,6 +1237,123 @@ namespace DriveImport.Services
             _context.Vtex.Logger.Info("FindNewFolderId", null, $"New Fodler Id: {newFolderId}");
 
             return newFolderId;
+        }
+
+        public async Task<string> CreateSpreadsheet(GoogleSheet googleSheetRequest)
+        {
+            bool success = false;
+            string responseContent = string.Empty;
+            string fileId = string.Empty;
+            GoogleSheet googleSheetResponse;
+
+            if (googleSheetRequest != null)
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(googleSheetRequest);
+
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_SHEET_URL}/{DriveImportConstants.GOOGLE_DRIVE_SHEETS}"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    try
+                    {
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
+
+                        success = response.IsSuccessStatusCode;
+                        if(success)
+                        {
+                            googleSheetResponse = JsonConvert.DeserializeObject<GoogleSheet>(responseContent);
+                            fileId = googleSheetResponse.SpreadsheetId;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("CreateSpreadsheet", null, $"{jsonSerializedMetadata}", ex);
+                    }
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("CreateSpreadsheet", null, "Token error.");
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Warn("CreateSpreadsheet", null, "Parameter missing.");
+            }
+
+            return fileId;
+        }
+
+        public async Task<UpdateValuesResponse> WriteSpreadsheetValues(string fileId, ValueRange valueRange)
+        {
+            bool success = false;
+            string responseContent = string.Empty;
+            UpdateValuesResponse updateValuesResponse = null;
+
+            if (!string.IsNullOrEmpty(fileId) && valueRange != null)
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(valueRange);
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Put,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_SHEET_URL}/{DriveImportConstants.GOOGLE_DRIVE_SHEETS}/{fileId}/values/{valueRange.Range}?valueInputOption=USER_ENTERED"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    try
+                    {
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"WriteSpreadsheetValues [{response.StatusCode}] {responseContent}");
+                        success = response.IsSuccessStatusCode;
+                        if (success)
+                        {
+                            updateValuesResponse = JsonConvert.DeserializeObject<UpdateValuesResponse>(responseContent);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("WriteSpreadsheetValues", null, $"{jsonSerializedMetadata}", ex);
+                    }
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("WriteSpreadsheetValues", null, "Token error.");
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Warn("WriteSpreadsheetValues", null, "Parameter missing.");
+            }
+
+            return updateValuesResponse;
         }
     }
 }

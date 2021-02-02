@@ -65,6 +65,10 @@
     "clearLock": {
       "path": "/google-drive-import/clear-lock",
       "public": true
+    },
+    "sheetImport": {
+      "path": "/google-drive-import/sheet-import",
+      "public": true
     }
   }
 }

@@ -47,7 +47,7 @@
             //var request = new HttpRequestMessage
             //{
             //    Method = HttpMethod.Get,
-            //    RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}")
+            //    RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}")
             //};
 
             //string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
@@ -95,7 +95,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Put,
-                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}"),
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.CREDENTIALS}"),
                 Content = new StringContent(jsonSerializedCredentials, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
             };
 
@@ -320,7 +320,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.WATCH_EXPIRATION}")
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.WATCH_EXPIRATION}")
             };
 
             string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
@@ -387,7 +387,7 @@
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Put,
-                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/master/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.WATCH_EXPIRATION}"),
+                RequestUri = new Uri($"http://infra.io.vtex.com/vbase/v2/{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}/{this._environmentVariableProvider.Workspace}/buckets/{this._applicationName}/{DriveImportConstants.BUCKET}/files/{DriveImportConstants.WATCH_EXPIRATION}"),
                 Content = new StringContent(jsonSerializedExpiration, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
             };
 

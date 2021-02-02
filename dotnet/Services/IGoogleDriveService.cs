@@ -30,5 +30,9 @@ namespace DriveImport.Services
         Task<bool> RenameFile(string fileId, string fileName);
         Task<string> FindNewFolderId(string accountName);
         Task<string> SaveFile(StringBuilder file);
+        Task<ListFilesResponse> ListSheetsInFolder(string folderId);
+        Task<string> GetSheet(string fileId, string range);
+        Task<UpdateValuesResponse> WriteSpreadsheetValues(string fileId, ValueRange valueRange);
+        Task<string> CreateSpreadsheet(GoogleSheet googleSheetRequest);
     }
 }
