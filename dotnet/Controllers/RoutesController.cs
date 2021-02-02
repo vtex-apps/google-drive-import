@@ -584,14 +584,14 @@
                         return Json("Empty Spreadsheet Response.");
                     }
 
-                    string identificatorType = string.Empty;
-                    string id = string.Empty;
-                    string imageName = string.Empty;
-                    string imageLabel = string.Empty;
-                    string main = string.Empty;
-                    string skuContext = string.Empty;
-                    string imageFileName = string.Empty;
-                    string statusColumn = string.Empty;
+                    //string identificatorType = string.Empty;
+                    //string id = string.Empty;
+                    //string imageName = string.Empty;
+                    //string imageLabel = string.Empty;
+                    //string main = string.Empty;
+                    //string skuContext = string.Empty;
+                    //string imageFileName = string.Empty;
+                    //string statusColumn = string.Empty;
 
                     GoogleSheet googleSheet = JsonConvert.DeserializeObject<GoogleSheet>(sheetContent);
                     string valueRange = googleSheet.ValueRanges[0].Range;
@@ -607,6 +607,14 @@
 
                     for (int index = 1; index < googleSheet.ValueRanges[0].Values.Count(); index++)
                     {
+                        string identificatorType = string.Empty;
+                        string id = string.Empty;
+                        string imageName = string.Empty;
+                        string imageLabel = string.Empty;
+                        string main = string.Empty;
+                        string skuContext = string.Empty;
+                        string imageFileName = string.Empty;
+                        string statusColumn = string.Empty;
                         //foreach (string value in googleSheet.ValueRanges[0].Values[dataLine])
                         //{
 
@@ -629,9 +637,15 @@
                         if (headerIndexDictionary.ContainsKey("status") && headerIndexDictionary["status"] < dataValues.Count())
                             statusColumn = dataValues[headerIndexDictionary["status"]];
 
-                        if (string.IsNullOrEmpty(identificatorType))
+                        if (string.IsNullOrEmpty(identificatorType) || string.IsNullOrEmpty(id) || string.IsNullOrEmpty(imageFileName))
                         {
                             return Json("End.");
+                        }
+
+                        if(!string.IsNullOrWhiteSpace(statusColumn) && statusColumn.ToLower().Contains("done"))
+                        {
+                            Console.WriteLine($"Line ({index+1}) is Done! {identificatorType}:{id} {statusColumn}");
+                            continue;
                         }
 
                         UpdateResponse updateResponse = null;
@@ -683,7 +697,7 @@
                         string messagteColumnLetter = ((char)messageColumnNumber).ToString();
 
                         string result = updateResponse.Success ? "Done" : "Error";
-                        string[] arrValuesToWrite = new string[] { result, updateResponse.Message };
+                        string[] arrValuesToWrite = new string[] { result, $"<{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}> {updateResponse.Message}" };
                         ValueRange valueRangeToWrite = new ValueRange
                         {
                             Range = $"{sheetName}!{statusColumnLetter}{index+1}:{messagteColumnLetter}{index+1}",
@@ -712,7 +726,7 @@
 
                         // DEBUG
                         await ClearLockAfterDelay(5000);
-                    return Json(sheetContent);
+                    return Json("Finished!");
                     // END DEBUG
                 }
                 else
@@ -1587,6 +1601,28 @@
                 };
 
                 UpdateValuesResponse updateValuesResponse = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRange);
+
+                string importFolderId = null;
+                string accountFolderId = null;
+                string imagesFolderId = null;
+                string newFolderId = null;
+                string doneFolderId = null;
+                string errorFolderId = null;
+                string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+
+                FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+                if (folderIds != null)
+                {
+                    importFolderId = folderIds.ImagesFolderId;
+                    accountFolderId = folderIds.AccountFolderId;
+                    imagesFolderId = folderIds.ImagesFolderId;
+                    newFolderId = folderIds.NewFolderId;
+                    doneFolderId = folderIds.DoneFolderId;
+                    errorFolderId = folderIds.ErrorFolderId;
+
+                    bool moved = await _googleDriveService.MoveFile(sheetId, imagesFolderId);
+                    Console.WriteLine($"Moved? {moved}");
+                }
             }
 
             return Json(sheetId);
