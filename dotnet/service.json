@@ -69,6 +69,10 @@
     "sheetImport": {
       "path": "/google-drive-import/sheet-import",
       "public": true
+    },
+    "createSheet": {
+      "path": "/google-drive-import/create-sheet",
+      "public": true
     }
   }
 }

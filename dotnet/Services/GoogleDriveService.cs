@@ -1239,12 +1239,12 @@ namespace DriveImport.Services
             return newFolderId;
         }
 
-        public async Task<string> CreateSpreadsheet(GoogleSheet googleSheetRequest)
+        public async Task<string> CreateSpreadsheet(GoogleSheetCreate googleSheetRequest)
         {
             bool success = false;
             string responseContent = string.Empty;
             string fileId = string.Empty;
-            GoogleSheet googleSheetResponse;
+            GoogleSheetCreate googleSheetResponse;
 
             if (googleSheetRequest != null)
             {
@@ -1273,11 +1273,11 @@ namespace DriveImport.Services
                     {
                         var response = await client.SendAsync(request);
                         responseContent = await response.Content.ReadAsStringAsync();
-
+                        Console.WriteLine($"CreateSpreadsheet [{response.StatusCode}] {responseContent}");
                         success = response.IsSuccessStatusCode;
                         if(success)
                         {
-                            googleSheetResponse = JsonConvert.DeserializeObject<GoogleSheet>(responseContent);
+                            googleSheetResponse = JsonConvert.DeserializeObject<GoogleSheetCreate>(responseContent);
                             fileId = googleSheetResponse.SpreadsheetId;
                         }
                     }

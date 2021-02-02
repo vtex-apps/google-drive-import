@@ -33,6 +33,6 @@ namespace DriveImport.Services
         Task<ListFilesResponse> ListSheetsInFolder(string folderId);
         Task<string> GetSheet(string fileId, string range);
         Task<UpdateValuesResponse> WriteSpreadsheetValues(string fileId, ValueRange valueRange);
-        Task<string> CreateSpreadsheet(GoogleSheet googleSheetRequest);
+        Task<string> CreateSpreadsheet(GoogleSheetCreate googleSheetRequest);
     }
 }

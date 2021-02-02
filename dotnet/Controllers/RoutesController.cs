@@ -1536,8 +1536,58 @@
         public async Task<IActionResult> CreateSheet()
         {
             Response.Headers.Add("Cache-Control", "no-cache");
-            GoogleSheet googleSheet = new GoogleSheet();
-            string sheetId = await _googleDriveService.CreateSpreadsheet(googleSheet);
+            string sheetUrl = string.Empty;
+            string sheetName = "VtexImageImport";
+            string sheetLabel = "ImagesForImport";
+            string[] headerRowLabels = new string[]
+                {
+                    "Type","Value","Name","Main","Image","Context","Status","Message"
+                };
+
+            GoogleSheetCreate googleSheetCreate = new GoogleSheetCreate
+            {
+                Properties = new GoogleSheetProperties
+                {
+                    Title = sheetName
+                },
+                Sheets = new Sheet[]
+                {
+                    new Sheet
+                    {
+                        Properties = new SheetProperties
+                        {
+                            SheetId = 0,
+                            Title = sheetLabel,
+                            Index = 0,
+                            GridProperties = new GridProperties
+                            {
+                                ColumnCount = headerRowLabels.Count(),
+                                RowCount = 100
+                            },
+                            SheetType = "GRID"
+                        }
+                    }
+                }
+            };
+
+            string sheetId = await _googleDriveService.CreateSpreadsheet(googleSheetCreate);
+
+            if(!string.IsNullOrEmpty(sheetId))
+            {
+                string lastHeaderColumnLetter = ((char)headerRowLabels.Count() + 65).ToString();
+
+                ValueRange valueRange = new ValueRange
+                {
+                    MajorDimension = "ROWS",
+                    Range = $"{sheetLabel}!A1:{lastHeaderColumnLetter}1",
+                    Values = new string[][]
+                    {
+                        headerRowLabels
+                    }
+                };
+
+                UpdateValuesResponse updateValuesResponse = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRange);
+            }
 
             return Json(sheetId);
         }
