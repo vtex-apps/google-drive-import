@@ -934,6 +934,7 @@
                     if (headers["x-goog-resource-state"] == "update" && headers["x-goog-changed"] == "children")
                     {
                         Console.WriteLine("Triggered");
+                        _context.Vtex.Logger.Debug("ProcessChange", null, "Received Watch Notification");
                         //Console.Write(PrintHeaders());
                         // await _driveImportRepository.ClearImportLock();
 
