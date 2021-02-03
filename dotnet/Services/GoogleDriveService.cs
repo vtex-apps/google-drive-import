@@ -1355,5 +1355,60 @@ namespace DriveImport.Services
 
             return updateValuesResponse;
         }
+
+        public async Task<string> UpdateSpreadsheet(string fileId, BatchUpdate batchUpdate)
+        {
+            string responseContent = string.Empty;
+
+            if (batchUpdate != null)
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(batchUpdate);
+
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_SHEET_URL}/{DriveImportConstants.GOOGLE_DRIVE_SHEETS}/{fileId}:batchUpdate"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    try
+                    {
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"UpdateSpreadsheet [{response.StatusCode}] {responseContent}");
+                        if (response.IsSuccessStatusCode)
+                        {
+                            
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("UpdateSpreadsheet", null, $"{jsonSerializedMetadata}", ex);
+                    }
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("UpdateSpreadsheet", null, "Token error.");
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Warn("UpdateSpreadsheet", null, "Parameter missing.");
+            }
+
+            return responseContent;
+        }
     }
 }

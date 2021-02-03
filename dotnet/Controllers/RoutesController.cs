@@ -576,28 +576,21 @@
                     Dictionary<string, int> headerIndexDictionary = new Dictionary<string, int>();
                     Dictionary<string, string> columns = new Dictionary<string, string>();
                     string sheetContent = await _googleDriveService.GetSheet(sheetIds, string.Empty);
-                    _context.Vtex.Logger.Debug("SheetImport", null, $"[{sheetIds}] sheetContent: {sheetContent} ");
+                    //_context.Vtex.Logger.Debug("SheetImport", null, $"[{sheetIds}] sheetContent: {sheetContent} ");
 
-                    if(string.IsNullOrEmpty(sheetContent))
+                    if (string.IsNullOrEmpty(sheetContent))
                     {
                         await ClearLockAfterDelay(5000);
                         return Json("Empty Spreadsheet Response.");
                     }
-
-                    //string identificatorType = string.Empty;
-                    //string id = string.Empty;
-                    //string imageName = string.Empty;
-                    //string imageLabel = string.Empty;
-                    //string main = string.Empty;
-                    //string skuContext = string.Empty;
-                    //string imageFileName = string.Empty;
-                    //string statusColumn = string.Empty;
 
                     GoogleSheet googleSheet = JsonConvert.DeserializeObject<GoogleSheet>(sheetContent);
                     string valueRange = googleSheet.ValueRanges[0].Range;
                     string sheetName = valueRange.Split("!")[0];
                     string[] sheetHeader = googleSheet.ValueRanges[0].Values[0];
                     int headerIndex = 0;
+                    int rowCount = googleSheet.ValueRanges[0].Values.Count();
+                    _context.Vtex.Logger.Info("SheetImport", null, $"'{sheetName}' Row count: {rowCount} ");
                     foreach (string header in sheetHeader)
                     {
                         Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
@@ -605,7 +598,16 @@
                         headerIndex++;
                     }
 
-                    for (int index = 1; index < googleSheet.ValueRanges[0].Values.Count(); index++)
+                    int statusColumnNumber = headerIndexDictionary["status"] + 65;
+                    string statusColumnLetter = ((char)statusColumnNumber).ToString();
+                    int messageColumnNumber = headerIndexDictionary["message"] + 65;
+                    string messageColumnLetter = ((char)messageColumnNumber).ToString();
+                    int dateColumnNumber = headerIndexDictionary["date"] + 65;
+                    string dateColumnLetter = ((char)dateColumnNumber).ToString();
+
+                    string[][] arrValuesToWrite = new string[rowCount][];
+
+                    for (int index = 1; index < rowCount; index++)
                     {
                         string identificatorType = string.Empty;
                         string id = string.Empty;
@@ -639,12 +641,15 @@
 
                         if (string.IsNullOrEmpty(identificatorType) || string.IsNullOrEmpty(id) || string.IsNullOrEmpty(imageFileName))
                         {
-                            return Json("End.");
+                            Console.WriteLine($"Line ({index + 1}) is Empty!");
+                            arrValuesToWrite[index - 1] = new string[] { null, null, null };
+                            continue;
                         }
 
                         if(!string.IsNullOrWhiteSpace(statusColumn) && statusColumn.ToLower().Contains("done"))
                         {
                             Console.WriteLine($"Line ({index+1}) is Done! {identificatorType}:{id} {statusColumn}");
+                            arrValuesToWrite[index - 1] = new string[] { null, null, null };
                             continue;
                         }
 
@@ -691,41 +696,46 @@
                             };
                         }
 
-                        int statusColumnNumber = headerIndexDictionary["status"] + 65;
-                        string statusColumnLetter = ((char)statusColumnNumber).ToString();
-                        int messageColumnNumber = headerIndexDictionary["message"] + 65;
-                        string messagteColumnLetter = ((char)messageColumnNumber).ToString();
-
                         string result = updateResponse.Success ? "Done" : "Error";
-                        string[] arrValuesToWrite = new string[] { result, $"<{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}> {updateResponse.Message}" };
-                        ValueRange valueRangeToWrite = new ValueRange
-                        {
-                            Range = $"{sheetName}!{statusColumnLetter}{index+1}:{messagteColumnLetter}{index+1}",
-                            Values = new string[][] { arrValuesToWrite }
-                        };
+                        string[] arrLineValuesToWrite = new string[] { result, updateResponse.Message, $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" };
+                        //ValueRange valueRangeToWrite = new ValueRange
+                        //{
+                        //    Range = $"{sheetName}!{statusColumnLetter}{index+1}:{dateColumnLetter}{index+1}",
+                        //    Values = new string[][] { arrValuesToWrite }
+                        //};
 
-                        var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetIds, valueRangeToWrite);
+                        //var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetIds, valueRangeToWrite);
+                        Console.WriteLine($"arrValuesToWrite[{index - 1}] = {string.Join(",", arrLineValuesToWrite)}");
+                        arrValuesToWrite[index - 1] = arrLineValuesToWrite;
                     }
 
-                        //int index1 = 0;
-                        //foreach (ValueRange valueRange in googleSheet.ValueRanges)
-                        //{
-                        //    index1++;
-                        //    int index2 = 0;
-                        //    foreach (string[] values in valueRange.Values)
-                        //    {
-                        //        index2++;
-                        //        int index3 = 0;
-                        //        foreach (string value in values)
-                        //        {
-                        //            index3++;
-                        //            Console.WriteLine($"[{index1}][{index2}][{index3}] = {value}");
-                        //        }
-                        //    }
-                        //}
+                    ValueRange valueRangeToWrite = new ValueRange
+                    {
+                        Range = $"{sheetName}!{statusColumnLetter}{2}:{dateColumnLetter}{rowCount+1}",
+                        Values = arrValuesToWrite
+                    };
 
-                        // DEBUG
-                        await ClearLockAfterDelay(5000);
+                    var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetIds, valueRangeToWrite);
+
+                    //int index1 = 0;
+                    //foreach (ValueRange valueRange in googleSheet.ValueRanges)
+                    //{
+                    //    index1++;
+                    //    int index2 = 0;
+                    //    foreach (string[] values in valueRange.Values)
+                    //    {
+                    //        index2++;
+                    //        int index3 = 0;
+                    //        foreach (string value in values)
+                    //        {
+                    //            index3++;
+                    //            Console.WriteLine($"[{index1}][{index2}][{index3}] = {value}");
+                    //        }
+                    //    }
+                    //}
+
+                    // DEBUG
+                    await ClearLockAfterDelay(5000);
                     return Json("Finished!");
                     // END DEBUG
                 }
@@ -1439,19 +1449,20 @@
                     if (headers["x-goog-resource-state"] == "update" && headers["x-goog-changed"] == "children")
                     {
                         Console.WriteLine("Triggered");
+                        _context.Vtex.Logger.Debug("ProcessChange", null, "Received Watch Notification");
                         //Console.Write(PrintHeaders());
                         // await _driveImportRepository.ClearImportLock();
 
-                        string watchExpiresAtHeader = headers["x-goog-channel-expiration"];
-                        DateTime watchExpiresAt = DateTime.Now;
-                        if (!string.IsNullOrEmpty(watchExpiresAtHeader))
-                        {
-                            DateTime.TryParse(watchExpiresAtHeader, out watchExpiresAt);
-                            Console.WriteLine($"ExpiresAt {watchExpiresAt} ({watchExpiresAtHeader})  {watchExpiresAt - DateTime.Now}");
-                            //int timeInMilliseconds = (int)(watchExpiresAt - DateTime.Now).TotalMilliseconds;
-                            // SetWatchAfterDelay(timeInMilliseconds);
-                            //_driveImportRepository.SetWatchExpiration(watchExpiresAt);
-                        }
+                        //string watchExpiresAtHeader = headers["x-goog-channel-expiration"];
+                        //DateTime watchExpiresAt = DateTime.Now;
+                        //if (!string.IsNullOrEmpty(watchExpiresAtHeader))
+                        //{
+                        //    DateTime.TryParse(watchExpiresAtHeader, out watchExpiresAt);
+                        //    Console.WriteLine($"ExpiresAt {watchExpiresAt} ({watchExpiresAtHeader})  {watchExpiresAt - DateTime.Now}");
+                        //    //int timeInMilliseconds = (int)(watchExpiresAt - DateTime.Now).TotalMilliseconds;
+                        //    // SetWatchAfterDelay(timeInMilliseconds);
+                        //    //_driveImportRepository.SetWatchExpiration(watchExpiresAt);
+                        //}
 
                         // check lock
                         //DateTime importStarted = await _driveImportRepository.CheckImportLock();
@@ -1502,43 +1513,6 @@
             return headers;
         }
 
-        public async Task HammerGoogleDownload()
-        {
-            Response.Headers.Add("Cache-Control", "no-cache");
-
-            string imageId = "1ZgRDtSAQ3QI1kboolRSPaocZWIuPOwkr";
-
-            for (int cnt = 0; cnt < 5; cnt++)
-            {
-                try
-                {
-                    var request = new HttpRequestMessage
-                    {
-                        Method = HttpMethod.Get,
-                        RequestUri = new Uri($"https://drive.google.com/uc?id={imageId}&export=download")
-                    };
-
-                    request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
-                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                    if (authToken != null)
-                    {
-                        request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
-                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-                        request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
-                    }
-
-                    var client = _clientFactory.CreateClient();
-                    var response = await client.SendAsync(request);
-                    string responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"({cnt}): [{response.StatusCode}]");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"({cnt}): ![{ex.Message}]!");
-                }
-            }
-        }
-
         public async Task ClearLock()
         {
             Response.Headers.Add("Cache-Control", "no-cache");
@@ -1555,7 +1529,7 @@
             string sheetLabel = "ImagesForImport";
             string[] headerRowLabels = new string[]
                 {
-                    "Type","Value","Name","Main","Image","Context","Status","Message"
+                    "Type","Value","Name","Main","Image","Context","Status","Message","Date"
                 };
 
             GoogleSheetCreate googleSheetCreate = new GoogleSheetCreate
@@ -1601,6 +1575,67 @@
                 };
 
                 UpdateValuesResponse updateValuesResponse = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRange);
+
+                BatchUpdate batchUpdate = new BatchUpdate
+                {
+                    Requests = new Request[]
+                    {
+                        new Request
+                        {
+                            RepeatCell = new RepeatCell
+                            {
+                                Cell = new Cell
+                                {
+                                    UserEnteredFormat = new UserEnteredFormat
+                                    {
+                                        HorizontalAlignment = "CENTER",
+                                        BackgroundColor = new GroundColor
+                                        {
+                                            Blue = 0.0,
+                                            Green = 0.0,
+                                            Red = 0.0
+                                        },
+                                        TextFormat = new BatchUpdateTextFormat
+                                        {
+                                            Bold = true,
+                                            FontSize = 12,
+                                            ForegroundColor = new GroundColor
+                                            {
+                                                Blue = 1.0,
+                                                Green = 1.0,
+                                                Red = 1.0
+                                            }
+                                        }
+                                    }
+                                },
+                                Fields = "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)",
+                                Range = new BatchUpdateRange
+                                {
+                                    StartRowIndex = 0,
+                                    EndRowIndex = 1,
+                                    SheetId = 0
+                                }
+                            }
+                        },
+                        new Request
+                        {
+                            UpdateSheetProperties = new UpdateSheetProperties
+                            {
+                                Fields = "gridProperties.frozenRowCount",
+                                Properties = new Properties
+                                {
+                                    SheetId = 0,
+                                    GridProperties = new BatchUpdateGridProperties
+                                    {
+                                        FrozenRowCount = 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+
+                var updateSheet = await _googleDriveService.UpdateSpreadsheet(sheetId, batchUpdate);
 
                 string importFolderId = null;
                 string accountFolderId = null;

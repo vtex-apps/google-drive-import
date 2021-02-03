@@ -34,5 +34,6 @@ namespace DriveImport.Services
         Task<string> GetSheet(string fileId, string range);
         Task<UpdateValuesResponse> WriteSpreadsheetValues(string fileId, ValueRange valueRange);
         Task<string> CreateSpreadsheet(GoogleSheetCreate googleSheetRequest);
+        Task<string> UpdateSpreadsheet(string fileId, BatchUpdate batchUpdate);
     }
 }
