@@ -20,5 +20,7 @@
   "admin/google-drive-import.fetched.text": "Todas las nuevas imágenes se actualizarán en breve",
   "admin/google-drive-import.connected-as": "Conectado a la cuenta",
   "admin/google-drive-import.disconnect.button": "Desconectar",
-  "admin/google-drive-import.setup.button": "Otorgar Acceso"
+  "admin/google-drive-import.setup.button": "Otorgar Acceso",
+  "admin/google-drive-import.sheet-import.button": "Process Sheet",
+  "admin/google-drive-import.create-sheet.button": "Create Blank Sheet"
 }

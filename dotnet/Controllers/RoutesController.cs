@@ -565,280 +565,252 @@
             ListFilesResponse spreadsheets = await _googleDriveService.ListSheetsInFolder(imagesFolderId);
             if (imageFiles != null && spreadsheets != null)
             {
-                foreach(var sheet in spreadsheets.Files)
-                {
-                    Console.WriteLine($"spreadsheets.Files [{sheet.Id}]");
-                }
+                //foreach(var sheet in spreadsheets.Files)
+                //{
+                //    Console.WriteLine($"spreadsheets.Files [{sheet.Id}]");
+                //}
 
-                var sheetIds = spreadsheets.Files.Select(s => s.Id).FirstOrDefault();
+                var sheetIds = spreadsheets.Files.Select(s => s.Id);
                 if (sheetIds != null)
                 {
-                    Dictionary<string, int> headerIndexDictionary = new Dictionary<string, int>();
-                    Dictionary<string, string> columns = new Dictionary<string, string>();
-                    string sheetContent = await _googleDriveService.GetSheet(sheetIds, string.Empty);
-                    //_context.Vtex.Logger.Debug("SheetImport", null, $"[{sheetIds}] sheetContent: {sheetContent} ");
-
-                    if (string.IsNullOrEmpty(sheetContent))
+                    foreach (var sheetId in sheetIds)
                     {
-                        await ClearLockAfterDelay(5000);
-                        return Json("Empty Spreadsheet Response.");
-                    }
+                        Dictionary<string, int> headerIndexDictionary = new Dictionary<string, int>();
+                        Dictionary<string, string> columns = new Dictionary<string, string>();
+                        string sheetContent = await _googleDriveService.GetSheet(sheetId, string.Empty);
+                        //_context.Vtex.Logger.Debug("SheetImport", null, $"[{sheetIds}] sheetContent: {sheetContent} ");
 
-                    GoogleSheet googleSheet = JsonConvert.DeserializeObject<GoogleSheet>(sheetContent);
-                    string valueRange = googleSheet.ValueRanges[0].Range;
-                    string sheetName = valueRange.Split("!")[0];
-                    string[] sheetHeader = googleSheet.ValueRanges[0].Values[0];
-                    int headerIndex = 0;
-                    int rowCount = googleSheet.ValueRanges[0].Values.Count();
-                    _context.Vtex.Logger.Info("SheetImport", null, $"'{sheetName}' Row count: {rowCount} ");
-                    foreach (string header in sheetHeader)
-                    {
-                        Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
-                        headerIndexDictionary.Add(header.ToLower(), headerIndex);
-                        headerIndex++;
-                    }
-
-                    int statusColumnNumber = headerIndexDictionary["status"] + 65;
-                    string statusColumnLetter = ((char)statusColumnNumber).ToString();
-                    int messageColumnNumber = headerIndexDictionary["message"] + 65;
-                    string messageColumnLetter = ((char)messageColumnNumber).ToString();
-                    int dateColumnNumber = headerIndexDictionary["date"] + 65;
-                    string dateColumnLetter = ((char)dateColumnNumber).ToString();
-
-                    string[][] arrValuesToWrite = new string[rowCount][];
-
-                    for (int index = 1; index < rowCount; index++)
-                    {
-                        string identificatorType = string.Empty;
-                        string id = string.Empty;
-                        string imageName = string.Empty;
-                        string imageLabel = string.Empty;
-                        string main = string.Empty;
-                        string skuContext = string.Empty;
-                        string imageFileName = string.Empty;
-                        string statusColumn = string.Empty;
-                        //foreach (string value in googleSheet.ValueRanges[0].Values[dataLine])
-                        //{
-
-                        //}
-
-                        string[] dataValues = googleSheet.ValueRanges[0].Values[index];
-                        if(headerIndexDictionary.ContainsKey("type") && headerIndexDictionary["type"] < dataValues.Count())
-                            identificatorType = dataValues[headerIndexDictionary["type"]];
-                        if (headerIndexDictionary.ContainsKey("value") && headerIndexDictionary["value"] < dataValues.Count())
-                            id = dataValues[headerIndexDictionary["value"]];
-                        if (headerIndexDictionary.ContainsKey("name") && headerIndexDictionary["name"] < dataValues.Count())
-                            imageName = dataValues[headerIndexDictionary["name"]];
-                        if (headerIndexDictionary.ContainsKey("main") && headerIndexDictionary["main"] < dataValues.Count())
-                            main = dataValues[headerIndexDictionary["main"]];
-                        if (headerIndexDictionary.ContainsKey("skucontext") && headerIndexDictionary["skucontext"] < dataValues.Count())
-                            skuContext = dataValues[headerIndexDictionary["skucontext"]];
-                        if (headerIndexDictionary.ContainsKey("image") && headerIndexDictionary["image"] < dataValues.Count())
-                            imageFileName = dataValues[headerIndexDictionary["image"]];
-
-                        if (headerIndexDictionary.ContainsKey("status") && headerIndexDictionary["status"] < dataValues.Count())
-                            statusColumn = dataValues[headerIndexDictionary["status"]];
-
-                        if (string.IsNullOrEmpty(identificatorType) || string.IsNullOrEmpty(id) || string.IsNullOrEmpty(imageFileName))
+                        if (string.IsNullOrEmpty(sheetContent))
                         {
-                            Console.WriteLine($"Line ({index + 1}) is Empty!");
-                            arrValuesToWrite[index - 1] = new string[] { null, null, null };
-                            continue;
+                            await ClearLockAfterDelay(5000);
+                            return Json("Empty Spreadsheet Response.");
                         }
 
-                        if(!string.IsNullOrWhiteSpace(statusColumn) && statusColumn.ToLower().Contains("done"))
+                        GoogleSheet googleSheet = JsonConvert.DeserializeObject<GoogleSheet>(sheetContent);
+                        string valueRange = googleSheet.ValueRanges[0].Range;
+                        string sheetName = valueRange.Split("!")[0];
+                        string[] sheetHeader = googleSheet.ValueRanges[0].Values[0];
+                        int headerIndex = 0;
+                        int rowCount = googleSheet.ValueRanges[0].Values.Count();
+                        int writeBlockSize = Math.Max(rowCount / DriveImportConstants.WRITE_BLOCK_SIZE_DIVISOR, DriveImportConstants.MIN_WRITE_BLOCK_SIZE);
+                        Console.WriteLine($"Write block size = {writeBlockSize}");
+                        int offset = 0;
+                        _context.Vtex.Logger.Info("SheetImport", null, $"'{sheetName}' Row count: {rowCount} ");
+                        foreach (string header in sheetHeader)
                         {
-                            Console.WriteLine($"Line ({index+1}) is Done! {identificatorType}:{id} {statusColumn}");
-                            arrValuesToWrite[index - 1] = new string[] { null, null, null };
-                            continue;
+                            Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
+                            headerIndexDictionary.Add(header.ToLower(), headerIndex);
+                            headerIndex++;
                         }
 
-                        UpdateResponse updateResponse = null;
-                        GoogleFile googleFile = imageFiles.Files.Where(i => i.Name.Equals(imageFileName)).FirstOrDefault();
-                        if (googleFile != null)
+                        int statusColumnNumber = headerIndexDictionary["status"] + 65;
+                        string statusColumnLetter = ((char)statusColumnNumber).ToString();
+                        int messageColumnNumber = headerIndexDictionary["message"] + 65;
+                        string messageColumnLetter = ((char)messageColumnNumber).ToString();
+                        int dateColumnNumber = headerIndexDictionary["date"] + 65;
+                        string dateColumnLetter = ((char)dateColumnNumber).ToString();
+
+                        //string[][] arrValuesToWrite = new string[rowCount][];
+                        string[][] arrValuesToWrite = new string[writeBlockSize][];
+
+                        for (int index = 1; index < rowCount; index++)
                         {
-                            string fileNameForImport = string.Empty;
-                            if (string.IsNullOrEmpty(main))
+                            string identificatorType = string.Empty;
+                            string id = string.Empty;
+                            string imageName = string.Empty;
+                            string imageLabel = string.Empty;
+                            string main = string.Empty;
+                            string skuContext = string.Empty;
+                            string imageFileName = string.Empty;
+                            string statusColumn = string.Empty;
+                            //foreach (string value in googleSheet.ValueRanges[0].Values[dataLine])
+                            //{
+
+                            //}
+
+                            string[] dataValues = googleSheet.ValueRanges[0].Values[index];
+                            if (headerIndexDictionary.ContainsKey("type") && headerIndexDictionary["type"] < dataValues.Count())
+                                identificatorType = dataValues[headerIndexDictionary["type"]];
+                            if (headerIndexDictionary.ContainsKey("value") && headerIndexDictionary["value"] < dataValues.Count())
+                                id = dataValues[headerIndexDictionary["value"]];
+                            if (headerIndexDictionary.ContainsKey("name") && headerIndexDictionary["name"] < dataValues.Count())
+                                imageName = dataValues[headerIndexDictionary["name"]];
+                            if (headerIndexDictionary.ContainsKey("main") && headerIndexDictionary["main"] < dataValues.Count())
+                                main = dataValues[headerIndexDictionary["main"]];
+                            if (headerIndexDictionary.ContainsKey("skucontext") && headerIndexDictionary["skucontext"] < dataValues.Count())
+                                skuContext = dataValues[headerIndexDictionary["skucontext"]];
+                            if (headerIndexDictionary.ContainsKey("image") && headerIndexDictionary["image"] < dataValues.Count())
+                                imageFileName = dataValues[headerIndexDictionary["image"]];
+
+                            if (headerIndexDictionary.ContainsKey("status") && headerIndexDictionary["status"] < dataValues.Count())
+                                statusColumn = dataValues[headerIndexDictionary["status"]];
+
+                            if (string.IsNullOrEmpty(identificatorType) || string.IsNullOrEmpty(id) || string.IsNullOrEmpty(imageFileName))
                             {
-                                fileNameForImport = $"{identificatorType},{id},{imageName},";
+                                Console.WriteLine($"Line ({index + 1}) is Empty!");
+                                Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = new string[]");
+                                arrValuesToWrite[index - offset - 1] = new string[] { null, null, null };
+                                continue;
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(statusColumn) && statusColumn.ToLower().Contains("done"))
+                            {
+                                Console.WriteLine($"Line ({index + 1}) is Done! {identificatorType}:{id} {statusColumn}");
+                                Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = new string[]");
+                                arrValuesToWrite[index - offset - 1] = new string[] { null, null, null };
+                                continue;
+                            }
+
+                            UpdateResponse updateResponse = null;
+                            GoogleFile googleFile = imageFiles.Files.Where(i => i.Name.Equals(imageFileName)).FirstOrDefault();
+                            if (googleFile != null)
+                            {
+                                string fileNameForImport = string.Empty;
+                                if (string.IsNullOrEmpty(main))
+                                {
+                                    fileNameForImport = $"{identificatorType},{id},{imageName},";
+                                }
+                                else
+                                {
+                                    fileNameForImport = $"{identificatorType},{id},{imageName},Main";
+                                }
+
+                                if (!string.IsNullOrEmpty(skuContext))
+                                {
+                                    fileNameForImport = $"{fileNameForImport},{skuContext}";
+                                }
+
+                                if (!string.IsNullOrEmpty(googleFile.FileExtension))
+                                {
+                                    Console.WriteLine($"FileExtension = {googleFile.FileExtension}");
+                                    fileNameForImport = $"{fileNameForImport}.{googleFile.FileExtension}";
+                                }
+                                else
+                                {
+                                    fileNameForImport = $"{fileNameForImport}.jpg";
+                                }
+
+                                Console.WriteLine($"Attempting to Process '{fileNameForImport}' Link = {googleFile.WebContentLink}");
+
+                                updateResponse = await _vtexAPIService.ProcessImageFile(fileNameForImport, googleFile.WebContentLink.ToString());
+
+                                results.AddRange(updateResponse.Results);
+                                updated = updateResponse.Success;
+                                bool moved = false;
+                                bool moveFailed = false;
+                                bool didSkip = false;
+                                if (updated)
+                                {
+                                    doneCount++;
+                                    doneFileNames.Add(googleFile.Name);
+                                    moved = await _googleDriveService.MoveFile(googleFile.Id, doneFolderId);
+                                    if (!moved)
+                                    {
+                                        _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move '{googleFile.Name}' to folder '{DriveImportConstants.FolderNames.DONE}'");
+                                        string newFileName = $"Move_to_{DriveImportConstants.FolderNames.DONE}_{googleFile.Name}";
+                                        await _googleDriveService.RenameFile(googleFile.Id, newFileName);
+                                        moveFailed = true;
+                                    }
+                                }
+                                else
+                                {
+                                    if (!string.IsNullOrEmpty(updateResponse.StatusCode) && updateResponse.StatusCode.Equals(DriveImportConstants.GATEWAY_TIMEOUT))
+                                    {
+                                        didSkip = true;
+                                        _context.Vtex.Logger.Warn("SheetImport", null, $"Skipping {googleFile.Name} {JsonConvert.SerializeObject(updateResponse)}");
+                                    }
+                                    else
+                                    {
+                                        errorCount++;
+                                        errorFileNames.Add(googleFile.Name);
+                                        moved = await _googleDriveService.MoveFile(googleFile.Id, errorFolderId);
+                                        //string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
+                                        //string newFileName = $"{errorText}-{googleFile.Name}";
+                                        string newFileName = googleFile.Name;
+                                        //await _googleDriveService.RenameFile(googleFile.Id, newFileName);
+                                        if (!moved)
+                                        {
+                                            _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move '{googleFile.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
+                                            newFileName = $"Move_to_{DriveImportConstants.FolderNames.ERROR}_{newFileName}";
+                                            await _googleDriveService.RenameFile(googleFile.Id, newFileName);
+                                            moveFailed = true;
+                                        }
+                                    }
+                                }
+
+                                Console.WriteLine($"UpdateResponse {updateResponse.Success} {updateResponse.Message}");
                             }
                             else
                             {
-                                fileNameForImport = $"{identificatorType},{id},{imageName},Main";
+                                updateResponse = new UpdateResponse
+                                {
+                                    Message = $"Could not load file '{imageFileName}'"
+                                };
                             }
 
-                            if (!string.IsNullOrEmpty(skuContext))
+                            string result = updateResponse.Success ? "Done" : "Error";
+                            string[] arrLineValuesToWrite = new string[] { result, updateResponse.Message, $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" };
+                            //ValueRange valueRangeToWrite = new ValueRange
+                            //{
+                            //    Range = $"{sheetName}!{statusColumnLetter}{index+1}:{dateColumnLetter}{index+1}",
+                            //    Values = new string[][] { arrValuesToWrite }
+                            //};
+
+                            //var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetIds, valueRangeToWrite);
+                            //Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = {string.Join(",", arrLineValuesToWrite)}");
+                            arrValuesToWrite[index - offset - 1] = arrLineValuesToWrite;
+
+                            //Console.WriteLine($"WRITE TEST: {index} % {writeBlockSize} = {index % writeBlockSize}");
+                            if(index % writeBlockSize == 0 || index + 1 == rowCount)
                             {
-                                fileNameForImport = $"{fileNameForImport},{skuContext}";
+                                ValueRange valueRangeToWrite = new ValueRange
+                                {
+                                    Range = $"{sheetName}!{statusColumnLetter}{offset + 2}:{dateColumnLetter}{offset + writeBlockSize + 1}",
+                                    Values = arrValuesToWrite
+                                };
+
+                                var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRangeToWrite);
+                                offset += writeBlockSize;
+                                arrValuesToWrite = new string[writeBlockSize][];
+                                Console.WriteLine($"offset = {offset}");
                             }
-
-                            if (!string.IsNullOrEmpty(googleFile.FileExtension))
-                            {
-                                Console.WriteLine($"FileExtension = {googleFile.FileExtension}");
-                                fileNameForImport = $"{fileNameForImport}.{googleFile.FileExtension}";
-                            }
-                            else
-                            {
-                                fileNameForImport = $"{fileNameForImport}.jpg";
-                            }
-
-                            Console.WriteLine($"Attempting to Process '{fileNameForImport}' Link = {googleFile.WebContentLink}");
-
-                            updateResponse = await _vtexAPIService.ProcessImageFile(fileNameForImport, googleFile.WebContentLink.ToString());
-
-                            Console.WriteLine($"UpdateResponse {updateResponse.Success} {updateResponse.Message}");
                         }
-                        else
-                        {
-                            updateResponse = new UpdateResponse
-                            {
-                                Message = "Could not load file."
-                            };
-                        }
 
-                        string result = updateResponse.Success ? "Done" : "Error";
-                        string[] arrLineValuesToWrite = new string[] { result, updateResponse.Message, $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" };
                         //ValueRange valueRangeToWrite = new ValueRange
                         //{
-                        //    Range = $"{sheetName}!{statusColumnLetter}{index+1}:{dateColumnLetter}{index+1}",
-                        //    Values = new string[][] { arrValuesToWrite }
+                        //    Range = $"{sheetName}!{statusColumnLetter}{2}:{dateColumnLetter}{rowCount + 1}",
+                        //    Values = arrValuesToWrite
                         //};
 
-                        //var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetIds, valueRangeToWrite);
-                        Console.WriteLine($"arrValuesToWrite[{index - 1}] = {string.Join(",", arrLineValuesToWrite)}");
-                        arrValuesToWrite[index - 1] = arrLineValuesToWrite;
+                        //var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRangeToWrite);
+
+                        //int index1 = 0;
+                        //foreach (ValueRange valueRange in googleSheet.ValueRanges)
+                        //{
+                        //    index1++;
+                        //    int index2 = 0;
+                        //    foreach (string[] values in valueRange.Values)
+                        //    {
+                        //        index2++;
+                        //        int index3 = 0;
+                        //        foreach (string value in values)
+                        //        {
+                        //            index3++;
+                        //            Console.WriteLine($"[{index1}][{index2}][{index3}] = {value}");
+                        //        }
+                        //    }
+                        //}
+
+                        // DEBUG
+                        //await ClearLockAfterDelay(5000);
+                        //return Json("Finished!");
+                        // END DEBUG
                     }
-
-                    ValueRange valueRangeToWrite = new ValueRange
-                    {
-                        Range = $"{sheetName}!{statusColumnLetter}{2}:{dateColumnLetter}{rowCount+1}",
-                        Values = arrValuesToWrite
-                    };
-
-                    var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetIds, valueRangeToWrite);
-
-                    //int index1 = 0;
-                    //foreach (ValueRange valueRange in googleSheet.ValueRanges)
-                    //{
-                    //    index1++;
-                    //    int index2 = 0;
-                    //    foreach (string[] values in valueRange.Values)
-                    //    {
-                    //        index2++;
-                    //        int index3 = 0;
-                    //        foreach (string value in values)
-                    //        {
-                    //            index3++;
-                    //            Console.WriteLine($"[{index1}][{index2}][{index3}] = {value}");
-                    //        }
-                    //    }
-                    //}
-
-                    // DEBUG
-                    await ClearLockAfterDelay(5000);
-                    return Json("Finished!");
-                    // END DEBUG
                 }
                 else
                 {
                     await ClearLockAfterDelay(5000);
                     return Json("No Spreadsheet Found!");
-                }
-
-                //bool thereAreFiles = imageFiles.Files.Count > 0;
-                bool thereAreFiles = false;
-                int skipCount = 0;
-
-                while (thereAreFiles)
-                {
-                    bool moveFailed = false;
-                    bool didSkip = false;
-                    _context.Vtex.Logger.Info("SheetImport", null, $"Processing {imageFiles.Files.Count} files.");
-                    foreach (GoogleFile file in imageFiles.Files)
-                    {
-                        _context.Vtex.Logger.Info("SheetImport", null, $"Beginning Processing of '{file.Name}' at {file.WebContentLink}");
-                        if (!string.IsNullOrEmpty(file.WebContentLink.ToString()))
-                        {
-                            UpdateResponse updateResponse = await _vtexAPIService.ProcessImageFile(file.Name, file.WebContentLink.ToString());
-                            _context.Vtex.Logger.Info("SheetImport", "UpdateResponse", $"'{file.Name}' Response: {JsonConvert.SerializeObject(updateResponse)}");
-                            //_context.Vtex.Logger.Info("SheetImport", "UpdateResponse", updateResponse.Results.ToString());
-                            //results.AppendLine();
-                            //results.Append(updateResponse.Results);
-                            results.AddRange(updateResponse.Results);
-                            updated = updateResponse.Success;
-                            bool moved = false;
-                            if (updated)
-                            {
-                                doneCount++;
-                                doneFileNames.Add(file.Name);
-                                moved = await _googleDriveService.MoveFile(file.Id, doneFolderId);
-                                if (!moved)
-                                {
-                                    _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.DONE}'");
-                                    string newFileName = $"Move_to_{DriveImportConstants.FolderNames.DONE}_{file.Name}";
-                                    await _googleDriveService.RenameFile(file.Id, newFileName);
-                                    moveFailed = true;
-                                }
-                            }
-                            else
-                            {
-                                if (!string.IsNullOrEmpty(updateResponse.StatusCode) && updateResponse.StatusCode.Equals(DriveImportConstants.GATEWAY_TIMEOUT))
-                                {
-                                    didSkip = true;
-                                    _context.Vtex.Logger.Warn("SheetImport", null, $"Skipping {file.Name} {JsonConvert.SerializeObject(updateResponse)}");
-                                }
-                                else
-                                {
-                                    errorCount++;
-                                    errorFileNames.Add(file.Name);
-                                    moved = await _googleDriveService.MoveFile(file.Id, errorFolderId);
-                                    string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
-                                    string newFileName = $"{errorText}-{file.Name}";
-                                    await _googleDriveService.RenameFile(file.Id, newFileName);
-                                    if (!moved)
-                                    {
-                                        _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move '{file.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
-                                        newFileName = $"Move_to_{DriveImportConstants.FolderNames.ERROR}_{newFileName}";
-                                        await _googleDriveService.RenameFile(file.Id, newFileName);
-                                        moveFailed = true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (moveFailed)
-                    {
-                        thereAreFiles = false;
-                    }
-                    else
-                    {
-                        await Task.Delay(10000);
-                        imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
-                        if (imageFiles == null)
-                        {
-                            thereAreFiles = false;
-                        }
-                        else
-                        {
-                            thereAreFiles = imageFiles.Files.Count > 0;
-                        }
-
-                        if (thereAreFiles && didSkip)
-                        {
-                            if (skipCount > 10)
-                            {
-                                // Prevent endless loop
-                                thereAreFiles = false;
-                            }
-                            else
-                            {
-                                skipCount++;
-                            }
-                        }
-                    }
-
-                    Console.WriteLine($"Loop again? {thereAreFiles}");
                 }
             }
 
@@ -1660,7 +1632,8 @@
                 }
             }
 
-            return Json(sheetId);
+            string result = string.IsNullOrEmpty(sheetId) ? "Error" : "Created";
+            return Json(result);
         }
     }
 }
