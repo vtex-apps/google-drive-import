@@ -154,6 +154,78 @@ namespace DriveImport.Models
     {
         [JsonProperty("properties")]
         public SheetProperties Properties { get; set; }
+
+        [JsonProperty("conditionalFormats")]
+        public ConditionalFormat[] ConditionalFormats { get; set; }
+    }
+
+    public class ConditionalFormat
+    {
+        [JsonProperty("ranges")]
+        public CreateRange[] Ranges { get; set; }
+
+        [JsonProperty("booleanRule")]
+        public BooleanRule BooleanRule { get; set; }
+    }
+
+    public class BooleanRule
+    {
+        [JsonProperty("condition")]
+        public Condition Condition { get; set; }
+
+        [JsonProperty("format")]
+        public Format Format { get; set; }
+    }
+
+    public class Condition
+    {
+        [JsonProperty("type")]
+        public string Type { get; set; }
+
+        [JsonProperty("values")]
+        public Value[] Values { get; set; }
+    }
+
+    public class Value
+    {
+        [JsonProperty("userEnteredValue")]
+        public string UserEnteredValue { get; set; }
+    }
+
+    public class Format
+    {
+        [JsonProperty("backgroundColor")]
+        public BackgroundColorClass BackgroundColor { get; set; }
+
+        [JsonProperty("textFormat")]
+        public FormatTextFormat TextFormat { get; set; }
+
+        [JsonProperty("backgroundColorStyle")]
+        public BackgroundColorStyle BackgroundColorStyle { get; set; }
+    }
+
+    public class FormatTextFormat
+    {
+        [JsonProperty("foregroundColor")]
+        public BackgroundColorClass ForegroundColor { get; set; }
+
+        [JsonProperty("foregroundColorStyle")]
+        public BackgroundColorStyle ForegroundColorStyle { get; set; }
+    }
+
+    public class CreateRange
+    {
+        [JsonProperty("startRowIndex")]
+        public long StartRowIndex { get; set; }
+
+        [JsonProperty("endRowIndex")]
+        public long EndRowIndex { get; set; }
+
+        [JsonProperty("startColumnIndex")]
+        public long StartColumnIndex { get; set; }
+
+        [JsonProperty("endColumnIndex")]
+        public long EndColumnIndex { get; set; }
     }
 
     public class SheetProperties

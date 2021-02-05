@@ -376,7 +376,7 @@
             // check lock
             DateTime importStarted = await _driveImportRepository.CheckImportLock();
 
-            Console.WriteLine($"Check lock: {importStarted}");
+            //Console.WriteLine($"Check lock: {importStarted}");
 
             TimeSpan elapsedTime = DateTime.Now - importStarted;
             if (elapsedTime.TotalHours < 2)
@@ -387,7 +387,7 @@
             }
 
             await _driveImportRepository.SetImportLock(DateTime.Now);
-            Console.WriteLine($"Set new lock: {DateTime.Now}");
+            //Console.WriteLine($"Set new lock: {DateTime.Now}");
             _context.Vtex.Logger.Info("SheetImport", null, $"Set new lock: {DateTime.Now}");
 
             Console.WriteLine("Import from Spreadsheet started");
@@ -396,6 +396,8 @@
             int errorCount = 0;
             List<string> doneFileNames = new List<string>();
             List<string> errorFileNames = new List<string>();
+            List<string> doneFileIds = new List<string>();
+            List<string> errorFileIds = new List<string>();
             //TimeSpan timeSpan = new TimeSpan(0, 30, 0);
 
             string importFolderId = null;
@@ -598,7 +600,7 @@
                         _context.Vtex.Logger.Info("SheetImport", null, $"'{sheetName}' Row count: {rowCount} ");
                         foreach (string header in sheetHeader)
                         {
-                            Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
+                            //Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
                             headerIndexDictionary.Add(header.ToLower(), headerIndex);
                             headerIndex++;
                         }
@@ -623,6 +625,7 @@
                             string skuContext = string.Empty;
                             string imageFileName = string.Empty;
                             string statusColumn = string.Empty;
+                            bool processLine = true;
                             //foreach (string value in googleSheet.ValueRanges[0].Values[dataLine])
                             //{
 
@@ -647,118 +650,98 @@
 
                             if (string.IsNullOrEmpty(identificatorType) || string.IsNullOrEmpty(id) || string.IsNullOrEmpty(imageFileName))
                             {
-                                Console.WriteLine($"Line ({index + 1}) is Empty!");
-                                Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = new string[]");
+                                //Console.WriteLine($"Line ({index + 1}) is Empty!");
+                                //Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = new string[]");
                                 arrValuesToWrite[index - offset - 1] = new string[] { null, null, null };
-                                continue;
+                                processLine = false;
                             }
 
                             if (!string.IsNullOrWhiteSpace(statusColumn) && statusColumn.ToLower().Contains("done"))
                             {
-                                Console.WriteLine($"Line ({index + 1}) is Done! {identificatorType}:{id} {statusColumn}");
-                                Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = new string[]");
+                                //Console.WriteLine($"Line ({index + 1}) is Done! {identificatorType}:{id} {statusColumn}");
+                                //Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = new string[]");
                                 arrValuesToWrite[index - offset - 1] = new string[] { null, null, null };
-                                continue;
+                                processLine = false;
                             }
 
-                            UpdateResponse updateResponse = null;
-                            GoogleFile googleFile = imageFiles.Files.Where(i => i.Name.Equals(imageFileName)).FirstOrDefault();
-                            if (googleFile != null)
+                            if (processLine)
                             {
-                                string fileNameForImport = string.Empty;
-                                if (string.IsNullOrEmpty(main))
+                                UpdateResponse updateResponse = null;
+                                GoogleFile googleFile = imageFiles.Files.Where(i => i.Name.Equals(imageFileName)).FirstOrDefault();
+                                if (googleFile != null)
                                 {
-                                    fileNameForImport = $"{identificatorType},{id},{imageName},";
-                                }
-                                else
-                                {
-                                    fileNameForImport = $"{identificatorType},{id},{imageName},Main";
-                                }
-
-                                if (!string.IsNullOrEmpty(skuContext))
-                                {
-                                    fileNameForImport = $"{fileNameForImport},{skuContext}";
-                                }
-
-                                if (!string.IsNullOrEmpty(googleFile.FileExtension))
-                                {
-                                    Console.WriteLine($"FileExtension = {googleFile.FileExtension}");
-                                    fileNameForImport = $"{fileNameForImport}.{googleFile.FileExtension}";
-                                }
-                                else
-                                {
-                                    fileNameForImport = $"{fileNameForImport}.jpg";
-                                }
-
-                                Console.WriteLine($"Attempting to Process '{fileNameForImport}' Link = {googleFile.WebContentLink}");
-
-                                updateResponse = await _vtexAPIService.ProcessImageFile(fileNameForImport, googleFile.WebContentLink.ToString());
-
-                                results.AddRange(updateResponse.Results);
-                                updated = updateResponse.Success;
-                                bool moved = false;
-                                bool moveFailed = false;
-                                bool didSkip = false;
-                                if (updated)
-                                {
-                                    doneCount++;
-                                    doneFileNames.Add(googleFile.Name);
-                                    moved = await _googleDriveService.MoveFile(googleFile.Id, doneFolderId);
-                                    if (!moved)
+                                    string fileNameForImport = string.Empty;
+                                    if (string.IsNullOrEmpty(main))
                                     {
-                                        _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move '{googleFile.Name}' to folder '{DriveImportConstants.FolderNames.DONE}'");
-                                        string newFileName = $"Move_to_{DriveImportConstants.FolderNames.DONE}_{googleFile.Name}";
-                                        await _googleDriveService.RenameFile(googleFile.Id, newFileName);
-                                        moveFailed = true;
-                                    }
-                                }
-                                else
-                                {
-                                    if (!string.IsNullOrEmpty(updateResponse.StatusCode) && updateResponse.StatusCode.Equals(DriveImportConstants.GATEWAY_TIMEOUT))
-                                    {
-                                        didSkip = true;
-                                        _context.Vtex.Logger.Warn("SheetImport", null, $"Skipping {googleFile.Name} {JsonConvert.SerializeObject(updateResponse)}");
+                                        fileNameForImport = $"{identificatorType},{id},{imageName},";
                                     }
                                     else
                                     {
-                                        errorCount++;
-                                        errorFileNames.Add(googleFile.Name);
-                                        moved = await _googleDriveService.MoveFile(googleFile.Id, errorFolderId);
-                                        //string errorText = updateResponse.Message.Replace(" ", "_").Replace("\"", "");
-                                        //string newFileName = $"{errorText}-{googleFile.Name}";
-                                        string newFileName = googleFile.Name;
-                                        //await _googleDriveService.RenameFile(googleFile.Id, newFileName);
-                                        if (!moved)
+                                        fileNameForImport = $"{identificatorType},{id},{imageName},Main";
+                                    }
+
+                                    if (!string.IsNullOrEmpty(skuContext))
+                                    {
+                                        fileNameForImport = $"{fileNameForImport},{skuContext}";
+                                    }
+
+                                    if (!string.IsNullOrEmpty(googleFile.FileExtension))
+                                    {
+                                        //Console.WriteLine($"FileExtension = {googleFile.FileExtension}");
+                                        fileNameForImport = $"{fileNameForImport}.{googleFile.FileExtension}";
+                                    }
+                                    else
+                                    {
+                                        fileNameForImport = $"{fileNameForImport}.jpg";
+                                    }
+
+                                    Console.WriteLine($"Attempting to Process '({index}/{rowCount}) {fileNameForImport}' Link = {googleFile.WebContentLink}");
+
+                                    updateResponse = await _vtexAPIService.ProcessImageFile(fileNameForImport, googleFile.WebContentLink.ToString());
+
+                                    results.AddRange(updateResponse.Results);
+                                    updated = updateResponse.Success;
+                                    if (updated)
+                                    {
+                                        doneCount++;
+                                        doneFileNames.Add(googleFile.Name);
+                                        doneFileIds.Add(googleFile.Id);
+                                    }
+                                    else
+                                    {
+                                        if (!string.IsNullOrEmpty(updateResponse.StatusCode) && updateResponse.StatusCode.Equals(DriveImportConstants.GATEWAY_TIMEOUT))
                                         {
-                                            _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move '{googleFile.Name}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
-                                            newFileName = $"Move_to_{DriveImportConstants.FolderNames.ERROR}_{newFileName}";
-                                            await _googleDriveService.RenameFile(googleFile.Id, newFileName);
-                                            moveFailed = true;
+                                            _context.Vtex.Logger.Warn("SheetImport", null, $"Skipping {googleFile.Name} {JsonConvert.SerializeObject(updateResponse)}");
+                                        }
+                                        else
+                                        {
+                                            errorCount++;
+                                            errorFileNames.Add(googleFile.Name);
+                                            errorFileIds.Add(googleFile.Id);
                                         }
                                     }
+
+                                    Console.WriteLine($"UpdateResponse {updateResponse.Success} {updateResponse.Message}");
+                                }
+                                else
+                                {
+                                    updateResponse = new UpdateResponse
+                                    {
+                                        Message = $"Could not load file '{imageFileName}'"
+                                    };
                                 }
 
-                                Console.WriteLine($"UpdateResponse {updateResponse.Success} {updateResponse.Message}");
-                            }
-                            else
-                            {
-                                updateResponse = new UpdateResponse
-                                {
-                                    Message = $"Could not load file '{imageFileName}'"
-                                };
-                            }
+                                string result = updateResponse.Success ? "Done" : "Error";
+                                string[] arrLineValuesToWrite = new string[] { result, updateResponse.Message, $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" };
+                                //string[] arrLineValuesToWrite = new string[]
+                                //{
+                                //    result,
+                                //    updateResponse.Results != null ? string.Join(", ", updateResponse.Results) : updateResponse.Message,
+                                //    $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" 
+                                //};
 
-                            string result = updateResponse.Success ? "Done" : "Error";
-                            string[] arrLineValuesToWrite = new string[] { result, updateResponse.Message, $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" };
-                            //ValueRange valueRangeToWrite = new ValueRange
-                            //{
-                            //    Range = $"{sheetName}!{statusColumnLetter}{index+1}:{dateColumnLetter}{index+1}",
-                            //    Values = new string[][] { arrValuesToWrite }
-                            //};
-
-                            //var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetIds, valueRangeToWrite);
-                            //Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = {string.Join(",", arrLineValuesToWrite)}");
-                            arrValuesToWrite[index - offset - 1] = arrLineValuesToWrite;
+                                arrValuesToWrite[index - offset - 1] = arrLineValuesToWrite;
+                            }
 
                             //Console.WriteLine($"WRITE TEST: {index} % {writeBlockSize} = {index % writeBlockSize}");
                             if(index % writeBlockSize == 0 || index + 1 == rowCount)
@@ -772,39 +755,9 @@
                                 var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRangeToWrite);
                                 offset += writeBlockSize;
                                 arrValuesToWrite = new string[writeBlockSize][];
-                                Console.WriteLine($"offset = {offset}");
+                                //Console.WriteLine($"offset = {offset}");
                             }
                         }
-
-                        //ValueRange valueRangeToWrite = new ValueRange
-                        //{
-                        //    Range = $"{sheetName}!{statusColumnLetter}{2}:{dateColumnLetter}{rowCount + 1}",
-                        //    Values = arrValuesToWrite
-                        //};
-
-                        //var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRangeToWrite);
-
-                        //int index1 = 0;
-                        //foreach (ValueRange valueRange in googleSheet.ValueRanges)
-                        //{
-                        //    index1++;
-                        //    int index2 = 0;
-                        //    foreach (string[] values in valueRange.Values)
-                        //    {
-                        //        index2++;
-                        //        int index3 = 0;
-                        //        foreach (string value in values)
-                        //        {
-                        //            index3++;
-                        //            Console.WriteLine($"[{index1}][{index2}][{index3}] = {value}");
-                        //        }
-                        //    }
-                        //}
-
-                        // DEBUG
-                        //await ClearLockAfterDelay(5000);
-                        //return Json("Finished!");
-                        // END DEBUG
                     }
                 }
                 else
@@ -816,6 +769,24 @@
 
             if (doneCount + errorCount > 0)
             {
+                foreach(string fileId in doneFileIds)
+                {
+                    bool moved = await _googleDriveService.MoveFile(fileId, doneFolderId);
+                    if (!moved)
+                    {
+                        _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move Id '{fileId}' to folder '{DriveImportConstants.FolderNames.DONE}'");
+                    }
+                }
+
+                foreach (string fileId in errorFileIds)
+                {
+                    bool moved = await _googleDriveService.MoveFile(fileId, errorFolderId);
+                    if (!moved)
+                    {
+                        _context.Vtex.Logger.Error("SheetImport", "MoveFile", $"Failed to move Id '{fileId}' to folder '{DriveImportConstants.FolderNames.ERROR}'");
+                    }
+                }
+
                 _context.Vtex.Logger.Info("SheetImport", null, $"Imported {doneCount} image(s).  {errorCount} image(s) not imported.  Done:[{string.Join(" ", doneFileNames)}] Error:[{string.Join(" ", errorFileNames)}]");
                 _context.Vtex.Logger.Info("SheetImport", "Results", JsonConvert.SerializeObject(results));
             }
@@ -1522,9 +1493,118 @@
                             GridProperties = new GridProperties
                             {
                                 ColumnCount = headerRowLabels.Count(),
-                                RowCount = 100
+                                RowCount = 3000
                             },
                             SheetType = "GRID"
+                        },
+                        ConditionalFormats = new ConditionalFormat[]
+                        {
+                            new ConditionalFormat
+                            {
+                                BooleanRule = new BooleanRule
+                                {
+                                    Condition = new Condition
+                                    {
+                                        Type = "TEXT_CONTAINS",
+                                        Values = new Value[]
+                                        {
+                                            new Value
+                                            {
+                                                UserEnteredValue = "Error"
+                                            }
+                                        }
+                                    },
+                                    Format = new Format
+                                    {
+                                        BackgroundColor = new BackgroundColorClass
+                                        {
+                                            Blue = 0.6,
+                                            Green = 0.6,
+                                            Red = 0.91764706
+                                        },
+                                        BackgroundColorStyle = new BackgroundColorStyle
+                                        {
+                                            RgbColor = new BackgroundColorClass
+                                            {
+                                                Blue = 0.6,
+                                                Green = 0.6,
+                                                Red = 0.91764706
+                                            }
+                                        },
+                                        TextFormat = new FormatTextFormat
+                                        {
+                                            ForegroundColor = new BackgroundColorClass(),
+                                            ForegroundColorStyle = new BackgroundColorStyle
+                                            {
+                                                RgbColor = new BackgroundColorClass()
+                                            }
+                                        }
+                                    }
+                                },
+                                Ranges = new CreateRange[]
+                                {
+                                    new CreateRange
+                                    {
+                                        EndColumnIndex = 7,
+                                        EndRowIndex = 3000,
+                                        StartColumnIndex = 6,
+                                        StartRowIndex = 1
+                                    }
+                                }
+                            },
+                            new ConditionalFormat
+                            {
+                                BooleanRule = new BooleanRule
+                                {
+                                    Condition = new Condition
+                                    {
+                                        Type = "TEXT_CONTAINS",
+                                        Values = new Value[]
+                                        {
+                                            new Value
+                                            {
+                                                UserEnteredValue = "Done"
+                                            }
+                                        }
+                                    },
+                                    Format = new Format
+                                    {
+                                        BackgroundColor = new BackgroundColorClass
+                                        {
+                                            Blue = 0.8039216,
+                                            Green = 0.88235295,
+                                            Red = 0.7176471
+                                        },
+                                        BackgroundColorStyle = new BackgroundColorStyle
+                                        {
+                                            RgbColor = new BackgroundColorClass
+                                            {
+                                                Blue = 0.8039216,
+                                                Green = 0.88235295,
+                                                Red = 0.7176471
+                                            }
+                                        },
+                                        TextFormat = new FormatTextFormat
+                                        {
+                                            ForegroundColor = new BackgroundColorClass(),
+                                            ForegroundColorStyle = new BackgroundColorStyle
+                                            {
+                                                RgbColor = new BackgroundColorClass()
+                                            }
+                                        }
+                                    }
+                                },
+                                Ranges = new CreateRange[]
+                                {
+                                    new CreateRange
+                                    {
+                                        EndColumnIndex = 7,
+                                        EndRowIndex = 3000,
+                                        StartColumnIndex = 6,
+                                        StartRowIndex = 1
+                                    }
+                                }
+                            }
                         }
                     }
                 }

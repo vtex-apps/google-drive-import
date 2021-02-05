@@ -631,7 +631,7 @@ namespace DriveImport.Services
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
                 string fields = "*";
-                string query = $"mimeType contains 'spreadsheet' and '{folderId}' in parents";
+                string query = $"mimeType contains 'spreadsheet' and '{folderId}' in parents and trashed = false";
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
