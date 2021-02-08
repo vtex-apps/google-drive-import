@@ -1,7 +1,7 @@
 {
   "name": "google-drive-import",
   "vendor": "vtex",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "title": "Google Drive Import",
   "description": "Import files from Google Drive",
   "categories": [],
@@ -24,6 +24,7 @@
     "postreleasy": "vtex publish --verbose"
   },
   "billingOptions": {
+    "setupRoute": "/admin/app/google-drive-import/",
     "support": {
       "url": "https://help-tickets.vtex.com/en/support?app=vtexus.google-drive-import"
     },
@@ -34,22 +35,7 @@
   },
   "policies": [
     {
-      "name": "outbound-access",
-      "attrs": {
-        "host": "bnb.data.bl.uk"
-      }
-    },
-    {
-      "name": "outbound-access",
-      "attrs": {
-        "host": "nuget.org"
-      }
-    },
-    {
       "name": "ADMIN_DS"
-    },
-    {
-      "name": "AcessaTodosPedidos"
     },
     {
       "name": "outbound-access",

@@ -125,10 +125,10 @@ namespace DriveImport.Models
         public long ProductGlobalCategoryId { get; set; }
 
         [JsonProperty("ProductCategories")]
-        public ProductCategories ProductCategories { get; set; }
+        public object ProductCategories { get; set; }
 
         [JsonProperty("CommercialConditionId")]
-        public long CommercialConditionId { get; set; }
+        public object CommercialConditionId { get; set; }
 
         [JsonProperty("RewardValue")]
         public long RewardValue { get; set; }
@@ -211,12 +211,6 @@ namespace DriveImport.Models
 
     public partial class PositionsInClusters
     {
-    }
-
-    public partial class ProductCategories
-    {
-        [JsonProperty("12")]
-        public string The12 { get; set; }
     }
 
     public class Specification

@@ -1382,7 +1382,6 @@
 
         public async Task ProcessChange()
         {
-            Console.WriteLine("!!!   Received ProcessChange Notification   !!!");
             if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
             {
                 var headers = HttpContext.Request.Headers;

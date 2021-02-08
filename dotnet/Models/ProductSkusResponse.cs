@@ -74,7 +74,7 @@ namespace DriveImport.Models
         public object RewardValue { get; set; }
 
         [JsonProperty("CommercialConditionId")]
-        public long CommercialConditionId { get; set; }
+        public object CommercialConditionId { get; set; }
 
         [JsonProperty("EstimatedDateArrival")]
         public object EstimatedDateArrival { get; set; }
