@@ -103,6 +103,13 @@
     {
       "name": "outbound-access",
       "attrs": {
+        "host": "sheets.googleapis.com",
+        "path": "/v4/spreadsheets/*"
+      }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
         "host": "doc-0g-3s-docs.googleusercontent.com",
         "path": "*"
       }

@@ -655,6 +655,8 @@ namespace DriveImport.Services
                                                 }
                                             }
 
+                                            //messages.Add($"{prodRefSku}: {updateResponse.Success}");
+
                                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
                                         }
                                         else
@@ -740,6 +742,8 @@ namespace DriveImport.Services
                                             _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message}", ex);
                                         }
                                     }
+                                    
+                                    //messages.Add($"{sku}:{updateResponse.Success}");
 
                                     _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {updateResponse.Success} '{updateResponse.Message}'");
                                 }

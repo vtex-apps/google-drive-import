@@ -52,7 +52,9 @@ namespace DriveImport.Data
 
         public const string GOOGLE_DRIVE_URL = "https://www.googleapis.com/drive/v3";
         public const string GOOGLE_DRIVE_URL_V2 = "https://www.googleapis.com/drive/v2";
+        public const string GOOGLE_SHEET_URL = "https://sheets.googleapis.com/v4";
         public const string GOOGLE_DRIVE_FILES = "files";
+        public const string GOOGLE_DRIVE_SHEETS = "spreadsheets";
         public const string GOOGLE_DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3";
         public const string GOOGLE_DRIVE_PAGE_SIZE = "1000";
 
@@ -67,6 +69,9 @@ namespace DriveImport.Data
 
         public const string ARCHIVE_CREATED = "Sku archive already created";
         public const string GATEWAY_TIMEOUT = "GatewayTimeout";
+
+        public const int MIN_WRITE_BLOCK_SIZE = 20;
+        public const int WRITE_BLOCK_SIZE_DIVISOR = 10;
 
         public class FolderNames
         {
@@ -92,6 +97,11 @@ namespace DriveImport.Data
             public const string SKU_REF_ID = "SkuRefId";
             public const string PRODUCT_REF_ID = "ProductRefId";
             public const string PRODUCT_ID = "ProductId";
+        }
+
+        public class Sheets
+        {
+            public const string HEADER_RANGE = "A1:E1";
         }
     }
 }

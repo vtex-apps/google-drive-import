@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Import from Google Sheets
+
 ## [0.1.3] - 2021-02-03
 
 ### Added

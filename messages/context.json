@@ -11,5 +11,7 @@
   "admin/google-drive-import.fetched.text": "admin/google-drive-import.fetched.text",
   "admin/google-drive-import.connected-as": "admin/google-drive-import.connected-as",
   "admin/google-drive-import.disconnect.button": "admin/google-drive-import.disconnect.button",
-  "admin/google-drive-import.setup.button": "admin/google-drive-import.setup.button"
+  "admin/google-drive-import.setup.button": "admin/google-drive-import.setup.button",
+  "admin/google-drive-import.sheet-import.button": "admin/google-drive-import.sheet-import.button",
+  "admin/google-drive-import.create-sheet.button": "admin/google-drive-import.create-sheet.button"
 }
