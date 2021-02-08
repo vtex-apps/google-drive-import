@@ -70,7 +70,7 @@ namespace DriveImport.Data
         public const string ARCHIVE_CREATED = "Sku archive already created";
         public const string GATEWAY_TIMEOUT = "GatewayTimeout";
 
-        public const int MIN_WRITE_BLOCK_SIZE = 5;
+        public const int MIN_WRITE_BLOCK_SIZE = 20;
         public const int WRITE_BLOCK_SIZE_DIVISOR = 10;
 
         public class FolderNames

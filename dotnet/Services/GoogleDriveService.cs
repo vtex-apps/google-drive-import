@@ -1301,7 +1301,6 @@ namespace DriveImport.Services
 
         public async Task<UpdateValuesResponse> WriteSpreadsheetValues(string fileId, ValueRange valueRange)
         {
-            bool success = false;
             string responseContent = string.Empty;
             UpdateValuesResponse updateValuesResponse = null;
 
@@ -1332,10 +1331,32 @@ namespace DriveImport.Services
                         var response = await client.SendAsync(request);
                         responseContent = await response.Content.ReadAsStringAsync();
                         Console.WriteLine($"WriteSpreadsheetValues [{response.StatusCode}] {responseContent}");
-                        success = response.IsSuccessStatusCode;
-                        if (success)
+                        if (response.IsSuccessStatusCode)
                         {
                             updateValuesResponse = JsonConvert.DeserializeObject<UpdateValuesResponse>(responseContent);
+                        }
+                        else
+                        {
+                            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                            {
+                                _context.Vtex.Logger.Warn("WriteSpreadsheetValues", null, $"Retrying [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                                await Task.Delay(1000 * 60);
+                                client = _clientFactory.CreateClient();
+                                response = await client.SendAsync(request);
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    responseContent = await response.Content.ReadAsStringAsync();
+                                    updateValuesResponse = JsonConvert.DeserializeObject<UpdateValuesResponse>(responseContent);
+                                }
+                                else
+                                {
+                                    _context.Vtex.Logger.Error("WriteSpreadsheetValues", null, $"Did not update sheet [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                                }
+                            }
+                            else
+                            {
+                                _context.Vtex.Logger.Error("WriteSpreadsheetValues", null, $"[{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -1387,10 +1408,28 @@ namespace DriveImport.Services
                     {
                         var response = await client.SendAsync(request);
                         responseContent = await response.Content.ReadAsStringAsync();
-                        Console.WriteLine($"UpdateSpreadsheet [{response.StatusCode}] {responseContent}");
-                        if (response.IsSuccessStatusCode)
+                        //Console.WriteLine($"UpdateSpreadsheet [{response.StatusCode}] {responseContent}");
+                        if (!response.IsSuccessStatusCode)
                         {
-                            
+                            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                            {
+                                _context.Vtex.Logger.Warn("UpdateSpreadsheet", null, $"Retrying [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                                await Task.Delay(1000 * 60);
+                                client = _clientFactory.CreateClient();
+                                response = await client.SendAsync(request);
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    responseContent = await response.Content.ReadAsStringAsync();
+                                }
+                                else
+                                {
+                                    _context.Vtex.Logger.Error("UpdateSpreadsheet", null, $"Did not update sheet [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                                }
+                            }
+                            else
+                            {
+                                _context.Vtex.Logger.Warn("UpdateSpreadsheet", null, $"Did not update sheet. [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                            }
                         }
                     }
                     catch (Exception ex)
