@@ -73,6 +73,10 @@
     "createSheet": {
       "path": "/google-drive-import/create-sheet",
       "public": true
+    },
+    "getSheetLink": {
+      "path": "/google-drive-import/sheet-link",
+      "public": true
     }
   }
 }

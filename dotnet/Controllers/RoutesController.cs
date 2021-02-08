@@ -1715,5 +1715,30 @@
             string result = string.IsNullOrEmpty(sheetId) ? "Error" : "Created";
             return Json(result);
         }
+
+        public async Task<string> GetSheetLink()
+        {
+            string sheetUrl = string.Empty;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+
+            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+            if (folderIds != null)
+            {
+                string imagesFolderId = folderIds.ImagesFolderId;
+                ListFilesResponse spreadsheets = await _googleDriveService.ListSheetsInFolder(imagesFolderId);
+                List<string> links = new List<string>();
+                if (spreadsheets != null)
+                {
+                    foreach (GoogleFile file in spreadsheets.Files)
+                    {
+                        links.Add(file.WebViewLink.ToString());
+                    }
+
+                    sheetUrl = string.Join("<br>", links);
+                }
+            }
+
+            return sheetUrl;
+        }
     }
 }
