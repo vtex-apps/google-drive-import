@@ -42,7 +42,18 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
   })
   const { account } = useRuntime()
 
-    const { fetching, revoking, fetched, authorization, email, loading, sheetProcessing, sheetProcessed, sheetCreating, sheetCreated } = state
+  const {
+    fetching,
+    revoking,
+    fetched,
+    authorization,
+    email,
+    loading,
+    sheetProcessing,
+    sheetProcessed,
+    sheetCreating,
+    sheetCreated,
+  } = state
 
   const fetch = () => {
     setState({
@@ -111,67 +122,67 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       })
   }
 
-    const sheetImport = () => {
+  const sheetImport = () => {
+    setState({
+      ...state,
+      sheetProcessing: true,
+    })
+
+    axios
+      .get(PROCESS_SHEET_URL)
+      .then((response: any) => {
         setState({
-            ...state,
-            sheetProcessing: true,
+          ...state,
+          sheetProcessing: false,
+          sheetProcessed: response.data,
         })
-
-        axios
-            .get(PROCESS_SHEET_URL)
-            .then((response: any) => {
-                setState({
-                    ...state,
-                    sheetProcessing: false,
-                    sheetProcessed: response.data,
-                })
-                setTimeout(() => {
-                    setState({
-                        ...state,
-                        sheetProcessing: false,
-                        sheetProcessed: false,
-                    })
-                }, 5000)
-            })
-            .catch(() => {
-                setState({
-                    ...state,
-                    sheetProcessing: false,
-                    sheetProcessed: false,
-                })
-            })
-    }
-
-    const createSheet = () => {
+        setTimeout(() => {
+          setState({
+            ...state,
+            sheetProcessing: false,
+            sheetProcessed: false,
+          })
+        }, 5000)
+      })
+      .catch(() => {
         setState({
-            ...state,
-            sheetCreating: true,
+          ...state,
+          sheetProcessing: false,
+          sheetProcessed: false,
         })
+      })
+  }
 
-        axios
-            .get(CREATE_SHEET_URL)
-            .then((response: any) => {
-                setState({
-                    ...state,
-                    sheetCreating: false,
-                    sheetCreated: response.data,
-                })
-                setTimeout(() => {
-                    setState({
-                        ...state,
-                        sheetCreating: false,
-                        sheetCreated: false,
-                    })
-                }, 5000)
-            })
-            .catch(() => {
-                setState({
-                    ...state,
-                    sheetCreating: false,
-                    sheetCreated: false,
-                })
-            })
-    }
+  const createSheet = () => {
+    setState({
+      ...state,
+      sheetCreating: true,
+    })
+
+    axios
+      .get(CREATE_SHEET_URL)
+      .then((response: any) => {
+        setState({
+          ...state,
+          sheetCreating: false,
+          sheetCreated: response.data,
+        })
+        setTimeout(() => {
+          setState({
+            ...state,
+            sheetCreating: false,
+            sheetCreated: false,
+          })
+        }, 5000)
+      })
+      .catch(() => {
+        setState({
+          ...state,
+          sheetCreating: false,
+          sheetCreated: false,
+        })
+      })
+  }
 
   useEffect(() => {
     if (initialCheck) return
@@ -289,7 +300,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                   <tr className={`${styles.striped}`}>
                     <th className="flex justify-left bt pa4">Specification</th>
                     <td className="bt bl pa4">
-                       <FormattedMessage id="admin/google-drive-import.instructions-description-Spec" />
+                      <FormattedMessage id="admin/google-drive-import.instructions-description-Spec" />
                     </td>
                   </tr>
                 </tbody>
@@ -350,41 +361,46 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                   <strong>{`${fetched}`}</strong>
                 </p>
               )}
-                      </div>
-                      <div>
-                      <Button
-                          variation="primary"
-                          collapseLeft
-                          isLoading={sheetCreating}
-                          onClick={() => {
-                              createSheet()
-                          }}
-                      >
-                          <FormattedMessage id="admin/google-drive-import.create-sheet.button" />
-                      </Button>
-                      {!sheetCreating && sheetCreated && (
-                          <p>
-                              <strong>{`${sheetCreated}`}</strong>
-                          </p>
-                          )}
-                          </div>
-                      <div>
-                      <Button
-                          variation="primary"
-                          collapseLeft
-                          isLoading={sheetProcessing}
-                          onClick={() => {
-                              sheetImport()
-                          }}
-                      >
-                          <FormattedMessage id="admin/google-drive-import.sheet-import.button" />
-                      </Button>
-                      {!sheetProcessing && sheetProcessed && (
-                          <p>
-                              <strong>{`${sheetProcessed}`}</strong>
-                          </p>
-                          )}
-                          </div>
+              <div className="mv8">
+                <Divider orientation="horizontal" />
+              </div>
+              <div className="flex-row">
+                <div className="flex-col w-100">
+                  <Button
+                    variation="primary"
+                    collapseLeft
+                    isLoading={sheetCreating}
+                    onClick={() => {
+                      createSheet()
+                    }}
+                  >
+                    <FormattedMessage id="admin/google-drive-import.create-sheet.button" />
+                  </Button>
+                  {!sheetCreating && sheetCreated && (
+                    <p>
+                      <strong>{`${sheetCreated}`}</strong>
+                    </p>
+                  )}
+                </div>
+                <div className="flex-col w-100 mt4">
+                  <Button
+                    variation="primary"
+                    collapseLeft
+                    isLoading={sheetProcessing}
+                    onClick={() => {
+                      sheetImport()
+                    }}
+                  >
+                    <FormattedMessage id="admin/google-drive-import.sheet-import.button" />
+                  </Button>
+                  {!sheetProcessing && sheetProcessed && (
+                    <p>
+                      <strong>{`${sheetProcessed}`}</strong>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
