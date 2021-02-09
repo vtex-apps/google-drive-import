@@ -48,7 +48,7 @@
             Console.WriteLine($"Check lock: {importStarted}");
 
             TimeSpan elapsedTime = DateTime.Now - importStarted;
-            if (elapsedTime.TotalHours < 2)
+            if (elapsedTime.TotalHours < DriveImportConstants.LOCK_TIMEOUT)
             {
                 Console.WriteLine("Blocked by lock");
                 _context.Vtex.Logger.Info("DriveImport", null, $"Blocked by lock.  Import started: {importStarted}");
@@ -372,14 +372,14 @@
         public async Task<IActionResult> SheetImport()
         {
             Response.Headers.Add("Cache-Control", "no-cache");
-
+            var stopWatch = System.Diagnostics.Stopwatch.StartNew();
             // check lock
             DateTime importStarted = await _driveImportRepository.CheckImportLock();
 
             //Console.WriteLine($"Check lock: {importStarted}");
 
             TimeSpan elapsedTime = DateTime.Now - importStarted;
-            if (elapsedTime.TotalHours < 2)
+            if (elapsedTime.TotalHours < DriveImportConstants.LOCK_TIMEOUT)
             {
                 Console.WriteLine("Blocked by lock");
                 _context.Vtex.Logger.Info("SheetImport", null, $"Blocked by lock.  Import started: {importStarted}");
@@ -390,7 +390,7 @@
             //Console.WriteLine($"Set new lock: {DateTime.Now}");
             _context.Vtex.Logger.Info("SheetImport", null, $"Set new lock: {DateTime.Now}");
 
-            Console.WriteLine("Import from Spreadsheet started");
+            Console.WriteLine($"Import from Spreadsheet started.  [{stopWatch.ElapsedMilliseconds}]");
             bool updated = false;
             int doneCount = 0;
             int errorCount = 0;
@@ -556,15 +556,23 @@
                 await _driveImportRepository.SaveFolderIds(folderIds, accountName);
             }
 
+            stopWatch.Stop();
+            _context.Vtex.Logger.Debug("SheetImport", null, $"Verifed folders {stopWatch.ElapsedMilliseconds}");
+
             Dictionary<string, string> images = new Dictionary<string, string>();
             //StringBuilder results = new StringBuilder("Sku,Name,Label,isMain,Status,Message");
             List<string> results = new List<string>();
             results.Add("Sku,Name,Label,isMain,Status,Message");
 
             // GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
-
+            stopWatch.Restart();
             ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            stopWatch.Stop();
+            _context.Vtex.Logger.Debug("SheetImport", null, $"Getting images files {stopWatch.ElapsedMilliseconds}");
+            stopWatch.Restart();
             ListFilesResponse spreadsheets = await _googleDriveService.ListSheetsInFolder(imagesFolderId);
+            stopWatch.Stop();
+            _context.Vtex.Logger.Debug("SheetImport", null, $"Getting spreadsheets {stopWatch.ElapsedMilliseconds}");
             if (imageFiles != null && spreadsheets != null)
             {
                 //foreach(var sheet in spreadsheets.Files)
@@ -597,7 +605,7 @@
                         int writeBlockSize = Math.Max(rowCount / DriveImportConstants.WRITE_BLOCK_SIZE_DIVISOR, DriveImportConstants.MIN_WRITE_BLOCK_SIZE);
                         Console.WriteLine($"Write block size = {writeBlockSize}");
                         int offset = 0;
-                        _context.Vtex.Logger.Info("SheetImport", null, $"'{sheetName}' Row count: {rowCount} ");
+                        _context.Vtex.Logger.Debug("SheetImport", null, $"'{sheetName}' Row count: {rowCount} ");
                         foreach (string header in sheetHeader)
                         {
                             //Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
@@ -617,6 +625,7 @@
 
                         for (int index = 1; index < rowCount; index++)
                         {
+                            //stopWatch.Restart();
                             string identificatorType = string.Empty;
                             string id = string.Empty;
                             string imageName = string.Empty;
@@ -624,6 +633,7 @@
                             string main = string.Empty;
                             string skuContext = string.Empty;
                             string imageFileName = string.Empty;
+                            string label = string.Empty;
                             string statusColumn = string.Empty;
                             bool processLine = true;
                             //foreach (string value in googleSheet.ValueRanges[0].Values[dataLine])
@@ -640,10 +650,12 @@
                                 imageName = dataValues[headerIndexDictionary["name"]];
                             if (headerIndexDictionary.ContainsKey("main") && headerIndexDictionary["main"] < dataValues.Count())
                                 main = dataValues[headerIndexDictionary["main"]];
-                            if (headerIndexDictionary.ContainsKey("skucontext") && headerIndexDictionary["skucontext"] < dataValues.Count())
-                                skuContext = dataValues[headerIndexDictionary["skucontext"]];
+                            if (headerIndexDictionary.ContainsKey("attributes") && headerIndexDictionary["attributes"] < dataValues.Count())
+                                skuContext = dataValues[headerIndexDictionary["attributes"]];
                             if (headerIndexDictionary.ContainsKey("image") && headerIndexDictionary["image"] < dataValues.Count())
                                 imageFileName = dataValues[headerIndexDictionary["image"]];
+                            if (headerIndexDictionary.ContainsKey("label") && headerIndexDictionary["label"] < dataValues.Count())
+                                label = dataValues[headerIndexDictionary["label"]];
 
                             if (headerIndexDictionary.ContainsKey("status") && headerIndexDictionary["status"] < dataValues.Count())
                                 statusColumn = dataValues[headerIndexDictionary["status"]];
@@ -664,6 +676,9 @@
                                 processLine = false;
                             }
 
+                            //stopWatch.Stop();
+                            //_context.Vtex.Logger.Debug("SheetImport", null, $"Read line {index} {stopWatch.ElapsedMilliseconds}");
+
                             if (processLine)
                             {
                                 UpdateResponse updateResponse = null;
@@ -673,11 +688,11 @@
                                     string fileNameForImport = string.Empty;
                                     if (string.IsNullOrEmpty(main))
                                     {
-                                        fileNameForImport = $"{identificatorType},{id},{imageName},";
+                                        fileNameForImport = $"{identificatorType},{id},{imageName},{label},";
                                     }
                                     else
                                     {
-                                        fileNameForImport = $"{identificatorType},{id},{imageName},Main";
+                                        fileNameForImport = $"{identificatorType},{id},{imageName},{label},Main";
                                     }
 
                                     if (!string.IsNullOrEmpty(skuContext))
@@ -696,8 +711,10 @@
                                     }
 
                                     Console.WriteLine($"Attempting to Process '({index}/{rowCount}) {fileNameForImport}' Link = {googleFile.WebContentLink}");
-
+                                    stopWatch.Restart();
                                     updateResponse = await _vtexAPIService.ProcessImageFile(fileNameForImport, googleFile.WebContentLink.ToString());
+                                    stopWatch.Stop();
+                                    _context.Vtex.Logger.Debug("SheetImport", null, $"Process ({index}/{rowCount}) {stopWatch.ElapsedMilliseconds}");
 
                                     results.AddRange(updateResponse.Results);
                                     updated = updateResponse.Success;
@@ -711,7 +728,7 @@
                                     {
                                         if (!string.IsNullOrEmpty(updateResponse.StatusCode) && updateResponse.StatusCode.Equals(DriveImportConstants.GATEWAY_TIMEOUT))
                                         {
-                                            _context.Vtex.Logger.Warn("SheetImport", null, $"Skipping {googleFile.Name} {JsonConvert.SerializeObject(updateResponse)}");
+                                            _context.Vtex.Logger.Warn("SheetImport", null, $"Skipping ({index}) '{googleFile.Name}' {JsonConvert.SerializeObject(updateResponse)}");
                                         }
                                         else
                                         {
@@ -752,7 +769,10 @@
                                     Values = arrValuesToWrite
                                 };
 
+                                stopWatch.Restart();
                                 var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRangeToWrite);
+                                stopWatch.Stop();
+                                _context.Vtex.Logger.Debug("SheetImport", null, $"Writing to sheet {stopWatch.ElapsedMilliseconds} {JsonConvert.SerializeObject(writeToSheetResult)}");
                                 offset += writeBlockSize;
                                 arrValuesToWrite = new string[writeBlockSize][];
                                 //Console.WriteLine($"offset = {offset}");
@@ -1412,7 +1432,7 @@
                         //Console.WriteLine($"Check lock: {importStarted}");
 
                         //TimeSpan elapsedTime = DateTime.Now - importStarted;
-                        //if (elapsedTime.TotalHours < 2)
+                        //if (elapsedTime.TotalHours < DriveImportConstants.LOCK_TIMEOUT)
                         //{
                         //    Console.WriteLine("Blocked by lock");
                         //    _context.Vtex.Logger.Info("ProcessChange", null, $"Blocked by lock.  Import started: {importStarted}");
@@ -1460,6 +1480,7 @@
             Response.Headers.Add("Cache-Control", "no-cache");
             Console.WriteLine($"CheckImportLock: {await _driveImportRepository.CheckImportLock()}");
             await _driveImportRepository.ClearImportLock();
+            _context.Vtex.Logger.Info("DriveImport", null, $"Cleared lock: {DateTime.Now}");
             Console.WriteLine($"CheckImportLock: {await _driveImportRepository.CheckImportLock()}");
         }
 
@@ -1471,8 +1492,19 @@
             string sheetLabel = "ImagesForImport";
             string[] headerRowLabels = new string[]
                 {
-                    "Type","Value","Name","Main","Image","Context","Status","Message","Date"
+                    "Image","Type","Value","Name","Label","Main","Attributes","Status","Message","Date","Thumbnail"
                 };
+
+            int headerIndex = 0;
+            Dictionary<string, int> headerIndexDictionary = new Dictionary<string, int>();
+            foreach (string header in headerRowLabels)
+            {
+                //Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
+                headerIndexDictionary.Add(header.ToLower(), headerIndex);
+                headerIndex++;
+            }
+
+            int statusRow = headerIndexDictionary["status"];
 
             GoogleSheetCreate googleSheetCreate = new GoogleSheetCreate
             {
@@ -1544,9 +1576,9 @@
                                 {
                                     new CreateRange
                                     {
-                                        EndColumnIndex = 7,
+                                        EndColumnIndex = statusRow + 1,
                                         EndRowIndex = 3000,
-                                        StartColumnIndex = 6,
+                                        StartColumnIndex = statusRow,
                                         StartRowIndex = 1
                                     }
                                 }
@@ -1597,9 +1629,9 @@
                                 {
                                     new CreateRange
                                     {
-                                        EndColumnIndex = 7,
+                                        EndColumnIndex = statusRow + 1,
                                         EndRowIndex = 3000,
-                                        StartColumnIndex = 6,
+                                        StartColumnIndex = statusRow,
                                         StartRowIndex = 1
                                     }
                                 }
@@ -1738,6 +1770,80 @@
             }
 
             return sheetUrl;
+        }
+
+        public async Task<string> AddImagesToSheet()
+        {
+            Response.Headers.Add("Cache-Control", "no-cache");
+            string result = string.Empty;
+            string newFolderId = null;
+            string imagesFolderId = null;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+
+            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+            if (folderIds != null)
+            {
+                newFolderId = folderIds.NewFolderId;
+                imagesFolderId = folderIds.ImagesFolderId;
+
+                ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                ListFilesResponse spreadsheets = await _googleDriveService.ListSheetsInFolder(imagesFolderId);
+
+                if (imageFiles != null && spreadsheets != null)
+                {
+                    var sheetIds = spreadsheets.Files.Select(s => s.Id);
+                    if (sheetIds != null)
+                    {
+                        foreach (var sheetId in sheetIds)
+                        {
+                            Dictionary<string, int> headerIndexDictionary = new Dictionary<string, int>();
+                            Dictionary<string, string> columns = new Dictionary<string, string>();
+                            string sheetContent = await _googleDriveService.GetSheet(sheetId, string.Empty);
+
+                            GoogleSheet googleSheet = JsonConvert.DeserializeObject<GoogleSheet>(sheetContent);
+                            string valueRange = googleSheet.ValueRanges[0].Range;
+                            string sheetName = valueRange.Split("!")[0];
+                            string[] sheetHeader = googleSheet.ValueRanges[0].Values[0];
+                            int headerIndex = 0;
+                            int rowCount = googleSheet.ValueRanges[0].Values.Count();
+                            int writeBlockSize = imageFiles.Files.Count;
+                            foreach (string header in sheetHeader)
+                            {
+                                headerIndexDictionary.Add(header.ToLower(), headerIndex);
+                                headerIndex++;
+                            }
+
+                            int imageColumnNumber = headerIndexDictionary["image"] + 65;
+                            string imageColumnLetter = ((char)imageColumnNumber).ToString();
+                            int thumbnailColumnNumber = headerIndexDictionary["thumbnail"] + 65;
+                            string thumbnailColumnLetter = ((char)thumbnailColumnNumber).ToString();
+
+                            //string[][] arrValuesToWrite = new string[rowCount][];
+                            string[][] arrValuesToWrite = new string[writeBlockSize][];
+                            int index = 0;
+                            foreach(GoogleFile file in imageFiles.Files)
+                            {
+                                string[] row = new string[headerIndexDictionary.Count];
+                                row[headerIndexDictionary["image"]] = file.Name;
+                                row[headerIndexDictionary["thumbnail"]] = $"=IMAGE(\"{ file.ThumbnailLink}\")";
+                                arrValuesToWrite[index] = row;
+                                index++;
+                            }
+
+                            ValueRange valueRangeToWrite = new ValueRange
+                            {
+                                //Range = $"{sheetName}!{imageColumnLetter}:{thumbnailColumnLetter}",
+                                Range = $"{sheetName}!A2:K{index+2}",
+                                Values = arrValuesToWrite
+                            };
+
+                            var writeToSheetResult = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRangeToWrite);
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
     }
 }

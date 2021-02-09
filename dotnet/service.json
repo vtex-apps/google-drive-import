@@ -1,7 +1,7 @@
 {
   "stack": "dotnet",
-  "memory": 512,
-  "minReplicas": 10,
+  "memory": 1024,
+  "minReplicas": 20,
   "maxReplicas": 100,
   "runtimeArgs": [
   ],
@@ -76,6 +76,10 @@
     },
     "getSheetLink": {
       "path": "/google-drive-import/sheet-link",
+      "public": true
+    },
+    "addImagesToSheet": {
+      "path": "/google-drive-import/add-images-to-sheet",
       "public": true
     }
   }
