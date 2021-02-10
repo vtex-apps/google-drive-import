@@ -418,143 +418,6 @@
                 doneFolderId = folderIds.DoneFolderId;
                 errorFolderId = folderIds.ErrorFolderId;
             }
-            else
-            {
-                ListFilesResponse getFoldersResponse = await _googleDriveService.GetFolders();
-                if (getFoldersResponse != null)
-                {
-                    importFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMPORT)).Select(f => f.Id).FirstOrDefault();
-                    if (!string.IsNullOrEmpty(importFolderId))
-                    {
-                        //Console.WriteLine($"importFolderId:{importFolderId}");
-                        accountFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(accountName) && f.Parents.Contains(importFolderId)).Select(f => f.Id).FirstOrDefault();
-                        if (!string.IsNullOrEmpty(accountFolderId))
-                        {
-                            //Console.WriteLine($"accountFolderId:{accountFolderId}");
-                            imagesFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMAGES) && f.Parents.Contains(accountFolderId)).Select(f => f.Id).FirstOrDefault();
-                            if (!string.IsNullOrEmpty(imagesFolderId))
-                            {
-                                //Console.WriteLine($"imagesFolderId:{imagesFolderId}");
-                                newFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.NEW) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
-                                doneFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.DONE) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
-                                errorFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.ERROR) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
-                                //Console.WriteLine($"n:{newFolderId} d:{doneFolderId} e:{errorFolderId}");
-                            }
-                        }
-                    }
-                }
-            }
-
-            // If any essential folders are missing verify and create the folder structure.
-            if (string.IsNullOrEmpty(newFolderId) || string.IsNullOrEmpty(doneFolderId) || string.IsNullOrEmpty(errorFolderId))
-            {
-                folderIds = null;
-                _context.Vtex.Logger.Info("SheetImport", null, "Verifying folder structure.");
-                Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
-
-                if (folders == null)
-                {
-                    return Json($"Error accessing Drive.");
-                }
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
-                {
-                    importFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
-                }
-                else
-                {
-                    importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
-                }
-
-                if (string.IsNullOrEmpty(importFolderId))
-                {
-                    _context.Vtex.Logger.Info("SheetImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
-                    return Json($"Could not find {DriveImportConstants.FolderNames.IMPORT} folder");
-                }
-
-                folders = await _googleDriveService.ListFolders(importFolderId);
-
-                if (!folders.ContainsValue(accountName))
-                {
-                    accountFolderId = await _googleDriveService.CreateFolder(accountName, importFolderId);
-                }
-                else
-                {
-                    accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
-                }
-
-                if (string.IsNullOrEmpty(accountFolderId))
-                {
-                    _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {accountFolderId} folder");
-                    return Json($"Could not find {accountFolderId} folder");
-                }
-
-                folders = await _googleDriveService.ListFolders(accountFolderId);
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMAGES))
-                {
-                    imagesFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
-                }
-                else
-                {
-                    imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
-                }
-
-                if (string.IsNullOrEmpty(imagesFolderId))
-                {
-                    _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {imagesFolderId} folder");
-                    return Json($"Could not find {imagesFolderId} folder");
-                }
-
-                folders = await _googleDriveService.ListFolders(imagesFolderId);
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
-                {
-                    newFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
-                    bool setPermission = await _googleDriveService.SetPermission(newFolderId);
-                    if (!setPermission)
-                    {
-                        _context.Vtex.Logger.Error("SheetImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
-                    }
-                }
-                else
-                {
-                    newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
-                }
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
-                {
-                    doneFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
-                }
-                else
-                {
-                    doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
-                }
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
-                {
-                    errorFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
-                }
-                else
-                {
-                    errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
-                }
-            }
-
-            if (folderIds == null)
-            {
-                folderIds = new FolderIds
-                {
-                    AccountFolderId = accountFolderId,
-                    DoneFolderId = doneFolderId,
-                    ErrorFolderId = errorFolderId,
-                    ImagesFolderId = imagesFolderId,
-                    ImportFolderId = imagesFolderId,
-                    NewFolderId = newFolderId
-                };
-
-                await _driveImportRepository.SaveFolderIds(folderIds, accountName);
-            }
 
             stopWatch.Stop();
             _context.Vtex.Logger.Debug("SheetImport", null, $"Verifed folders {stopWatch.ElapsedMilliseconds}");
@@ -1492,7 +1355,7 @@
             string sheetLabel = "ImagesForImport";
             string[] headerRowLabels = new string[]
                 {
-                    "Image","Type","Value","Name","Label","Main","Attributes","Status","Message","Date","Thumbnail"
+                    "Image","Thumbnail","Type","Value","Name","Label","Main","Attributes","Status","Message","Date"
                 };
 
             int headerIndex = 0;
@@ -1524,7 +1387,7 @@
                             GridProperties = new GridProperties
                             {
                                 ColumnCount = headerRowLabels.Count(),
-                                RowCount = 3000
+                                RowCount = DriveImportConstants.DEFAULT_SHEET_SIZE
                             },
                             SheetType = "GRID"
                         },
@@ -1577,7 +1440,7 @@
                                     new CreateRange
                                     {
                                         EndColumnIndex = statusRow + 1,
-                                        EndRowIndex = 3000,
+                                        EndRowIndex = DriveImportConstants.DEFAULT_SHEET_SIZE,
                                         StartColumnIndex = statusRow,
                                         StartRowIndex = 1
                                     }
@@ -1630,7 +1493,7 @@
                                     new CreateRange
                                     {
                                         EndColumnIndex = statusRow + 1,
-                                        EndRowIndex = 3000,
+                                        EndRowIndex = DriveImportConstants.DEFAULT_SHEET_SIZE,
                                         StartColumnIndex = statusRow,
                                         StartRowIndex = 1
                                     }
@@ -1737,9 +1600,150 @@
                     newFolderId = folderIds.NewFolderId;
                     doneFolderId = folderIds.DoneFolderId;
                     errorFolderId = folderIds.ErrorFolderId;
+                }
+                else
+                {
+                    ListFilesResponse getFoldersResponse = await _googleDriveService.GetFolders();
+                    if (getFoldersResponse != null)
+                    {
+                        importFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMPORT)).Select(f => f.Id).FirstOrDefault();
+                        if (!string.IsNullOrEmpty(importFolderId))
+                        {
+                            //Console.WriteLine($"importFolderId:{importFolderId}");
+                            accountFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(accountName) && f.Parents.Contains(importFolderId)).Select(f => f.Id).FirstOrDefault();
+                            if (!string.IsNullOrEmpty(accountFolderId))
+                            {
+                                //Console.WriteLine($"accountFolderId:{accountFolderId}");
+                                imagesFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMAGES) && f.Parents.Contains(accountFolderId)).Select(f => f.Id).FirstOrDefault();
+                                if (!string.IsNullOrEmpty(imagesFolderId))
+                                {
+                                    //Console.WriteLine($"imagesFolderId:{imagesFolderId}");
+                                    newFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.NEW) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                                    doneFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.DONE) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                                    errorFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.ERROR) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                                    //Console.WriteLine($"n:{newFolderId} d:{doneFolderId} e:{errorFolderId}");
+                                }
+                            }
+                        }
+                    }
+                }
 
-                    bool moved = await _googleDriveService.MoveFile(sheetId, imagesFolderId);
-                    Console.WriteLine($"Moved? {moved}");
+                // If any essential folders are missing verify and create the folder structure.
+                if (string.IsNullOrEmpty(newFolderId) || string.IsNullOrEmpty(doneFolderId) || string.IsNullOrEmpty(errorFolderId))
+                {
+                    folderIds = null;
+                    _context.Vtex.Logger.Info("SheetImport", null, "Verifying folder structure.");
+                    Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
+
+                    if (folders == null)
+                    {
+                        return Json($"Error accessing Drive.");
+                    }
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
+                    {
+                        importFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
+                    }
+                    else
+                    {
+                        importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
+                    }
+
+                    if (string.IsNullOrEmpty(importFolderId))
+                    {
+                        _context.Vtex.Logger.Info("SheetImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
+                        return Json($"Could not find {DriveImportConstants.FolderNames.IMPORT} folder");
+                    }
+
+                    folders = await _googleDriveService.ListFolders(importFolderId);
+
+                    if (!folders.ContainsValue(accountName))
+                    {
+                        accountFolderId = await _googleDriveService.CreateFolder(accountName, importFolderId);
+                    }
+                    else
+                    {
+                        accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
+                    }
+
+                    if (string.IsNullOrEmpty(accountFolderId))
+                    {
+                        _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {accountFolderId} folder");
+                        return Json($"Could not find {accountFolderId} folder");
+                    }
+
+                    folders = await _googleDriveService.ListFolders(accountFolderId);
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMAGES))
+                    {
+                        imagesFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
+                    }
+                    else
+                    {
+                        imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
+                    }
+
+                    if (string.IsNullOrEmpty(imagesFolderId))
+                    {
+                        _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {imagesFolderId} folder");
+                        return Json($"Could not find {imagesFolderId} folder");
+                    }
+
+                    folders = await _googleDriveService.ListFolders(imagesFolderId);
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
+                    {
+                        newFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
+                        bool setPermission = await _googleDriveService.SetPermission(newFolderId);
+                        if (!setPermission)
+                        {
+                            _context.Vtex.Logger.Error("SheetImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
+                        }
+                    }
+                    else
+                    {
+                        newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+                    }
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
+                    {
+                        doneFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
+                    }
+                    else
+                    {
+                        doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
+                    }
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
+                    {
+                        errorFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
+                    }
+                    else
+                    {
+                        errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+                    }
+                }
+
+                if (folderIds == null)
+                {
+                    folderIds = new FolderIds
+                    {
+                        AccountFolderId = accountFolderId,
+                        DoneFolderId = doneFolderId,
+                        ErrorFolderId = errorFolderId,
+                        ImagesFolderId = imagesFolderId,
+                        ImportFolderId = imagesFolderId,
+                        NewFolderId = newFolderId
+                    };
+
+                    await _driveImportRepository.SaveFolderIds(folderIds, accountName);
+                }
+
+                bool moved = await _googleDriveService.MoveFile(sheetId, imagesFolderId);
+                Console.WriteLine($"Moved? {moved}");
+                if(moved)
+                {
+                    await _googleDriveService.AddImagesToSheet();
                 }
             }
 
@@ -1774,6 +1778,42 @@
 
         public async Task<string> AddImagesToSheet()
         {
+            string response = string.Empty;
+            Response.Headers.Add("Cache-Control", "no-cache");
+            string imagesFolderId = null;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+            if (folderIds != null)
+            {
+                imagesFolderId = folderIds.ImagesFolderId;
+                ListFilesResponse spreadsheets = await _googleDriveService.ListSheetsInFolder(imagesFolderId);
+                if (spreadsheets != null)
+                {
+                    SheetRange sheetRange = new SheetRange();
+                    sheetRange.Ranges = new List<string>();
+                    sheetRange.Ranges.Add($"A2:Z{DriveImportConstants.DEFAULT_SHEET_SIZE}");
+
+                    foreach (GoogleFile sheet in spreadsheets.Files)
+                    {
+                        response = response + " - " + await _googleDriveService.ClearSpreadsheet(sheet.Id, sheetRange);
+                    }
+                }
+                else
+                {
+                    response = "null sheet";
+                }
+            }
+            else
+            {
+                response = "null folderIds";
+            }
+
+            response = response + " - " + await _googleDriveService.AddImagesToSheet();
+            return response;
+        }
+
+        public async Task<string> AddThumbnails()
+        {
             Response.Headers.Add("Cache-Control", "no-cache");
             string result = string.Empty;
             string newFolderId = null;
@@ -1806,34 +1846,42 @@
                             string[] sheetHeader = googleSheet.ValueRanges[0].Values[0];
                             int headerIndex = 0;
                             int rowCount = googleSheet.ValueRanges[0].Values.Count();
-                            int writeBlockSize = imageFiles.Files.Count;
+                            int writeBlockSize = rowCount;
                             foreach (string header in sheetHeader)
                             {
                                 headerIndexDictionary.Add(header.ToLower(), headerIndex);
                                 headerIndex++;
                             }
 
-                            int imageColumnNumber = headerIndexDictionary["image"] + 65;
-                            string imageColumnLetter = ((char)imageColumnNumber).ToString();
-                            int thumbnailColumnNumber = headerIndexDictionary["thumbnail"] + 65;
-                            string thumbnailColumnLetter = ((char)thumbnailColumnNumber).ToString();
+                            //int imageColumnNumber = headerIndexDictionary["image"] + 65;
+                            //string imageColumnLetter = ((char)imageColumnNumber).ToString();
+                            //int thumbnailColumnNumber = headerIndexDictionary["thumbnail"] + 65;
+                            //string thumbnailColumnLetter = ((char)thumbnailColumnNumber).ToString();
 
-                            //string[][] arrValuesToWrite = new string[rowCount][];
                             string[][] arrValuesToWrite = new string[writeBlockSize][];
-                            int index = 0;
-                            foreach(GoogleFile file in imageFiles.Files)
+
+                            for (int index = 1; index < rowCount; index++)
                             {
-                                string[] row = new string[headerIndexDictionary.Count];
-                                row[headerIndexDictionary["image"]] = file.Name;
-                                row[headerIndexDictionary["thumbnail"]] = $"=IMAGE(\"{ file.ThumbnailLink}\")";
-                                arrValuesToWrite[index] = row;
-                                index++;
+                                string imageFileName = string.Empty;
+
+                                string[] dataValues = googleSheet.ValueRanges[0].Values[index];
+                                if (headerIndexDictionary.ContainsKey("image") && headerIndexDictionary["image"] < dataValues.Count())
+                                    imageFileName = dataValues[headerIndexDictionary["image"]];
+
+                                GoogleFile file = imageFiles.Files.Where(f => f.Name.Equals(imageFileName)).FirstOrDefault();
+                                if(file != null)
+                                {
+                                    string[] row = new string[headerIndexDictionary.Count];
+                                    row[headerIndexDictionary["thumbnail"]] = $"=IMAGE(\"{ file.ThumbnailLink}\")";
+                                    arrValuesToWrite[index-1] = row;
+                                }
                             }
+
+                            string lastColumn = ((char)(headerIndexDictionary.Count + 65)).ToString();
 
                             ValueRange valueRangeToWrite = new ValueRange
                             {
-                                //Range = $"{sheetName}!{imageColumnLetter}:{thumbnailColumnLetter}",
-                                Range = $"{sheetName}!A2:K{index+2}",
+                                Range = $"{sheetName}!A2:{lastColumn}{rowCount + 1}",
                                 Values = arrValuesToWrite
                             };
 
@@ -1844,6 +1892,41 @@
             }
 
             return result;
+        }
+
+        public async Task<string> ClearSheet()
+        {
+            Response.Headers.Add("Cache-Control", "no-cache");
+            string response = string.Empty;
+            string imagesFolderId = null;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+            if (folderIds != null)
+            {
+                imagesFolderId = folderIds.ImagesFolderId;
+                ListFilesResponse spreadsheets = await _googleDriveService.ListSheetsInFolder(imagesFolderId);
+                if(spreadsheets != null)
+                {
+                    SheetRange sheetRange = new SheetRange();
+                    sheetRange.Ranges = new List<string>();
+                    sheetRange.Ranges.Add($"A2:Z{DriveImportConstants.DEFAULT_SHEET_SIZE}");
+
+                    foreach(GoogleFile sheet in spreadsheets.Files)
+                    {
+                        response = response + " - " + _googleDriveService.ClearSpreadsheet(sheet.Id, sheetRange).Result;
+                    }
+                }
+                else
+                {
+                    response = "null sheet";
+                }
+            }
+            else
+            {
+                response = "null folderIds";
+            }
+
+            return response;
         }
     }
 }

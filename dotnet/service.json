@@ -81,6 +81,14 @@
     "addImagesToSheet": {
       "path": "/google-drive-import/add-images-to-sheet",
       "public": true
+    },
+    "addThumbnails": {
+      "path": "/google-drive-import/add-thumbnails",
+      "public": true
+    },
+    "clearSheet": {
+      "path": "/google-drive-import/clear-sheet",
+      "public": true
     }
   }
 }

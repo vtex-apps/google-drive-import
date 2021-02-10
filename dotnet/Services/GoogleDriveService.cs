@@ -911,7 +911,7 @@ namespace DriveImport.Services
                 _context.Vtex.Logger.Warn("GetSheet", null, "Parameter missing.");
             }
 
-            Console.WriteLine($"    -   GetSheet responseContent = '{responseContent}'");
+            //Console.WriteLine($"    -   GetSheet responseContent = '{responseContent}'");
             return responseContent;
         }
 
@@ -1448,6 +1448,160 @@ namespace DriveImport.Services
             }
 
             return responseContent;
+        }
+
+        public async Task<string> ClearSpreadsheet(string fileId, SheetRange sheetRange)
+        {
+            string responseContent = string.Empty;
+
+            if (sheetRange != null)
+            {
+                Token token = await this.GetGoogleToken();
+                if (token != null && !string.IsNullOrEmpty(token.AccessToken))
+                {
+                    var jsonSerializedMetadata = JsonConvert.SerializeObject(sheetRange);
+
+                    var request = new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        RequestUri = new Uri($"{DriveImportConstants.GOOGLE_SHEET_URL}/{DriveImportConstants.GOOGLE_DRIVE_SHEETS}/{fileId}/values:batchClear"),
+                        Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    };
+
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, $"{token.TokenType} {token.AccessToken}");
+
+                    string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                    if (authToken != null)
+                    {
+                        request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    }
+
+                    var client = _clientFactory.CreateClient();
+                    try
+                    {
+                        var response = await client.SendAsync(request);
+                        responseContent = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"ClearSpreadsheet [{response.StatusCode}] {responseContent}");
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                            {
+                                _context.Vtex.Logger.Warn("ClearSpreadsheet", null, $"Retrying [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                                await Task.Delay(1000 * 60);
+                                client = _clientFactory.CreateClient();
+                                response = await client.SendAsync(request);
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    responseContent = await response.Content.ReadAsStringAsync();
+                                }
+                                else
+                                {
+                                    _context.Vtex.Logger.Error("ClearSpreadsheet", null, $"Did not clear sheet [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                                }
+                            }
+                            else
+                            {
+                                _context.Vtex.Logger.Warn("ClearSpreadsheet", null, $"Did not clear sheet. [{response.StatusCode}] {responseContent} {jsonSerializedMetadata}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _context.Vtex.Logger.Error("ClearSpreadsheet", null, $"{jsonSerializedMetadata}", ex);
+                    }
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("ClearSpreadsheet", null, "Token error.");
+                }
+            }
+            else
+            {
+                _context.Vtex.Logger.Warn("ClearSpreadsheet", null, "Parameter missing.");
+            }
+
+            return responseContent;
+        }
+
+        public async Task<string> AddImagesToSheet()
+        {
+            string result = string.Empty;
+            string newFolderId = null;
+            string imagesFolderId = null;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+
+            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+            if (folderIds != null)
+            {
+                newFolderId = folderIds.NewFolderId;
+                imagesFolderId = folderIds.ImagesFolderId;
+
+                ListFilesResponse imageFiles = await this.ListImagesInFolder(newFolderId);
+                ListFilesResponse spreadsheets = await this.ListSheetsInFolder(imagesFolderId);
+
+                if (imageFiles != null && spreadsheets != null)
+                {
+                    var sheetIds = spreadsheets.Files.Select(s => s.Id);
+                    if (sheetIds != null)
+                    {
+                        foreach (var sheetId in sheetIds)
+                        {
+                            Dictionary<string, int> headerIndexDictionary = new Dictionary<string, int>();
+                            Dictionary<string, string> columns = new Dictionary<string, string>();
+                            string sheetContent = await this.GetSheet(sheetId, string.Empty);
+
+                            GoogleSheet googleSheet = JsonConvert.DeserializeObject<GoogleSheet>(sheetContent);
+                            string valueRange = googleSheet.ValueRanges[0].Range;
+                            string sheetName = valueRange.Split("!")[0];
+                            string[] sheetHeader = googleSheet.ValueRanges[0].Values[0];
+                            int headerIndex = 0;
+                            int rowCount = googleSheet.ValueRanges[0].Values.Count();
+                            int writeBlockSize = imageFiles.Files.Count;
+                            foreach (string header in sheetHeader)
+                            {
+                                headerIndexDictionary.Add(header.ToLower(), headerIndex);
+                                headerIndex++;
+                            }
+
+                            int imageColumnNumber = headerIndexDictionary["image"] + 65;
+                            string imageColumnLetter = ((char)imageColumnNumber).ToString();
+                            int thumbnailColumnNumber = headerIndexDictionary["thumbnail"] + 65;
+                            string thumbnailColumnLetter = ((char)thumbnailColumnNumber).ToString();
+
+                            //string[][] arrValuesToWrite = new string[rowCount][];
+                            string[][] arrValuesToWrite = new string[writeBlockSize][];
+                            int index = 0;
+                            foreach (GoogleFile file in imageFiles.Files)
+                            {
+                                if (file.Name.Contains(","))
+                                {
+                                    // skipping old format
+                                }
+                                else
+                                {
+                                    string[] row = new string[headerIndexDictionary.Count];
+                                    row[headerIndexDictionary["image"]] = file.Name;
+                                    row[headerIndexDictionary["thumbnail"]] = $"=IMAGE(\"{ file.ThumbnailLink}\")";
+                                    arrValuesToWrite[index] = row;
+                                    index++;
+                                }
+                            }
+
+                            string lastColumn = ((char)(headerIndexDictionary.Count + 65)).ToString();
+                            ValueRange valueRangeToWrite = new ValueRange
+                            {
+                                //Range = $"{sheetName}!{imageColumnLetter}:{thumbnailColumnLetter}",
+                                Range = $"{sheetName}!A2:{lastColumn}{index + 2}",
+                                Values = arrValuesToWrite
+                            };
+
+                            var writeToSheetResult = await this.WriteSpreadsheetValues(sheetId, valueRangeToWrite);
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
     }
 }
