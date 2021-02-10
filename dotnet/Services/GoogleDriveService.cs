@@ -582,7 +582,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?fields={fields}&q={query}&pageSize={DriveImportConstants.GOOGLE_DRIVE_PAGE_SIZE}"),
+                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?fields={fields}&q={query}&orderBy=name&pageSize={DriveImportConstants.GOOGLE_DRIVE_PAGE_SIZE}"),
                     Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                 };
 
@@ -1541,6 +1541,8 @@ namespace DriveImport.Services
 
                 if (imageFiles != null && spreadsheets != null)
                 {
+
+
                     var sheetIds = spreadsheets.Files.Select(s => s.Id);
                     if (sheetIds != null)
                     {

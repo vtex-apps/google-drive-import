@@ -496,7 +496,6 @@
                             string main = string.Empty;
                             string skuContext = string.Empty;
                             string imageFileName = string.Empty;
-                            string label = string.Empty;
                             string statusColumn = string.Empty;
                             bool processLine = true;
                             //foreach (string value in googleSheet.ValueRanges[0].Values[dataLine])
@@ -518,7 +517,7 @@
                             if (headerIndexDictionary.ContainsKey("image") && headerIndexDictionary["image"] < dataValues.Count())
                                 imageFileName = dataValues[headerIndexDictionary["image"]];
                             if (headerIndexDictionary.ContainsKey("label") && headerIndexDictionary["label"] < dataValues.Count())
-                                label = dataValues[headerIndexDictionary["label"]];
+                                imageLabel = dataValues[headerIndexDictionary["label"]];
 
                             if (headerIndexDictionary.ContainsKey("status") && headerIndexDictionary["status"] < dataValues.Count())
                                 statusColumn = dataValues[headerIndexDictionary["status"]];
@@ -531,11 +530,30 @@
                                 processLine = false;
                             }
 
-                            if (!string.IsNullOrWhiteSpace(statusColumn) && statusColumn.ToLower().Contains("done"))
+                            if (processLine && !string.IsNullOrWhiteSpace(statusColumn) && statusColumn.ToLower().Contains("done"))
                             {
                                 //Console.WriteLine($"Line ({index + 1}) is Done! {identificatorType}:{id} {statusColumn}");
                                 //Console.WriteLine($"arrValuesToWrite[{index - offset - 1}] = new string[]");
                                 arrValuesToWrite[index - offset - 1] = new string[] { null, null, null };
+                                processLine = false;
+                            }
+
+                            Console.WriteLine($"'{imageFileName}' [{imageFileName.Equals("DELETE")}] '{identificatorType}' ({id}) [{identificatorType.ToLower().Equals("skuid")}]");
+                            if (processLine && !string.IsNullOrWhiteSpace(imageFileName) && imageFileName.Equals("DELETE") && !string.IsNullOrWhiteSpace(identificatorType) && identificatorType.ToLower().Equals("skuid"))
+                            {
+                                bool deleted = false;
+                                if(!string.IsNullOrEmpty(imageName))
+                                {
+                                    deleted = await _vtexAPIService.DeleteImageByName(id, imageName);
+                                }
+                                else
+                                {
+                                    deleted = await _vtexAPIService.DeleteSkuImages(id);
+                                }
+
+                                string result = deleted ? "Done" : "Error";
+                                string[] arrLineValuesToWrite = new string[] { result, null, $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" };
+                                arrValuesToWrite[index - offset - 1] = arrLineValuesToWrite;
                                 processLine = false;
                             }
 
@@ -551,11 +569,11 @@
                                     string fileNameForImport = string.Empty;
                                     if (string.IsNullOrEmpty(main))
                                     {
-                                        fileNameForImport = $"{identificatorType},{id},{imageName},{label},";
+                                        fileNameForImport = $"{identificatorType},{id},{imageName},{imageLabel},";
                                     }
                                     else
                                     {
-                                        fileNameForImport = $"{identificatorType},{id},{imageName},{label},Main";
+                                        fileNameForImport = $"{identificatorType},{id},{imageName},{imageLabel},Main";
                                     }
 
                                     if (!string.IsNullOrEmpty(skuContext))
@@ -876,17 +894,17 @@
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId, true);
             watch = (googleWatch != null);
             _context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder [{newFolderId}] Watch Set? {watch}");
-            if (watch)
-            {
-                long expiresIn = googleWatch.Expiration ?? 0;
-                if (expiresIn > 0)
-                {
-                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
-                    DateTime expiresAt = dateTimeOffset.UtcDateTime;
-                    Console.WriteLine($"expiresAt = {expiresAt}");
-                    CreateTask(expiresAt);
-                }
-            }
+            //if (watch)
+            //{
+            //    long expiresIn = googleWatch.Expiration ?? 0;
+            //    if (expiresIn > 0)
+            //    {
+            //        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
+            //        DateTime expiresAt = dateTimeOffset.UtcDateTime;
+            //        Console.WriteLine($"expiresAt = {expiresAt}");
+            //        CreateTask(expiresAt);
+            //    }
+            //}
 
             return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}");
         }
@@ -1203,17 +1221,17 @@
             string newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
             bool watch = googleWatch != null;
-            if (watch)
-            {
-                long expiresIn = googleWatch.Expiration ?? 0;
-                if (expiresIn > 0)
-                {
-                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
-                    DateTime expiresAt = dateTimeOffset.UtcDateTime;
-                    Console.WriteLine($"expiresAt = {expiresAt}");
-                    CreateTask(expiresAt);
-                }
-            }
+            //if (watch)
+            //{
+            //    long expiresIn = googleWatch.Expiration ?? 0;
+            //    if (expiresIn > 0)
+            //    {
+            //        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
+            //        DateTime expiresAt = dateTimeOffset.UtcDateTime;
+            //        Console.WriteLine($"expiresAt = {expiresAt}");
+            //        CreateTask(expiresAt);
+            //    }
+            //}
 
             return Json(googleWatch);
         }

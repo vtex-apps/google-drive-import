@@ -322,7 +322,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitidbyrefid/{skuRefId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitidbyrefid/{skuRefId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -365,7 +365,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/products/productgetbyrefid/{productRefId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/products/productgetbyrefid/{productRefId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -412,7 +412,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitByProductId/{productId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitByProductId/{productId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -460,7 +460,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitbyid/{skuId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitbyid/{skuId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -918,6 +918,37 @@ namespace DriveImport.Services
             return archiveId;
         }
 
+        public async Task<bool> DeleteImageByName(string skuId, string imageName)
+        {
+            bool success = true;
+            try
+            {
+                for (int i = 1; i < 5; i++)
+                {
+                    GetSkuResponse[] getSkuResponse = await this.GetSku(skuId);
+                    if (getSkuResponse != null)
+                    {
+                        foreach (GetSkuResponse skuResponse in getSkuResponse)
+                        {
+                            Console.WriteLine($"DeleteImage '{skuResponse.Name}'='{imageName}' [{skuResponse.Id}]");
+                            if (skuResponse.Name != null && skuResponse.Name.Equals(imageName))
+                            {
+                                success &= await this.DeleteSkuImageByFileId(skuId, skuResponse.Id.ToString());
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("DeleteImage", null, $"Error deleting '{imageName}' for skuid {skuId}", ex);
+            }
+
+            _context.Vtex.Logger.Info("DeleteImage", null, $"Deleted FileId: '{skuId}' for '{imageName}'");
+
+            return success;
+        }
+
         private async Task<SkuUpdateResponse> ParseSkuUpdateResponse(string responseContent)
         {
             SkuUpdateResponse updateResponse = null;
@@ -931,6 +962,136 @@ namespace DriveImport.Services
             }
 
             return updateResponse;
+        }
+
+        public async Task<bool> DeleteSkuImageByFileId(string skuId, string skuFileId)
+        {
+            // DELETE https://{accountName}.{environment}.com.br/api/catalog/pvt/stockkeepingunit/skuId/file/skuFileId
+
+            bool deleted = false;
+
+            try
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Delete,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file/{skuFileId}")
+                };
+
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"DeleteSkuImageByFileId [{response.StatusCode}] {responseContent}");
+                if (response.IsSuccessStatusCode)
+                {
+                    deleted = true;
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("DeleteImage", null, $"Did not delete image '{skuFileId}' for skuid '{skuId}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("DeleteImage", null, $"Error deleting image '{skuFileId}' for skuid '{skuId}'", ex);
+            }
+
+            return deleted;
+        }
+
+        public async Task<bool> DeleteSkuImages(string skuId)
+        {
+            // DELETE https://{accountName}.{environment}.com.br/api/catalog/pvt/stockkeepingunit/skuId/file
+
+            bool deleted = false;
+
+            try
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Delete,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file")
+                };
+
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    deleted = true;
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("DeleteSkuImages", null, $"Did not delete images for skuid '{skuId}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("DeleteSkuImages", null, $"Error deleting images for skuid '{skuId}'", ex);
+            }
+
+            return deleted;
+        }
+
+        public async Task<GetSkuResponse[]> GetSku(string skuId)
+        {
+            // GET https://{accountName}.{environment}.com.br/api/catalog/pvt/stockkeepingunit/skuId/file
+
+            GetSkuResponse[] getSkuResponse = null;
+
+            try
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file")
+                };
+
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    getSkuResponse = JsonConvert.DeserializeObject<GetSkuResponse[]>(responseContent);
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("GetSku", null, $"Did not get images for skuid '{skuId}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("GetSku", null, $"Error getting images for skuid '{skuId}'", ex);
+            }
+
+            return getSkuResponse;
         }
     }
 }

@@ -24,6 +24,8 @@ const REVOKE_URL = '/google-drive-import/revoke-token'
 const AUTH_URL = '/google-drive-import/auth'
 const CREATE_SHEET_URL = '/google-drive-import/create-sheet'
 const PROCESS_SHEET_URL = '/google-drive-import/sheet-import'
+//const ADD_IMAGES_TO_SHEET_URL = '/google-drive-import/add-images-to-sheet'
+//const SHEET_LINK_URL = '/google-drive-import/sheet-link'
 
 let initialCheck = false
 
