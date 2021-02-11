@@ -1693,7 +1693,7 @@
                     Values = new string[][]
                     {
                         new string[] { "Populate the following fields", "", "Example", "Notes" },
-                        new string[] { "Image",	"Image file name", "shirt1.jpg"," Will default to the files in the New folder" },
+                        new string[] { "Image",	"Image file name", "shirt1.jpg","Use DELETE to remove images for the Type/Value" },
                         new string[] { "Type", "The identifier for the Value field", "SkuId, SkuRefId, ProductId, or ProductRefId","" },
                         new string[] { "Value", "The value for the Type", "83", "" },
                         new string[] { "Name", "Image name", "shirt-front", "" },
