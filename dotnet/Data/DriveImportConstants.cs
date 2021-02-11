@@ -73,7 +73,7 @@ namespace DriveImport.Data
         public const int DEFAULT_SHEET_SIZE = 1000;
 
         public const int MIN_WRITE_BLOCK_SIZE = 5;
-        public const int WRITE_BLOCK_SIZE_DIVISOR = 100;
+        public const int WRITE_BLOCK_SIZE_DIVISOR = 50;
 
         public const int LOCK_TIMEOUT = 1;
 
