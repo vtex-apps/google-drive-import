@@ -1769,27 +1769,27 @@
                                         {
                                             new Value
                                             {
-                                                UserEnteredValue = ""
+                                                UserEnteredValue = string.Empty
                                             },
                                             new Value
                                             {
-                                                UserEnteredValue = "SkuId"
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.SKU_ID
                                             },
                                             new Value
                                             {
-                                                UserEnteredValue = "SkuRefId"
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.SKU_REF_ID
                                             },
                                             new Value
                                             {
-                                                UserEnteredValue = "ProductId"
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.PRODUCT_ID
                                             },
                                             new Value
                                             {
-                                                UserEnteredValue = "ProductRefId"
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.PRODUCT_REF_ID
                                             }
                                         }
                                     },
-                                    InputMessage = "SkuId,SkuRefId,ProductId,ProductRefId",
+                                    InputMessage = $"Valid values: '{DriveImportConstants.IdentificatorType.SKU_ID}', '{DriveImportConstants.IdentificatorType.SKU_REF_ID}', '{DriveImportConstants.IdentificatorType.PRODUCT_ID}', '{DriveImportConstants.IdentificatorType.PRODUCT_REF_ID}'",
                                     Strict = true
                                 }
                             }
@@ -1798,7 +1798,7 @@
                 };
 
                 var updateSheet = await _googleDriveService.UpdateSpreadsheet(sheetId, batchUpdate);
-                Console.WriteLine($"updateSheet = {updateSheet}");
+                //Console.WriteLine($"updateSheet = {updateSheet}");
 
                 string importFolderId = null;
                 string accountFolderId = null;
@@ -1993,7 +1993,7 @@
             return sheetUrl;
         }
 
-        public async Task<string> AddImagesToSheet()
+        public async Task<IActionResult> AddImagesToSheet()
         {
             string response = string.Empty;
             Response.Headers.Add("Cache-Control", "no-cache");
@@ -2026,7 +2026,8 @@
             }
 
             response = response + " - " + await _googleDriveService.AddImagesToSheet();
-            return response;
+            //return response;
+            return Ok();
         }
 
         public async Task<string> AddThumbnails()

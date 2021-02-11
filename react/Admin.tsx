@@ -24,8 +24,9 @@ const REVOKE_URL = '/google-drive-import/revoke-token'
 const AUTH_URL = '/google-drive-import/auth'
 const CREATE_SHEET_URL = '/google-drive-import/create-sheet'
 const PROCESS_SHEET_URL = '/google-drive-import/sheet-import'
-//const ADD_IMAGES_TO_SHEET_URL = '/google-drive-import/add-images-to-sheet'
+const ADD_IMAGES_TO_SHEET_URL = '/google-drive-import/add-images-to-sheet'
 //const SHEET_LINK_URL = '/google-drive-import/sheet-link'
+//const CLEAR_SHEET_URL = '/google-drive-import/sheet-link'
 
 let initialCheck = false
 
@@ -41,6 +42,8 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     sheetProcessed: false,
     sheetCreating: false,
     sheetCreated: false,
+    addingImages: false,
+    imagesAdded: false
   })
   const { account } = useRuntime()
 
@@ -55,6 +58,8 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     sheetProcessed,
     sheetCreating,
     sheetCreated,
+    addingImages,
+    imagesAdded
   } = state
 
   const fetch = () => {
@@ -185,6 +190,37 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         })
       })
   }
+
+    const addImages = () => {
+        setState({
+            ...state,
+            addingImages: true,
+        })
+
+        axios
+            .get(ADD_IMAGES_TO_SHEET_URL)
+            .then((response: any) => {
+                setState({
+                    ...state,
+                    addingImages: false,
+                    imagesAdded: response.data,
+                })
+                setTimeout(() => {
+                    setState({
+                        ...state,
+                        addingImages: false,
+                        imagesAdded: false,
+                    })
+                }, 5000)
+            })
+            .catch(() => {
+                setState({
+                    ...state,
+                    addingImages: false,
+                    imagesAdded: false,
+                })
+            })
+    }
 
   useEffect(() => {
     if (initialCheck) return
@@ -389,7 +425,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                     variation="primary"
                     collapseLeft
                     isLoading={sheetProcessing}
-                    onClick={() => {
+                      onClick={() => {
                       sheetImport()
                     }}
                   >
@@ -400,6 +436,23 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                       <strong>{`${sheetProcessed}`}</strong>
                     </p>
                   )}
+                </div>
+                <div className="flex-col w-100 mt4">
+                  <Button
+                    variation="primary"
+                    collapseLeft
+                    isLoading={addingImages}
+                       onClick={() => {
+                       addImages()
+                    }}
+                  >
+                    <FormattedMessage id="admin/google-drive-import.add-images.button" />
+                  </Button>
+                  {!addingImages && imagesAdded && (
+                    <p>
+                      <strong>{`${imagesAdded}`}</strong>
+                    </p>
+                   )}
                 </div>
               </div>
             </div>
