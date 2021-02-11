@@ -675,18 +675,10 @@
                                 processLine = false;
                             }
 
-                            Console.WriteLine($"'{imageFileName}' [{imageFileName.Equals("DELETE")}] '{identificatorType}' ({id}) [{identificatorType.ToLower().Equals("skuid")}]");
-                            if (processLine && !string.IsNullOrWhiteSpace(imageFileName) && imageFileName.Equals("DELETE") && !string.IsNullOrWhiteSpace(identificatorType) && identificatorType.ToLower().Equals("skuid"))
+                            Console.WriteLine($"'{imageFileName}' [{imageFileName.Equals("DELETE")}] '{identificatorType}' ({id}) ");
+                            if (processLine && !string.IsNullOrWhiteSpace(imageFileName) && imageFileName.Equals("DELETE") && !string.IsNullOrWhiteSpace(identificatorType))
                             {
-                                bool deleted = false;
-                                if(!string.IsNullOrEmpty(imageName))
-                                {
-                                    deleted = await _vtexAPIService.DeleteImageByName(id, imageName);
-                                }
-                                else
-                                {
-                                    deleted = await _vtexAPIService.DeleteSkuImages(id);
-                                }
+                                bool deleted = await _vtexAPIService.ProcessDelete(identificatorType, id, imageName);
 
                                 string result = deleted ? "Done" : "Error";
                                 string[] arrLineValuesToWrite = new string[] { result, null, $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}" };

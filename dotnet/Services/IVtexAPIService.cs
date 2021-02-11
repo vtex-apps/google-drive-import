@@ -18,5 +18,6 @@ namespace DriveImport.Services
         Task<bool> ProcessImageFile(string fileName, byte[] imageStream);
         Task<bool> DeleteImageByName(string skuId, string imageName);
         Task<bool> DeleteSkuImages(string skuId);
+        Task<bool> ProcessDelete(string identificatorType, string id, string imageName);
     }
 }

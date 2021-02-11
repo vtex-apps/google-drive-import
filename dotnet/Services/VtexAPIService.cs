@@ -949,6 +949,82 @@ namespace DriveImport.Services
             return success;
         }
 
+        public async Task<bool> ProcessDelete(string identificatorType, string id, string imageName)
+        {
+            bool success = true;
+
+            switch (identificatorType)
+            {
+                case DriveImportConstants.IdentificatorType.SKU_ID:
+                    if (!string.IsNullOrEmpty(imageName))
+                    {
+                        success = await this.DeleteImageByName(id, imageName);
+                    }
+                    else
+                    {
+                        success = await this.DeleteSkuImages(id);
+                    }
+
+                    break;
+                case DriveImportConstants.IdentificatorType.SKU_REF_ID:
+                    string skuId = await this.GetSkuIdFromReference(id);
+                    if (!string.IsNullOrEmpty(skuId))
+                    {
+                        if (!string.IsNullOrEmpty(imageName))
+                        {
+                            success = await this.DeleteImageByName(skuId, imageName);
+                        }
+                        else
+                        {
+                            success = await this.DeleteSkuImages(skuId);
+                        }
+                    }
+                    
+                    break;
+                case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
+                    string prodId = await this.GetProductIdFromReference(id);
+                    if (!string.IsNullOrEmpty(prodId))
+                    {
+                        List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
+                        if (prodRefSkuIds != null && prodRefSkuIds.Count > 0)
+                        {
+                            success = true;
+                            foreach (string prodRefSku in prodRefSkuIds)
+                            {
+                                if (!string.IsNullOrEmpty(imageName))
+                                {
+                                    success &= await this.DeleteImageByName(prodRefSku, imageName);
+                                }
+                                else
+                                {
+                                    success &= await this.DeleteSkuImages(prodRefSku);
+                                }
+                            }
+                        }
+                    }
+
+                    break;
+                case DriveImportConstants.IdentificatorType.PRODUCT_ID:
+                    List<string> skuIds = await this.GetSkusFromProductId(id);
+                    success = true;
+                    foreach (string sku in skuIds)
+                    {
+                        if (!string.IsNullOrEmpty(imageName))
+                        {
+                            success &= await this.DeleteImageByName(sku, imageName);
+                        }
+                        else
+                        {
+                            success &= await this.DeleteSkuImages(sku);
+                        }
+                    }
+
+                    break;
+            }
+
+            return success;
+        }
+
         private async Task<SkuUpdateResponse> ParseSkuUpdateResponse(string responseContent)
         {
             SkuUpdateResponse updateResponse = null;
