@@ -21,6 +21,30 @@ namespace DriveImport.Models
 
         [JsonProperty("setDataValidation", NullValueHandling = NullValueHandling.Ignore)]
         public SetDataValidation SetDataValidation { get; set; }
+
+        [JsonProperty("autoResizeDimensions", NullValueHandling = NullValueHandling.Ignore)]
+        public AutoResizeDimensions AutoResizeDimensions { get; set; }
+    }
+
+    public class AutoResizeDimensions
+    {
+        [JsonProperty("dimensions")]
+        public Dimensions Dimensions { get; set; }
+    }
+
+    public class Dimensions
+    {
+        [JsonProperty("sheetId")]
+        public long SheetId { get; set; }
+
+        [JsonProperty("dimension")]
+        public string Dimension { get; set; }
+
+        [JsonProperty("startIndex")]
+        public long StartIndex { get; set; }
+
+        [JsonProperty("endIndex")]
+        public long EndIndex { get; set; }
     }
 
     public class SetDataValidation

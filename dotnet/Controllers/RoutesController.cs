@@ -1538,8 +1538,9 @@
                     {
                         Properties = new SheetProperties
                         {
+                            SheetId = 0,
                             Title = sheetLabel,
-                            //Index = 1,
+                            Index = 0,
                             GridProperties = new GridProperties
                             {
                                 ColumnCount = headerRowLabels.Count(),
@@ -1657,20 +1658,21 @@
                             },
                         }
                     },
-                    //new Sheet
-                    //{
-                    //    Properties = new SheetProperties
-                    //    {
-                    //        Title = instructionsLabel,
-                    //        //Index = 2,
-                    //        GridProperties = new GridProperties
-                    //        {
-                    //            ColumnCount = headerRowLabels.Count(),
-                    //            RowCount = DriveImportConstants.DEFAULT_SHEET_SIZE
-                    //        },
-                    //        SheetType = "GRID"
-                    //    }
-                    //}
+                    new Sheet
+                    {
+                        Properties = new SheetProperties
+                        {
+                            SheetId = 1,
+                            Title = instructionsLabel,
+                            Index = 1,
+                            GridProperties = new GridProperties
+                            {
+                                ColumnCount = 4,
+                                RowCount = 8
+                            },
+                            SheetType = "GRID"
+                        }
+                    }
                 }
             };
 
@@ -1691,6 +1693,25 @@
                 };
 
                 UpdateValuesResponse updateValuesResponse = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRange);
+
+                valueRange = new ValueRange
+                {
+                    MajorDimension = "ROWS",
+                    Range = $"{instructionsLabel}!A1:D8",
+                    Values = new string[][]
+                    {
+                        new string[] { "Populate the following fields", "", "Example", "Notes" },
+                        new string[] { "Image",	"Image file name", "shirt1.jpg"," Will default to the files in the New folder" },
+                        new string[] { "Type", "The identifier for the Value field", "SkuId, SkuRefId, ProductId, or ProductRefId","" },
+                        new string[] { "Value", "The value for the Type", "83", "" },
+                        new string[] { "Name", "Image name", "shirt-front", "" },
+                        new string[] { "Label", "Image label", "Shirt Front", "" },
+                        new string[] { "Main", "Set the image as the Main image", "true","Any text will set the image as Main" },
+                        new string[] { "Attributes", "Optionally limit by aku attribute", "color=red", "" }
+                    }
+                };
+
+                updateValuesResponse = await _googleDriveService.WriteSpreadsheetValues(sheetId, valueRange);
 
                 BatchUpdate batchUpdate = new BatchUpdate
                 {
@@ -1793,7 +1814,33 @@
                                     Strict = true
                                 }
                             }
-                        }
+                        },
+                        new Request
+                        {
+                            AutoResizeDimensions = new AutoResizeDimensions
+                            {
+                                Dimensions = new Dimensions
+                                {
+                                    Dimension = "COLUMNS",
+                                    EndIndex = 4,
+                                    StartIndex = 0,
+                                    SheetId = 1
+                                }
+                            }
+                        },
+                        //new Request
+                        //{
+                        //    AutoResizeDimensions = new AutoResizeDimensions
+                        //    {
+                        //        Dimensions = new Dimensions
+                        //        {
+                        //            Dimension = "COLUMNS",
+                        //            EndIndex = headerRowLabels.Count(),
+                        //            StartIndex = 0,
+                        //            SheetId = 0
+                        //        }
+                        //    }
+                        //}
                     }
                 };
 
@@ -1961,6 +2008,27 @@
                 if(moved)
                 {
                     await _googleDriveService.AddImagesToSheet();
+                    batchUpdate = new BatchUpdate
+                    {
+                        Requests = new Request[]
+                        {
+                            new Request
+                            {
+                                AutoResizeDimensions = new AutoResizeDimensions
+                                {
+                                    Dimensions = new Dimensions
+                                    {
+                                        Dimension = "COLUMNS",
+                                        EndIndex = 2, //headerRowLabels.Count(),
+                                        StartIndex = 0,
+                                        SheetId = 0
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    updateSheet = await _googleDriveService.UpdateSpreadsheet(sheetId, batchUpdate);
                 }
             }
 
