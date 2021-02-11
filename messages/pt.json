@@ -22,5 +22,6 @@
   "admin/google-drive-import.disconnect.button": "Desconectar",
   "admin/google-drive-import.setup.button": "Conceder acesso",
   "admin/google-drive-import.sheet-import.button": "Process Sheet",
-  "admin/google-drive-import.create-sheet.button": "Create Blank Sheet"
+  "admin/google-drive-import.create-sheet.button": "Create Blank Sheet",
+  "admin/google-drive-import.add-images.button": "Clear Sheet & Add Images"
 }

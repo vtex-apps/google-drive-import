@@ -18,6 +18,54 @@ namespace DriveImport.Models
 
         [JsonProperty("updateSheetProperties", NullValueHandling = NullValueHandling.Ignore)]
         public UpdateSheetProperties UpdateSheetProperties { get; set; }
+
+        [JsonProperty("setDataValidation", NullValueHandling = NullValueHandling.Ignore)]
+        public SetDataValidation SetDataValidation { get; set; }
+
+        [JsonProperty("autoResizeDimensions", NullValueHandling = NullValueHandling.Ignore)]
+        public AutoResizeDimensions AutoResizeDimensions { get; set; }
+    }
+
+    public class AutoResizeDimensions
+    {
+        [JsonProperty("dimensions")]
+        public Dimensions Dimensions { get; set; }
+    }
+
+    public class Dimensions
+    {
+        [JsonProperty("sheetId")]
+        public long SheetId { get; set; }
+
+        [JsonProperty("dimension")]
+        public string Dimension { get; set; }
+
+        [JsonProperty("startIndex")]
+        public long StartIndex { get; set; }
+
+        [JsonProperty("endIndex")]
+        public long EndIndex { get; set; }
+    }
+
+    public class SetDataValidation
+    {
+        [JsonProperty("range")]
+        public BatchUpdateRange Range { get; set; }
+
+        [JsonProperty("rule")]
+        public Rule Rule { get; set; }
+    }
+
+    public class Rule
+    {
+        [JsonProperty("condition")]
+        public Condition Condition { get; set; }
+
+        [JsonProperty("inputMessage")]
+        public string InputMessage { get; set; }
+
+        [JsonProperty("strict")]
+        public bool Strict { get; set; }
     }
 
     public class RepeatCell
@@ -84,6 +132,12 @@ namespace DriveImport.Models
 
         [JsonProperty("endRowIndex")]
         public long EndRowIndex { get; set; }
+
+        [JsonProperty("startColumnIndex")]
+        public long? StartColumnIndex { get; set; }
+
+        [JsonProperty("endColumnIndex")]
+        public long? EndColumnIndex { get; set; }
     }
 
     public class UpdateSheetProperties

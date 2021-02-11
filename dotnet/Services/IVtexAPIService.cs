@@ -16,5 +16,8 @@ namespace DriveImport.Services
         Task<GetSkuContextResponse> GetSkuContext(string skuId);
         Task<UpdateResponse> ProcessImageFile(string fileName, string webLink);
         Task<bool> ProcessImageFile(string fileName, byte[] imageStream);
+        Task<bool> DeleteImageByName(string skuId, string imageName);
+        Task<bool> DeleteSkuImages(string skuId);
+        Task<bool> ProcessDelete(string identificatorType, string id, string imageName);
     }
 }

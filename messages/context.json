@@ -13,5 +13,6 @@
   "admin/google-drive-import.disconnect.button": "admin/google-drive-import.disconnect.button",
   "admin/google-drive-import.setup.button": "admin/google-drive-import.setup.button",
   "admin/google-drive-import.sheet-import.button": "admin/google-drive-import.sheet-import.button",
-  "admin/google-drive-import.create-sheet.button": "admin/google-drive-import.create-sheet.button"
+  "admin/google-drive-import.create-sheet.button": "admin/google-drive-import.create-sheet.button",
+  "admin/google-drive-import.add-images.button": "admin/google-drive-import.add-images.button"
 }

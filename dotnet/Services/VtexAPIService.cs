@@ -97,36 +97,36 @@ namespace DriveImport.Services
 
                     var client = _clientFactory.CreateClient();
                     var response = await client.SendAsync(request);
-                    if (response.StatusCode == HttpStatusCode.GatewayTimeout)
-                    {
-                        //for (int cnt = 1; cnt < 2; cnt++)
-                        //{
-                        //await Task.Delay(cnt * 1000 * 10);
-                        await Task.Delay(1000 * 20);
-                        request = new HttpRequestMessage
-                            {
-                                Method = HttpMethod.Post,
-                                RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
-                                Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
-                            };
+                    //if (response.StatusCode == HttpStatusCode.GatewayTimeout)
+                    //{
+                    //    //for (int cnt = 1; cnt < 2; cnt++)
+                    //    //{
+                    //    //await Task.Delay(cnt * 1000 * 10);
+                    //    await Task.Delay(1000 * 20);
+                    //    request = new HttpRequestMessage
+                    //        {
+                    //            Method = HttpMethod.Post,
+                    //            RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file"),
+                    //            Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
+                    //        };
 
-                            if (authToken != null)
-                            {
-                                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
-                                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-                                request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
-                            }
+                    //        if (authToken != null)
+                    //        {
+                    //            request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    //            request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    //            request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                    //        }
 
-                            client = _clientFactory.CreateClient();
-                            response = await client.SendAsync(request);
-                        //_context.Vtex.Logger.Info("UpdateSkuImage", null, $"Sku {skuId} '{imageName}' retry ({cnt}) [{response.StatusCode}]");
-                        _context.Vtex.Logger.Info("UpdateSkuImage", null, $"Sku {skuId} '{imageName}' retry  [{response.StatusCode}]");
-                        //    if (response.IsSuccessStatusCode)
-                        //    {
-                        //        break;
-                        //    }
-                        //}
-                    }
+                    //        client = _clientFactory.CreateClient();
+                    //        response = await client.SendAsync(request);
+                    //    //_context.Vtex.Logger.Info("UpdateSkuImage", null, $"Sku {skuId} '{imageName}' retry ({cnt}) [{response.StatusCode}]");
+                    //    _context.Vtex.Logger.Info("UpdateSkuImage", null, $"Sku {skuId} '{imageName}' retry  [{response.StatusCode}]");
+                    //    //    if (response.IsSuccessStatusCode)
+                    //    //    {
+                    //    //        break;
+                    //    //    }
+                    //    //}
+                    //}
 
                     responseContent = await response.Content.ReadAsStringAsync();
                     success = response.IsSuccessStatusCode;
@@ -322,7 +322,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitidbyrefid/{skuRefId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitidbyrefid/{skuRefId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -365,7 +365,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/products/productgetbyrefid/{productRefId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/products/productgetbyrefid/{productRefId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -412,7 +412,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitByProductId/{productId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitByProductId/{productId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -460,7 +460,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitbyid/{skuId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitbyid/{skuId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -494,6 +494,7 @@ namespace DriveImport.Services
 
         public async Task<UpdateResponse> ProcessImageFile(string fileName, string webLink)
         {
+            var stopWatch = System.Diagnostics.Stopwatch.StartNew();
             UpdateResponse updateResponse = new UpdateResponse();
             List<string> messages = new List<string>();
             bool success = false;
@@ -537,7 +538,11 @@ namespace DriveImport.Services
                     switch (identificatorType)
                     {
                         case DriveImportConstants.IdentificatorType.SKU_ID:
+                            stopWatch.Restart();
                             updateResponse = await this.UpdateSkuImage(id, imageName, imageLabel, isMain, webLink);
+                            stopWatch.Stop();
+                            _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {id} {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
+
                             success = updateResponse.Success;
                             if (!updateResponse.Success)
                             {
@@ -553,7 +558,10 @@ namespace DriveImport.Services
                             string skuId = await this.GetSkuIdFromReference(id);
                             if (!string.IsNullOrEmpty(skuId))
                             {
+                                stopWatch.Restart();
                                 updateResponse = await this.UpdateSkuImage(skuId, imageName, imageLabel, isMain, webLink);
+                                stopWatch.Stop();
+                                _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {skuId} for Ref {id} {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
                                 success = updateResponse.Success;
                                 if (!updateResponse.Success)
                                 {
@@ -622,16 +630,25 @@ namespace DriveImport.Services
                                         {
                                             if (imageId != null)
                                             {
+                                                stopWatch.Restart();
                                                 updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
+                                                stopWatch.Stop();
+                                                _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {prodRefSku} for ProdRef {id} from archive {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
                                                 if (!updateResponse.Success)
                                                 {
                                                     imageId = null;
+                                                    stopWatch.Restart();
                                                     updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                                    stopWatch.Stop();
+                                                    _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {prodRefSku} for ProdRef {id} after failing to load from archive {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
                                                 }
                                             }
                                             else
                                             {
+                                                stopWatch.Restart();
                                                 updateResponse = await this.UpdateSkuImage(prodRefSku, imageName, imageLabel, isMain, webLink);
+                                                stopWatch.Stop();
+                                                _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {prodRefSku} for ProdRef {id} {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
                                             }
 
                                             success &= updateResponse.Success;
@@ -710,16 +727,25 @@ namespace DriveImport.Services
                                 {
                                     if (imageId != null)
                                     {
+                                        stopWatch.Restart();
                                         updateResponse = await this.UpdateSkuImageArchive(sku, imageName, imageLabel, isMain, imageId.ToString());
+                                        stopWatch.Stop();
+                                        _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {sku} for ProdId {id} from archive {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
                                         if (!updateResponse.Success)
                                         {
                                             imageId = null;
+                                            stopWatch.Restart();
                                             updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                            stopWatch.Stop();
+                                            _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {sku} for ProdId {id} after failing to load from archive {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
                                         }
                                     }
                                     else
                                     {
+                                        stopWatch.Restart();
                                         updateResponse = await this.UpdateSkuImage(sku, imageName, imageLabel, isMain, webLink);
+                                        stopWatch.Stop();
+                                        _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {sku} for ProdId {id}  {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
                                     }
 
                                     success &= updateResponse.Success;
@@ -850,36 +876,153 @@ namespace DriveImport.Services
 
         private async Task<long?> GetArchiveId(SkuUpdateResponse skuUpdateResponse, string imageName)
         {
+            var stopWatch = System.Diagnostics.Stopwatch.StartNew();
             long? archiveId = null;
-            for (int i = 1; i < 5; i++)
+            try
             {
-                GetSkuContextResponse getSkuContextResponse = await this.GetSkuContext(skuUpdateResponse.SkuId.ToString());
-                if (getSkuContextResponse != null)
+                for (int i = 1; i < 5; i++)
                 {
-                    foreach (Image image in getSkuContextResponse.Images)
+                    GetSkuContextResponse getSkuContextResponse = await this.GetSkuContext(skuUpdateResponse.SkuId.ToString());
+                    if (getSkuContextResponse != null)
                     {
-                        Console.WriteLine($"GetSkuContextResponse '{image.ImageName}'='{imageName}' [{image.FileId}]");
-                        if (image.ImageName != null && image.ImageName.Equals(imageName))
+                        foreach (Image image in getSkuContextResponse.Images)
                         {
-                            archiveId = image.FileId;
-                            break;
+                            Console.WriteLine($"GetSkuContextResponse '{image.ImageName}'='{imageName}' [{image.FileId}]");
+                            if (image.ImageName != null && image.ImageName.Equals(imageName))
+                            {
+                                archiveId = image.FileId;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (archiveId != null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        await Task.Delay(500);
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                _context.Vtex.Logger.Error("GetArchiveId", null, $"Error getting archive id for sku {skuUpdateResponse.SkuId} '{imageName}'", ex);
+            }
+
+            stopWatch.Stop();
+            _context.Vtex.Logger.Info("GetArchiveId", null, $"FileId: '{archiveId}' for '{imageName}' (sku:{skuUpdateResponse.SkuId} id:{skuUpdateResponse.Id})");
+            _context.Vtex.Logger.Debug("GetArchiveId", null, $"Found archive id {archiveId != null}  {stopWatch.ElapsedMilliseconds}");
+
+            return archiveId;
+        }
+
+        public async Task<bool> DeleteImageByName(string skuId, string imageName)
+        {
+            bool success = true;
+            try
+            {
+                for (int i = 1; i < 5; i++)
+                {
+                    GetSkuResponse[] getSkuResponse = await this.GetSku(skuId);
+                    if (getSkuResponse != null)
+                    {
+                        foreach (GetSkuResponse skuResponse in getSkuResponse)
+                        {
+                            Console.WriteLine($"DeleteImage '{skuResponse.Name}'='{imageName}' [{skuResponse.Id}]");
+                            if (skuResponse.Name != null && skuResponse.Name.Equals(imageName))
+                            {
+                                success &= await this.DeleteSkuImageByFileId(skuId, skuResponse.Id.ToString());
+                            }
                         }
                     }
                 }
-
-                if (archiveId != null)
-                {
-                    break;
-                }
-                else
-                {
-                    await Task.Delay(500);
-                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("DeleteImage", null, $"Error deleting '{imageName}' for skuid {skuId}", ex);
             }
 
-            _context.Vtex.Logger.Info("GetArchiveId", null, $"FileId: '{archiveId}' for '{imageName}' (sku:{skuUpdateResponse.SkuId} id:{skuUpdateResponse.Id})");
+            _context.Vtex.Logger.Info("DeleteImage", null, $"Deleted FileId: '{skuId}' for '{imageName}'");
 
-            return archiveId;
+            return success;
+        }
+
+        public async Task<bool> ProcessDelete(string identificatorType, string id, string imageName)
+        {
+            bool success = true;
+
+            switch (identificatorType)
+            {
+                case DriveImportConstants.IdentificatorType.SKU_ID:
+                    if (!string.IsNullOrEmpty(imageName))
+                    {
+                        success = await this.DeleteImageByName(id, imageName);
+                    }
+                    else
+                    {
+                        success = await this.DeleteSkuImages(id);
+                    }
+
+                    break;
+                case DriveImportConstants.IdentificatorType.SKU_REF_ID:
+                    string skuId = await this.GetSkuIdFromReference(id);
+                    if (!string.IsNullOrEmpty(skuId))
+                    {
+                        if (!string.IsNullOrEmpty(imageName))
+                        {
+                            success = await this.DeleteImageByName(skuId, imageName);
+                        }
+                        else
+                        {
+                            success = await this.DeleteSkuImages(skuId);
+                        }
+                    }
+                    
+                    break;
+                case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
+                    string prodId = await this.GetProductIdFromReference(id);
+                    if (!string.IsNullOrEmpty(prodId))
+                    {
+                        List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
+                        if (prodRefSkuIds != null && prodRefSkuIds.Count > 0)
+                        {
+                            success = true;
+                            foreach (string prodRefSku in prodRefSkuIds)
+                            {
+                                if (!string.IsNullOrEmpty(imageName))
+                                {
+                                    success &= await this.DeleteImageByName(prodRefSku, imageName);
+                                }
+                                else
+                                {
+                                    success &= await this.DeleteSkuImages(prodRefSku);
+                                }
+                            }
+                        }
+                    }
+
+                    break;
+                case DriveImportConstants.IdentificatorType.PRODUCT_ID:
+                    List<string> skuIds = await this.GetSkusFromProductId(id);
+                    success = true;
+                    foreach (string sku in skuIds)
+                    {
+                        if (!string.IsNullOrEmpty(imageName))
+                        {
+                            success &= await this.DeleteImageByName(sku, imageName);
+                        }
+                        else
+                        {
+                            success &= await this.DeleteSkuImages(sku);
+                        }
+                    }
+
+                    break;
+            }
+
+            return success;
         }
 
         private async Task<SkuUpdateResponse> ParseSkuUpdateResponse(string responseContent)
@@ -895,6 +1038,136 @@ namespace DriveImport.Services
             }
 
             return updateResponse;
+        }
+
+        public async Task<bool> DeleteSkuImageByFileId(string skuId, string skuFileId)
+        {
+            // DELETE https://{accountName}.{environment}.com.br/api/catalog/pvt/stockkeepingunit/skuId/file/skuFileId
+
+            bool deleted = false;
+
+            try
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Delete,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file/{skuFileId}")
+                };
+
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"DeleteSkuImageByFileId [{response.StatusCode}] {responseContent}");
+                if (response.IsSuccessStatusCode)
+                {
+                    deleted = true;
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("DeleteImage", null, $"Did not delete image '{skuFileId}' for skuid '{skuId}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("DeleteImage", null, $"Error deleting image '{skuFileId}' for skuid '{skuId}'", ex);
+            }
+
+            return deleted;
+        }
+
+        public async Task<bool> DeleteSkuImages(string skuId)
+        {
+            // DELETE https://{accountName}.{environment}.com.br/api/catalog/pvt/stockkeepingunit/skuId/file
+
+            bool deleted = false;
+
+            try
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Delete,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file")
+                };
+
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    deleted = true;
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("DeleteSkuImages", null, $"Did not delete images for skuid '{skuId}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("DeleteSkuImages", null, $"Error deleting images for skuid '{skuId}'", ex);
+            }
+
+            return deleted;
+        }
+
+        public async Task<GetSkuResponse[]> GetSku(string skuId)
+        {
+            // GET https://{accountName}.{environment}.com.br/api/catalog/pvt/stockkeepingunit/skuId/file
+
+            GetSkuResponse[] getSkuResponse = null;
+
+            try
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/stockkeepingunit/{skuId}/file")
+                };
+
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    getSkuResponse = JsonConvert.DeserializeObject<GetSkuResponse[]>(responseContent);
+                }
+                else
+                {
+                    _context.Vtex.Logger.Warn("GetSku", null, $"Did not get images for skuid '{skuId}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("GetSku", null, $"Error getting images for skuid '{skuId}'", ex);
+            }
+
+            return getSkuResponse;
         }
     }
 }
