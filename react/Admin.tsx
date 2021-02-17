@@ -26,7 +26,7 @@ const CREATE_SHEET_URL = '/google-drive-import/create-sheet'
 const PROCESS_SHEET_URL = '/google-drive-import/sheet-import'
 const ADD_IMAGES_TO_SHEET_URL = '/google-drive-import/add-images-to-sheet'
 //const SHEET_LINK_URL = '/google-drive-import/sheet-link'
-//const CLEAR_SHEET_URL = '/google-drive-import/sheet-link'
+//const CLEAR_SHEET_URL = '/google-drive-import/clear-sheet'
 
 let initialCheck = false
 

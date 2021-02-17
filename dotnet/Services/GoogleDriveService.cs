@@ -114,7 +114,7 @@ namespace DriveImport.Services
 
         public async Task<Token> RefreshGoogleAuthorizationToken(string refreshToken)
         {
-            Token tokenObj = new Token();
+            Token tokenObj = null; // new Token();
             if (string.IsNullOrEmpty(refreshToken))
             {
                 Console.WriteLine("Refresh Token Empty");
@@ -277,13 +277,16 @@ namespace DriveImport.Services
                     {
                         Console.WriteLine($"ExpiresAt = {token.ExpiresAt} Refreshing token.");
                         token = await this.RefreshGoogleAuthorizationToken(token.RefreshToken);
-                        token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
-                        if (string.IsNullOrEmpty(token.RefreshToken))
+                        if (token != null)
                         {
-                            token.RefreshToken = refreshToken;
-                        }
+                            token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
+                            if (string.IsNullOrEmpty(token.RefreshToken))
+                            {
+                                token.RefreshToken = refreshToken;
+                            }
 
-                        bool saved = await _driveImportRepository.SaveToken(token);
+                            bool saved = await _driveImportRepository.SaveToken(token);
+                        }
                     }
                 }
                 else

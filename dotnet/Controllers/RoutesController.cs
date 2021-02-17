@@ -1253,10 +1253,12 @@
                     //}
 
                     string newFolderId = string.Empty;
+                    string imagesFolderId = string.Empty;
                     FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
                     if (folderIds != null)
                     {
                         newFolderId = folderIds.NewFolderId;
+                        imagesFolderId = folderIds.ImagesFolderId;
                         Console.WriteLine($"GetOwnerEmail - newFolderId = {newFolderId}");
                         _context.Vtex.Logger.Info("GetOwnerEmail", null, $"New Folder Id: {newFolderId}");
                     }
@@ -1291,6 +1293,26 @@
                             {
                                 _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not find owners. (2)");
                                 Console.WriteLine("GetOwnerEmail - Could not find owners. (2)");
+                                owners = listFilesResponse.Files.Where(f => f.Id.Equals(imagesFolderId)).Select(o => o.Owners.Distinct()).FirstOrDefault();
+                            }
+                            if (owners != null)
+                            {
+                                email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+                            }
+                            else
+                            {
+                                _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not find owners. (3)");
+                                Console.WriteLine("GetOwnerEmail - Could not find owners. (3)");
+                                //owners = listFilesResponse.Files.Select(o => o.Owners.Distinct()).FirstOrDefault();
+                                //if (owners != null)
+                                //{
+                                //    email = owners.Select(o => o.EmailAddress).FirstOrDefault();
+                                //}
+                                //else
+                                //{
+                                //    _context.Vtex.Logger.Info("GetOwnerEmail", null, "Could not find owners. (4)");
+                                //    Console.WriteLine("GetOwnerEmail - Could not find owners. (4)");
+                                //}
                             }
                         }
                     }
