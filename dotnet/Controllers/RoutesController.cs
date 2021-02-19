@@ -2047,7 +2047,7 @@
             }
 
             string result = string.IsNullOrEmpty(sheetId) ? "Error" : "Created";
-            return Json(result);
+            return Json(this.GetSheetLink());
         }
 
         public async Task<string> GetSheetLink()
