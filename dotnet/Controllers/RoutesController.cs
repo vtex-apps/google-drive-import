@@ -2050,7 +2050,7 @@
             return Json(this.GetSheetLink());
         }
 
-        public async Task<string> GetSheetLink()
+        public async Task<IActionResult> GetSheetLink()
         {
             string sheetUrl = string.Empty;
             string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
@@ -2072,7 +2072,7 @@
                 }
             }
 
-            return sheetUrl;
+            return Json(sheetUrl);
         }
 
         public async Task<IActionResult> AddImagesToSheet()
