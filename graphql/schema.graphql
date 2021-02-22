@@ -1,0 +1,14 @@
+type Query {
+  haveToken(): Boolean
+  getOwnerEmail(accountName: String!): String
+  sheetLink(): String
+}
+
+type Mutation {
+  importImages(): String
+  revokeToken(accountName: String!): Boolean
+  googleAuthorize(): String
+  createSheet(): String
+  processSheet(): String
+  addImages(): String
+}
