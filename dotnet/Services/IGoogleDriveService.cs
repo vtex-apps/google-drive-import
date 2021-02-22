@@ -38,5 +38,9 @@ namespace DriveImport.Services
 
         Task<string> AddImagesToSheet();
         Task<string> ClearSpreadsheet(string fileId, SheetRange sheetRange);
+
+        Task<string> CreateSheet();
+        Task<string> GetSheetLink();
+        Task ClearAndAddImages();
     }
 }
