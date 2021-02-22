@@ -1,5 +1,4 @@
-/* eslint-disable padding-line-between-statements */
-/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { FC, useState, useEffect } from 'react'
 import { useRuntime } from 'vtex.render-runtime'
 import axios from 'axios'
@@ -27,10 +26,11 @@ const AUTH_URL = '/google-drive-import/auth'
 const CREATE_SHEET_URL = '/google-drive-import/create-sheet'
 const PROCESS_SHEET_URL = '/google-drive-import/sheet-import'
 const ADD_IMAGES_TO_SHEET_URL = '/google-drive-import/add-images-to-sheet'
-//const SHEET_LINK_URL = '/google-drive-import/sheet-link'
-//const CLEAR_SHEET_URL = '/google-drive-import/clear-sheet'
+const SHEET_LINK_URL = '/google-drive-import/sheet-link'
+// const CLEAR_SHEET_URL = '/google-drive-import/clear-sheet'
 
 let initialCheck = false
+let SHEET_URL: any = null
 
 const Admin: FC<WrappedComponentProps> = ({ intl }) => {
   const [state, setState] = useState<any>({
@@ -46,8 +46,10 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     sheetCreated: false,
     addingImages: false,
     imagesAdded: false,
+    sheetUrl: SHEET_URL,
     currentTab: 1,
   })
+
   const { account } = useRuntime()
 
   const {
@@ -64,6 +66,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     addingImages,
     imagesAdded,
     currentTab,
+    sheetUrl,
   } = state
 
   const fetch = () => {
@@ -164,6 +167,21 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       })
   }
 
+  const getSheetUrl = () => {
+    axios
+      .get(SHEET_LINK_URL, {
+        withCredentials: true,
+      })
+      .then((response: any) => {
+        SHEET_URL = response.data
+        setState({
+          ...state,
+          sheetCreating: false,
+          sheetUrl: response.data,
+        })
+      })
+  }
+
   const createSheet = () => {
     setState({
       ...state,
@@ -173,6 +191,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     axios
       .get(CREATE_SHEET_URL)
       .then((response: any) => {
+        getSheetUrl()
         setState({
           ...state,
           sheetCreating: false,
@@ -230,6 +249,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
     if (initialCheck) return
     initialCheck = true
     let accountConnected = false
+
     axios
       .get(CHECK_URL)
       .then((response: any) => {
@@ -237,6 +257,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
         setState({
           ...state,
           loading: false,
+          sheetUrl: SHEET_URL,
           authorization: accountConnected,
         })
       })
@@ -252,12 +273,21 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
           setState({
             ...state,
             loading: false,
+            sheetUrl: SHEET_URL,
             authorization: accountConnected,
             email: response.data,
           })
         })
       })
+    getSheetUrl()
   })
+
+  const changeTab = (tab: number) => {
+    setState({
+      ...state,
+      currentTab: tab,
+    })
+  }
 
   return (
     <Layout
@@ -269,27 +299,29 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                 id: 'admin/google-drive-import.title',
               })}
             >
-              <div>
-                {email && (
-                  <p>
-                    <FormattedMessage id="admin/google-drive-import.connected-as" />{' '}
-                    <strong>{`${email}`}</strong>
-                  </p>
-                )}
-                <div className="mt4 mb4 tr">
-                  <Button
-                    variation="danger-tertiary"
-                    size="regular"
-                    isLoading={revoking}
-                    onClick={() => {
-                      revoke()
-                    }}
-                    collapseLeft
-                  >
-                    <FormattedMessage id="admin/google-drive-import.disconnect.button" />
-                  </Button>
+              {authorization && (
+                <div>
+                  {email && (
+                    <p>
+                      <FormattedMessage id="admin/google-drive-import.connected-as" />{' '}
+                      <strong>{`${email}`}</strong>
+                    </p>
+                  )}
+                  <div className="mt4 mb4 tr">
+                    <Button
+                      variation="danger-tertiary"
+                      size="regular"
+                      isLoading={revoking}
+                      onClick={() => {
+                        revoke()
+                      }}
+                      collapseLeft
+                    >
+                      <FormattedMessage id="admin/google-drive-import.disconnect.button" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </PageHeader>
           </div>
         </div>
@@ -333,7 +365,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
           <Tab
             label="Instructions"
             active={currentTab === 1}
-            onClick={() => setState({ ...state, currentTab: 1 })}
+            onClick={() => changeTab(1)}
           >
             <div>
               <Card>
@@ -354,13 +386,22 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                       </pre>
                       <p>
                         There are two ways to associate images to SKUs:{' '}
-                        <strong>Standardized Naming</strong> (SKU Images) and{' '}
-                        <strong>Spreadsheet</strong>
+                        <strong>
+                          <a href="#skuimages" className="link black-90">
+                            Standardized Naming
+                          </a>
+                        </strong>{' '}
+                        (SKU Images) and{' '}
+                        <strong>
+                          <a href="#spreadsheet" className="link black-90">
+                            Spreadsheet
+                          </a>
+                        </strong>
                       </p>
-
-                      <h3 className="heading-3 mt4 mb4" id="skuimages">
+                      <Divider />
+                      <h2 className="heading-3 mt4 mb4" id="skuimages">
                         <FormattedMessage id="admin/google-drive-import.sku-images.title" />
-                      </h3>
+                      </h2>
                       <p>
                         <FormattedMessage id="admin/google-drive-import.instructions-line-01" />
                       </p>
@@ -435,6 +476,10 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                       <p>
                         <FormattedMessage id="admin/google-drive-import.instructions-line-03" />
                       </p>
+
+                      <Divider />
+                      <h2 id="spreadsheet">Spreadsheet</h2>
+                      <p>Spreadsheet instructions here</p>
                     </div>
                   </div>
                 )}
@@ -444,9 +489,10 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
           <Tab
             label="Actions"
             active={currentTab === 2}
-            onClick={() => setState({ ...state, currentTab: 2 })}
+            onClick={() => changeTab(2)}
           >
             <div className="bg-base pa8">
+              <h2>SKU Images</h2>
               <Card>
                 <div className="flex">
                   <div className="w-70">
@@ -464,19 +510,22 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                   </div>
 
                   <div className="w-30 items-center flex">
-                    <Button
-                      variation="primary"
-                      collapseLeft
-                      block
-                      isLoading={fetching}
-                      onClick={() => {
-                        fetch()
-                      }}
-                    >
-                      <FormattedMessage id="admin/google-drive-import.fetch.button" />
-                    </Button>
+                    {!fetched && (
+                      <Button
+                        variation="primary"
+                        collapseLeft
+                        block
+                        isLoading={fetching}
+                        onClick={() => {
+                          fetch()
+                        }}
+                      >
+                        <FormattedMessage id="admin/google-drive-import.fetch.button" />
+                      </Button>
+                    )}
+
                     {!fetching && fetched && (
-                      <p>
+                      <p className="block">
                         <strong>{`${fetched}`}</strong>
                       </p>
                     )}
@@ -484,42 +533,59 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                 </div>
               </Card>
               <br />
-              <Card>
-                <div className="flex">
-                  <div className="w-70">
-                    <p>
-                      Creates a Sheet with a default structure that you need for
-                      the mapping
-                    </p>
-                  </div>
-
-                  <div
-                    style={{ flexGrow: 1 }}
-                    className="flex items-stretch w-20 justify-center"
-                  >
-                    <Divider orientation="vertical" />
-                  </div>
-
-                  <div className="w-30 items-center flex">
-                    <Button
-                      variation="primary"
-                      collapseLeft
-                      block
-                      isLoading={sheetCreating}
-                      onClick={() => {
-                        createSheet()
-                      }}
-                    >
-                      <FormattedMessage id="admin/google-drive-import.create-sheet.button" />
-                    </Button>
-                    {!sheetCreating && sheetCreated && (
+              <h2>Spreadsheet</h2>
+              {!sheetUrl && (
+                <Card>
+                  <div className="flex">
+                    <div className="w-70">
                       <p>
-                        <strong>{`${sheetCreated}`}</strong>
+                        Creates a Sheet with a default structure that you need
+                        for the mapping
                       </p>
-                    )}
+                    </div>
+
+                    <div
+                      style={{ flexGrow: 1 }}
+                      className="flex items-stretch w-20 justify-center"
+                    >
+                      <Divider orientation="vertical" />
+                    </div>
+
+                    <div className="w-30 items-center flex">
+                      <Button
+                        variation="primary"
+                        collapseLeft
+                        block
+                        isLoading={sheetCreating}
+                        onClick={() => {
+                          createSheet()
+                        }}
+                      >
+                        <FormattedMessage id="admin/google-drive-import.create-sheet.button" />
+                      </Button>
+                      {!sheetCreating && sheetCreated && (
+                        <p>
+                          <strong>{`${sheetCreated}`}</strong>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              )}
+              {sheetUrl && (
+                <Card>
+                  <div className="flex">
+                    <div className="w-100">
+                      <p>
+                        Access the mapping Spreadsheet{' '}
+                        <a href={sheetUrl} target="_blank" rel="noreferrer">
+                          {sheetUrl}
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
               <br />
               <Card>
                 <div className="flex">
@@ -536,17 +602,19 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                     <Divider orientation="vertical" />
                   </div>
                   <div className="w-30 items-center flex">
-                    <Button
-                      variation="primary"
-                      collapseLeft
-                      block
-                      isLoading={sheetProcessing}
-                      onClick={() => {
-                        sheetImport()
-                      }}
-                    >
-                      <FormattedMessage id="admin/google-drive-import.sheet-import.button" />
-                    </Button>
+                    {!sheetProcessed && (
+                      <Button
+                        variation="primary"
+                        collapseLeft
+                        block
+                        isLoading={sheetProcessing}
+                        onClick={() => {
+                          sheetImport()
+                        }}
+                      >
+                        <FormattedMessage id="admin/google-drive-import.sheet-import.button" />
+                      </Button>
+                    )}
                     {!sheetProcessing && sheetProcessed && (
                       <p>
                         <strong>{`${sheetProcessed}`}</strong>
@@ -572,17 +640,19 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                     <Divider orientation="vertical" />
                   </div>
                   <div className="w-30 items-center flex">
-                    <Button
-                      variation="primary"
-                      collapseLeft
-                      block
-                      isLoading={addingImages}
-                      onClick={() => {
-                        addImages()
-                      }}
-                    >
-                      <FormattedMessage id="admin/google-drive-import.add-images.button" />
-                    </Button>
+                    {!imagesAdded && (
+                      <Button
+                        variation="primary"
+                        collapseLeft
+                        block
+                        isLoading={addingImages}
+                        onClick={() => {
+                          addImages()
+                        }}
+                      >
+                        <FormattedMessage id="admin/google-drive-import.add-images.button" />
+                      </Button>
+                    )}
                     {!addingImages && imagesAdded && (
                       <p>
                         <strong>{`${imagesAdded}`}</strong>
