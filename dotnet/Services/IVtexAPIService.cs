@@ -7,6 +7,8 @@ namespace DriveImport.Services
 {
     public interface IVtexAPIService
     {
+        Task<string> DriveImport();
+        Task<string> SheetImport();
         Task<string> GetProductIdFromReference(string productRefId);
         Task<string> GetSkuIdFromReference(string skuRefId);
         Task<List<string>> GetSkusFromProductId(string productId);
