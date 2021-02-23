@@ -1,7 +1,7 @@
+/* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { FC, useState, useEffect } from 'react'
+import React, { FC, useState } from 'react'
 import { useRuntime } from 'vtex.render-runtime'
-import axios from 'axios'
 import {
   Layout,
   PageHeader,
@@ -14,117 +14,77 @@ import {
   Tab,
 } from 'vtex.styleguide'
 import { injectIntl, FormattedMessage, WrappedComponentProps } from 'react-intl'
+import { compose, graphql, useQuery, useMutation } from 'react-apollo'
 
 import styles from './styles.css'
 import GoogleSignIn from '../public/metadata/google_signin.png'
 
-const CHECK_URL = '/google-drive-import/have-token'
-const EMAIL_URL = '/google-drive-import/owner-email'
-const FETCH_URL = '/google-drive-import/import-images'
-const REVOKE_URL = '/google-drive-import/revoke-token'
+import Q_OWNER_EMAIL from './queries/GetOwnerEmail.gql'
+import Q_HAVE_TOKEN from './queries/HaveToken.gql'
+import Q_SHEET_LINK from './queries/SheetLink.gql'
+
+import M_REVOKE from './mutations/RevokeToken.gql'
+// import M_AUTHORIZE from './mutations/GoogleAuthorize.gql'
+import M_CREATE_SHEET from './mutations/CreateSheet.gql'
+import M_PROCESS_SHEET from './mutations/ProcessSheet.gql'
+import M_ADD_IMAGES from './mutations/AddImages.gql'
+import M_IMPORT_IMAGES from './mutations/ImportImages.gql'
+
 const AUTH_URL = '/google-drive-import/auth'
-const CREATE_SHEET_URL = '/google-drive-import/create-sheet'
-const PROCESS_SHEET_URL = '/google-drive-import/sheet-import'
-const ADD_IMAGES_TO_SHEET_URL = '/google-drive-import/add-images-to-sheet'
-const SHEET_LINK_URL = '/google-drive-import/sheet-link'
-// const CLEAR_SHEET_URL = '/google-drive-import/clear-sheet'
 
-let initialCheck = false
-let SHEET_URL: any = null
-
-const Admin: FC<WrappedComponentProps> = ({ intl }) => {
+const Admin: FC<WrappedComponentProps & any> = ({
+  intl,
+  link,
+  token,
+  owner,
+}) => {
+  console.log('Link =>', link)
+  console.log('Token =>', token)
+  console.log('Owner =>', owner)
   const [state, setState] = useState<any>({
-    fetching: false,
-    revoking: false,
-    fetched: false,
-    authorization: false,
-    email: null,
-    loading: true,
-    sheetProcessing: false,
-    sheetProcessed: false,
-    sheetCreating: false,
-    sheetCreated: false,
-    addingImages: false,
-    imagesAdded: false,
-    sheetUrl: SHEET_URL,
     currentTab: 1,
   })
 
   const { account } = useRuntime()
 
   const {
-    fetching,
-    revoking,
-    fetched,
-    authorization,
-    email,
-    loading,
-    sheetProcessing,
-    sheetProcessed,
-    sheetCreating,
-    sheetCreated,
-    addingImages,
-    imagesAdded,
-    currentTab,
-    sheetUrl,
-  } = state
+    loading: ownerLoading,
+    called: ownerCalled,
+    data: ownerData,
+  } = useQuery(Q_OWNER_EMAIL, {
+    variables: {
+      accountName: account,
+    },
+  })
 
-  const fetch = () => {
-    setState({
-      ...state,
-      fetching: true,
-    })
+  const [revoke, { loading: revokeLoading }] = useMutation(M_REVOKE, {
+    onCompleted: (ret: any) => {
+      console.log('Revoke =>', ret)
+      if (ret.revokeToken === true) {
+        window.location.reload()
+      }
+    },
+  })
 
-    axios
-      .get(FETCH_URL)
-      .then((response: any) => {
-        setState({
-          ...state,
-          fetching: false,
-          fetched: response.data,
-        })
-        setTimeout(() => {
-          setState({
-            ...state,
-            fetching: false,
-            fetched: false,
-          })
-        }, 5000)
-      })
-      .catch(() => {
-        setState({
-          ...state,
-          fetching: false,
-          fetched: false,
-        })
-      })
-  }
+  const [
+    create,
+    { loading: createLoading, data: createData, called: createCalled },
+  ] = useMutation(M_CREATE_SHEET)
 
-  const revoke = async () => {
-    setState({
-      ...state,
-      revoking: true,
-    })
+  const [fetch, { loading: fetching, data: fetched }] = useMutation(
+    M_IMPORT_IMAGES
+  )
 
-    axios
-      .get(REVOKE_URL)
-      .then(() => {
-        setState({
-          ...state,
-          revoking: false,
-          authorization: false,
-          email: null,
-        })
-      })
-      .catch(() => {
-        setState({
-          ...state,
-          revoking: false,
-        })
-      })
+  const [
+    sheetImport,
+    { loading: sheetProcessing, data: sheetProcessed },
+  ] = useMutation(M_PROCESS_SHEET)
 
-    return true
-  }
+  const [addImages, { loading: addingImages, data: imagesAdded }] = useMutation(
+    M_ADD_IMAGES
+  )
+
+  const { currentTab } = state
 
   const auth = () => {
     revoke()
@@ -136,157 +96,18 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       })
   }
 
-  const sheetImport = () => {
-    setState({
-      ...state,
-      sheetProcessing: true,
-    })
-
-    axios
-      .get(PROCESS_SHEET_URL)
-      .then((response: any) => {
-        setState({
-          ...state,
-          sheetProcessing: false,
-          sheetProcessed: response.data,
-        })
-        setTimeout(() => {
-          setState({
-            ...state,
-            sheetProcessing: false,
-            sheetProcessed: false,
-          })
-        }, 5000)
-      })
-      .catch(() => {
-        setState({
-          ...state,
-          sheetProcessing: false,
-          sheetProcessed: false,
-        })
-      })
-  }
-
-  const getSheetUrl = () => {
-    axios
-      .get(SHEET_LINK_URL, {
-        withCredentials: true,
-      })
-      .then((response: any) => {
-        SHEET_URL = response.data
-        setState({
-          ...state,
-          sheetCreating: false,
-          sheetUrl: response.data,
-        })
-      })
-  }
-
-  const createSheet = () => {
-    setState({
-      ...state,
-      sheetCreating: true,
-    })
-
-    axios
-      .get(CREATE_SHEET_URL)
-      .then((response: any) => {
-        getSheetUrl()
-        setState({
-          ...state,
-          sheetCreating: false,
-          sheetCreated: response.data,
-        })
-        setTimeout(() => {
-          setState({
-            ...state,
-            sheetCreating: false,
-            sheetCreated: false,
-          })
-        }, 5000)
-      })
-      .catch(() => {
-        setState({
-          ...state,
-          sheetCreating: false,
-          sheetCreated: false,
-        })
-      })
-  }
-
-  const addImages = () => {
-    setState({
-      ...state,
-      addingImages: true,
-    })
-
-    axios
-      .get(ADD_IMAGES_TO_SHEET_URL)
-      .then((response: any) => {
-        setState({
-          ...state,
-          addingImages: false,
-          imagesAdded: response.data,
-        })
-        setTimeout(() => {
-          setState({
-            ...state,
-            addingImages: false,
-            imagesAdded: false,
-          })
-        }, 5000)
-      })
-      .catch(() => {
-        setState({
-          ...state,
-          addingImages: false,
-          imagesAdded: false,
-        })
-      })
-  }
-
-  useEffect(() => {
-    if (initialCheck) return
-    initialCheck = true
-    let accountConnected = false
-
-    axios
-      .get(CHECK_URL)
-      .then((response: any) => {
-        accountConnected = response.data
-        setState({
-          ...state,
-          loading: false,
-          sheetUrl: SHEET_URL,
-          authorization: accountConnected,
-        })
-      })
-      .catch(() => {
-        setState({
-          ...state,
-          loading: false,
-        })
-      })
-      .then(() => {
-        if (!accountConnected) return
-        axios.get(EMAIL_URL).then((response: any) => {
-          setState({
-            ...state,
-            loading: false,
-            sheetUrl: SHEET_URL,
-            authorization: accountConnected,
-            email: response.data,
-          })
-        })
-      })
-    getSheetUrl()
-  })
-
   const changeTab = (tab: number) => {
     setState({
       ...state,
       currentTab: tab,
     })
+  }
+
+  const showLink = () => {
+    return (
+      (link.called && !link.loading && link.sheetLink) ||
+      (createCalled && !createLoading && !!createData?.createSheet)
+    )
   }
 
   return (
@@ -299,21 +120,25 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                 id: 'admin/google-drive-import.title',
               })}
             >
-              {authorization && (
+              {token.called && !token.loading && token.haveToken === true && (
                 <div>
-                  {email && (
+                  {ownerCalled && !ownerLoading && ownerData && (
                     <p>
                       <FormattedMessage id="admin/google-drive-import.connected-as" />{' '}
-                      <strong>{`${email}`}</strong>
+                      <strong>{`${ownerData.getOwnerEmail}`}</strong>
                     </p>
                   )}
                   <div className="mt4 mb4 tr">
                     <Button
                       variation="danger-tertiary"
                       size="regular"
-                      isLoading={revoking}
+                      isLoading={revokeLoading}
                       onClick={() => {
-                        revoke()
+                        revoke({
+                          variables: {
+                            accountName: account,
+                          },
+                        })
                       }}
                       collapseLeft
                     >
@@ -328,14 +153,14 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
       }
       fullWidth
     >
-      {!authorization && (
+      {token.called && (
         <div>
-          {loading && (
+          {token.loading && (
             <div className="pv6">
               <Spinner />
             </div>
           )}
-          {!loading && (
+          {!token.loading && token.haveToken !== true && (
             <div>
               <Card>
                 <h2>
@@ -360,7 +185,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
           )}
         </div>
       )}
-      {authorization && (
+      {token.called && !token.loading && token.haveToken === true && (
         <Tabs fullWidth>
           <Tab
             label="Instructions"
@@ -369,120 +194,118 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
           >
             <div>
               <Card>
-                {authorization && (
-                  <div className="flex">
-                    <div className="w-100">
-                      <p>
+                <div className="flex">
+                  <div className="w-100">
+                    <p>
+                      <FormattedMessage
+                        id="admin/google-drive-import.connected.text"
+                        values={{ lineBreak: <br /> }}
+                      />
+                    </p>
+                    <pre className={`${styles.code}`}>
+                      <FormattedMessage
+                        id="admin/google-drive-import.folder-structure"
+                        values={{ lineBreak: <br />, account }}
+                      />
+                    </pre>
+                    <p>
+                      There are two ways to associate images to SKUs:{' '}
+                      <strong>
+                        <a href="#skuimages" className="link black-90">
+                          Standardized Naming
+                        </a>
+                      </strong>{' '}
+                      (SKU Images) and{' '}
+                      <strong>
+                        <a href="#spreadsheet" className="link black-90">
+                          Spreadsheet
+                        </a>
+                      </strong>
+                    </p>
+                    <Divider />
+                    <h2 className="heading-3 mt4 mb4" id="skuimages">
+                      <FormattedMessage id="admin/google-drive-import.sku-images.title" />
+                    </h2>
+                    <p>
+                      <FormattedMessage id="admin/google-drive-import.instructions-line-01" />
+                    </p>
+
+                    <table
+                      className={`${styles.borderCollapse} ba collapse w-100`}
+                    >
+                      <thead>
+                        <tr>
+                          <th />
+                          <th className="pa4">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <th className="flex justify-left bt items-center pa4">
+                            IdType
+                          </th>
+                          <td className="bt bl pa4">
+                            <FormattedMessage id="admin/google-drive-import.instructions-description-IdType" />
+                          </td>
+                        </tr>
+                        <tr className={`${styles.striped}`}>
+                          <th className="flex justify-left bt pa4">Id</th>
+                          <td className="bt bl pa4">
+                            <FormattedMessage id="admin/google-drive-import.instructions-description-Id" />
+                          </td>
+                        </tr>
+                        <tr>
+                          <th className="flex justify-left bt items-center pa4">
+                            ImageName
+                          </th>
+                          <td className="bt bl pa4">
+                            <FormattedMessage id="admin/google-drive-import.instructions-description-ImageName" />
+                          </td>
+                        </tr>
+                        <tr className={`${styles.striped}`}>
+                          <th className="flex justify-left bt pa4">
+                            ImageLabel
+                          </th>
+                          <td className="bt bl pa4">
+                            <FormattedMessage id="admin/google-drive-import.instructions-description-ImageLabel" />
+                          </td>
+                        </tr>
+                        <tr className={`${styles.striped}`}>
+                          <th className="flex justify-left bt pa4">Main?</th>
+                          <td className="bt bl pa4">
+                            <FormattedMessage id="admin/google-drive-import.instructions-description-Main" />
+                          </td>
+                        </tr>
+                        <tr className={`${styles.striped}`}>
+                          <th className="flex justify-left bt pa4">
+                            Specification
+                          </th>
+                          <td className="bt bl pa4">
+                            <FormattedMessage id="admin/google-drive-import.instructions-description-Spec" />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p>
+                      <strong>
                         <FormattedMessage
-                          id="admin/google-drive-import.connected.text"
+                          id="admin/google-drive-import.instructions-examples"
                           values={{ lineBreak: <br /> }}
                         />
-                      </p>
-                      <pre className={`${styles.code}`}>
-                        <FormattedMessage
-                          id="admin/google-drive-import.folder-structure"
-                          values={{ lineBreak: <br />, account }}
-                        />
-                      </pre>
-                      <p>
-                        There are two ways to associate images to SKUs:{' '}
-                        <strong>
-                          <a href="#skuimages" className="link black-90">
-                            Standardized Naming
-                          </a>
-                        </strong>{' '}
-                        (SKU Images) and{' '}
-                        <strong>
-                          <a href="#spreadsheet" className="link black-90">
-                            Spreadsheet
-                          </a>
-                        </strong>
-                      </p>
-                      <Divider />
-                      <h2 className="heading-3 mt4 mb4" id="skuimages">
-                        <FormattedMessage id="admin/google-drive-import.sku-images.title" />
-                      </h2>
-                      <p>
-                        <FormattedMessage id="admin/google-drive-import.instructions-line-01" />
-                      </p>
+                      </strong>
+                    </p>
+                    <p>
+                      <FormattedMessage id="admin/google-drive-import.instructions-line-02" />
+                    </p>
+                    <p>
+                      <FormattedMessage id="admin/google-drive-import.instructions-line-03" />
+                    </p>
 
-                      <table
-                        className={`${styles.borderCollapse} ba collapse w-100`}
-                      >
-                        <thead>
-                          <tr>
-                            <th />
-                            <th className="pa4">Description</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <th className="flex justify-left bt items-center pa4">
-                              IdType
-                            </th>
-                            <td className="bt bl pa4">
-                              <FormattedMessage id="admin/google-drive-import.instructions-description-IdType" />
-                            </td>
-                          </tr>
-                          <tr className={`${styles.striped}`}>
-                            <th className="flex justify-left bt pa4">Id</th>
-                            <td className="bt bl pa4">
-                              <FormattedMessage id="admin/google-drive-import.instructions-description-Id" />
-                            </td>
-                          </tr>
-                          <tr>
-                            <th className="flex justify-left bt items-center pa4">
-                              ImageName
-                            </th>
-                            <td className="bt bl pa4">
-                              <FormattedMessage id="admin/google-drive-import.instructions-description-ImageName" />
-                            </td>
-                          </tr>
-                          <tr className={`${styles.striped}`}>
-                            <th className="flex justify-left bt pa4">
-                              ImageLabel
-                            </th>
-                            <td className="bt bl pa4">
-                              <FormattedMessage id="admin/google-drive-import.instructions-description-ImageLabel" />
-                            </td>
-                          </tr>
-                          <tr className={`${styles.striped}`}>
-                            <th className="flex justify-left bt pa4">Main?</th>
-                            <td className="bt bl pa4">
-                              <FormattedMessage id="admin/google-drive-import.instructions-description-Main" />
-                            </td>
-                          </tr>
-                          <tr className={`${styles.striped}`}>
-                            <th className="flex justify-left bt pa4">
-                              Specification
-                            </th>
-                            <td className="bt bl pa4">
-                              <FormattedMessage id="admin/google-drive-import.instructions-description-Spec" />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                      <p>
-                        <strong>
-                          <FormattedMessage
-                            id="admin/google-drive-import.instructions-examples"
-                            values={{ lineBreak: <br /> }}
-                          />
-                        </strong>
-                      </p>
-                      <p>
-                        <FormattedMessage id="admin/google-drive-import.instructions-line-02" />
-                      </p>
-                      <p>
-                        <FormattedMessage id="admin/google-drive-import.instructions-line-03" />
-                      </p>
-
-                      <Divider />
-                      <h2 id="spreadsheet">Spreadsheet</h2>
-                      <p>Spreadsheet instructions here</p>
-                    </div>
+                    <Divider />
+                    <h2 id="spreadsheet">Spreadsheet</h2>
+                    <p>Spreadsheet instructions here</p>
                   </div>
-                )}
+                </div>
               </Card>
             </div>
           </Tab>
@@ -510,7 +333,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                   </div>
 
                   <div className="w-30 items-center flex">
-                    {!fetched && (
+                    {!fetched?.importImages && (
                       <Button
                         variation="primary"
                         collapseLeft
@@ -524,9 +347,9 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                       </Button>
                     )}
 
-                    {!fetching && fetched && (
+                    {!fetching && fetched?.importImages && (
                       <p className="block">
-                        <strong>{`${fetched}`}</strong>
+                        <strong>{`${fetched.importImages}`}</strong>
                       </p>
                     )}
                   </div>
@@ -534,7 +357,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
               </Card>
               <br />
               <h2>Spreadsheet</h2>
-              {!sheetUrl && (
+              {!createData && link.called && !link.loading && !link.sheetLink && (
                 <Card>
                   <div className="flex">
                     <div className="w-70">
@@ -556,30 +379,29 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                         variation="primary"
                         collapseLeft
                         block
-                        isLoading={sheetCreating}
+                        isLoading={createLoading}
                         onClick={() => {
-                          createSheet()
+                          create()
                         }}
                       >
                         <FormattedMessage id="admin/google-drive-import.create-sheet.button" />
                       </Button>
-                      {!sheetCreating && sheetCreated && (
-                        <p>
-                          <strong>{`${sheetCreated}`}</strong>
-                        </p>
-                      )}
                     </div>
                   </div>
                 </Card>
               )}
-              {sheetUrl && (
+              {showLink() && (
                 <Card>
                   <div className="flex">
                     <div className="w-100">
                       <p>
                         Access the mapping Spreadsheet{' '}
-                        <a href={sheetUrl} target="_blank" rel="noreferrer">
-                          {sheetUrl}
+                        <a
+                          href={createData?.createSheet || link.sheetLink}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {createData?.createSheet || link.sheetLink}
                         </a>
                       </p>
                     </div>
@@ -602,7 +424,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                     <Divider orientation="vertical" />
                   </div>
                   <div className="w-30 items-center flex">
-                    {!sheetProcessed && (
+                    {!sheetProcessed?.processSheet && (
                       <Button
                         variation="primary"
                         collapseLeft
@@ -615,9 +437,9 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                         <FormattedMessage id="admin/google-drive-import.sheet-import.button" />
                       </Button>
                     )}
-                    {!sheetProcessing && sheetProcessed && (
+                    {!sheetProcessing && sheetProcessed?.processSheet && (
                       <p>
-                        <strong>{`${sheetProcessed}`}</strong>
+                        <strong>{`${sheetProcessed.processSheet}`}</strong>
                       </p>
                     )}
                   </div>
@@ -640,7 +462,7 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                     <Divider orientation="vertical" />
                   </div>
                   <div className="w-30 items-center flex">
-                    {!imagesAdded && (
+                    {!imagesAdded?.addImages && (
                       <Button
                         variation="primary"
                         collapseLeft
@@ -653,9 +475,9 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
                         <FormattedMessage id="admin/google-drive-import.add-images.button" />
                       </Button>
                     )}
-                    {!addingImages && imagesAdded && (
+                    {!addingImages && imagesAdded?.addImages && (
                       <p>
-                        <strong>{`${imagesAdded}`}</strong>
+                        <strong>{`${imagesAdded.addImages}`}</strong>
                       </p>
                     )}
                   </div>
@@ -669,4 +491,20 @@ const Admin: FC<WrappedComponentProps> = ({ intl }) => {
   )
 }
 
-export default injectIntl(Admin)
+const token = {
+  name: 'token',
+  options: () => ({
+    ssr: false,
+  }),
+}
+
+const link = {
+  name: 'link',
+  options: () => ({
+    ssr: false,
+  }),
+}
+
+export default injectIntl(
+  compose(graphql(Q_HAVE_TOKEN, token), graphql(Q_SHEET_LINK, link))(Admin)
+)
