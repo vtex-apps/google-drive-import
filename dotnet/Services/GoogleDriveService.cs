@@ -2167,7 +2167,7 @@ namespace DriveImport.Services
             return (sheetUrl);
         }
 
-        public async Task ClearAndAddImages()
+        public async Task<string> ClearAndAddImages()
         {
             string response = string.Empty;
             string imagesFolderId = null;
@@ -2199,6 +2199,8 @@ namespace DriveImport.Services
             }
 
             response = response + " - " + await this.AddImagesToSheet();
+
+            return response;
         }
     }
 }
