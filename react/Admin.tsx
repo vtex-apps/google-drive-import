@@ -303,7 +303,15 @@ const Admin: FC<WrappedComponentProps & any> = ({
 
                     <Divider />
                     <h2 id="spreadsheet">Spreadsheet</h2>
-                    <p>Spreadsheet instructions here</p>
+                    <p>
+                      Instead of renaming all the images, you can use a
+                      Spreadsheet to make the bind between SKUs and Images. On
+                      the Actions tab you'll find the button to create a
+                      Spreadsheet on your account, after that a link will be
+                      shown to led you directly to the file. Detailed
+                      instructions can be found on the Spreadsheet
+                      "Instructions" tab
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -409,80 +417,84 @@ const Admin: FC<WrappedComponentProps & any> = ({
                 </Card>
               )}
               <br />
-              <Card>
-                <div className="flex">
-                  <div className="w-70">
-                    <p>
-                      Starts the image importing process based on the mapping
-                      defined at the Spreadsheet
-                    </p>
-                  </div>
-                  <div
-                    style={{ flexGrow: 1 }}
-                    className="flex items-stretch w-20 justify-center"
-                  >
-                    <Divider orientation="vertical" />
-                  </div>
-                  <div className="w-30 items-center flex">
-                    {!sheetProcessed?.processSheet && (
-                      <Button
-                        variation="primary"
-                        collapseLeft
-                        block
-                        isLoading={sheetProcessing}
-                        onClick={() => {
-                          sheetImport()
-                        }}
+              {showLink() && (
+                <div>
+                  <Card>
+                    <div className="flex">
+                      <div className="w-70">
+                        <p>
+                          Starts the image importing process based on the
+                          mapping defined at the Spreadsheet
+                        </p>
+                      </div>
+                      <div
+                        style={{ flexGrow: 1 }}
+                        className="flex items-stretch w-20 justify-center"
                       >
-                        <FormattedMessage id="admin/google-drive-import.sheet-import.button" />
-                      </Button>
-                    )}
-                    {!sheetProcessing && sheetProcessed?.processSheet && (
-                      <p>
-                        <strong>{`${sheetProcessed.processSheet}`}</strong>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-              <br />
-              <Card>
-                <div className="flex">
-                  <div className="w-70">
-                    <p>
-                      Clears the Spreadsheet and fills the image names and
-                      thumbnails automatically based on the files at the{' '}
-                      <strong>NEW</strong> folder
-                    </p>
-                  </div>
-                  <div
-                    style={{ flexGrow: 1 }}
-                    className="flex items-stretch w-20 justify-center"
-                  >
-                    <Divider orientation="vertical" />
-                  </div>
-                  <div className="w-30 items-center flex">
-                    {!imagesAdded?.addImages && (
-                      <Button
-                        variation="primary"
-                        collapseLeft
-                        block
-                        isLoading={addingImages}
-                        onClick={() => {
-                          addImages()
-                        }}
+                        <Divider orientation="vertical" />
+                      </div>
+                      <div className="w-30 items-center flex">
+                        {!sheetProcessed?.processSheet && (
+                          <Button
+                            variation="primary"
+                            collapseLeft
+                            block
+                            isLoading={sheetProcessing}
+                            onClick={() => {
+                              sheetImport()
+                            }}
+                          >
+                            <FormattedMessage id="admin/google-drive-import.sheet-import.button" />
+                          </Button>
+                        )}
+                        {!sheetProcessing && sheetProcessed?.processSheet && (
+                          <p>
+                            <strong>{`${sheetProcessed.processSheet}`}</strong>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                  <br />
+                  <Card>
+                    <div className="flex">
+                      <div className="w-70">
+                        <p>
+                          Clears the Spreadsheet and fills the image names and
+                          thumbnails automatically based on the files at the{' '}
+                          <strong>NEW</strong> folder
+                        </p>
+                      </div>
+                      <div
+                        style={{ flexGrow: 1 }}
+                        className="flex items-stretch w-20 justify-center"
                       >
-                        <FormattedMessage id="admin/google-drive-import.add-images.button" />
-                      </Button>
-                    )}
-                    {!addingImages && imagesAdded?.addImages && (
-                      <p>
-                        <strong>{`${imagesAdded.addImages}`}</strong>
-                      </p>
-                    )}
-                  </div>
+                        <Divider orientation="vertical" />
+                      </div>
+                      <div className="w-30 items-center flex">
+                        {!imagesAdded?.addImages && (
+                          <Button
+                            variation="primary"
+                            collapseLeft
+                            block
+                            isLoading={addingImages}
+                            onClick={() => {
+                              addImages()
+                            }}
+                          >
+                            <FormattedMessage id="admin/google-drive-import.add-images.button" />
+                          </Button>
+                        )}
+                        {!addingImages && imagesAdded?.addImages && (
+                          <p>
+                            <strong>Process initiated</strong>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
                 </div>
-              </Card>
+              )}
             </div>
           </Tab>
         </Tabs>
