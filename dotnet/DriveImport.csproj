@@ -8,6 +8,11 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 	<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 	<PackageReference Include="Vtex.Api" Version="0.1.0-beta" />
+	<PackageReference Include="GraphQL" Version="2.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="GraphQL\Types\" />
   </ItemGroup>
 
 </Project>

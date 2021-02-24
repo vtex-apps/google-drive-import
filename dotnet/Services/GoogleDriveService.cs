@@ -114,7 +114,7 @@ namespace DriveImport.Services
 
         public async Task<Token> RefreshGoogleAuthorizationToken(string refreshToken)
         {
-            Token tokenObj = new Token();
+            Token tokenObj = null; // new Token();
             if (string.IsNullOrEmpty(refreshToken))
             {
                 Console.WriteLine("Refresh Token Empty");
@@ -277,13 +277,16 @@ namespace DriveImport.Services
                     {
                         Console.WriteLine($"ExpiresAt = {token.ExpiresAt} Refreshing token.");
                         token = await this.RefreshGoogleAuthorizationToken(token.RefreshToken);
-                        token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
-                        if (string.IsNullOrEmpty(token.RefreshToken))
+                        if (token != null)
                         {
-                            token.RefreshToken = refreshToken;
-                        }
+                            token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
+                            if (string.IsNullOrEmpty(token.RefreshToken))
+                            {
+                                token.RefreshToken = refreshToken;
+                            }
 
-                        bool saved = await _driveImportRepository.SaveToken(token);
+                            bool saved = await _driveImportRepository.SaveToken(token);
+                        }
                     }
                 }
                 else
@@ -1604,6 +1607,600 @@ namespace DriveImport.Services
             }
 
             return result;
+        }
+
+        public async Task<string> CreateSheet()
+        {
+            string sheetUrl = string.Empty;
+            string sheetName = "VtexImageImport";
+            string sheetLabel = "ImagesForImport";
+            string instructionsLabel = "Instructions";
+            string[] headerRowLabels = new string[]
+                {
+                    "Image","Thumbnail","Type","Value","Name","Label","Main","Attributes","Status","Message","Date"
+                };
+
+            int headerIndex = 0;
+            Dictionary<string, int> headerIndexDictionary = new Dictionary<string, int>();
+            foreach (string header in headerRowLabels)
+            {
+                //Console.WriteLine($"({headerIndex}) sheetHeader = {header}");
+                headerIndexDictionary.Add(header.ToLower(), headerIndex);
+                headerIndex++;
+            }
+
+            int statusRow = headerIndexDictionary["status"];
+            int typeRow = headerIndexDictionary["type"];
+
+            GoogleSheetCreate googleSheetCreate = new GoogleSheetCreate
+            {
+                Properties = new GoogleSheetProperties
+                {
+                    Title = sheetName
+                },
+                Sheets = new Sheet[]
+                {
+                    new Sheet
+                    {
+                        Properties = new SheetProperties
+                        {
+                            SheetId = 0,
+                            Title = sheetLabel,
+                            Index = 0,
+                            GridProperties = new GridProperties
+                            {
+                                ColumnCount = headerRowLabels.Count(),
+                                RowCount = DriveImportConstants.DEFAULT_SHEET_SIZE
+                            },
+                            SheetType = "GRID"
+                        },
+                        ConditionalFormats = new ConditionalFormat[]
+                        {
+                            new ConditionalFormat
+                            {
+                                BooleanRule = new BooleanRule
+                                {
+                                    Condition = new Condition
+                                    {
+                                        Type = "TEXT_CONTAINS",
+                                        Values = new Value[]
+                                        {
+                                            new Value
+                                            {
+                                                UserEnteredValue = "Error"
+                                            }
+                                        }
+                                    },
+                                    Format = new Format
+                                    {
+                                        BackgroundColor = new BackgroundColorClass
+                                        {
+                                            Blue = 0.6,
+                                            Green = 0.6,
+                                            Red = 0.91764706
+                                        },
+                                        BackgroundColorStyle = new BackgroundColorStyle
+                                        {
+                                            RgbColor = new BackgroundColorClass
+                                            {
+                                                Blue = 0.6,
+                                                Green = 0.6,
+                                                Red = 0.91764706
+                                            }
+                                        },
+                                        TextFormat = new FormatTextFormat
+                                        {
+                                            ForegroundColor = new BackgroundColorClass(),
+                                            ForegroundColorStyle = new BackgroundColorStyle
+                                            {
+                                                RgbColor = new BackgroundColorClass()
+                                            }
+                                        }
+                                    }
+                                },
+                                Ranges = new CreateRange[]
+                                {
+                                    new CreateRange
+                                    {
+                                        EndColumnIndex = statusRow + 1,
+                                        EndRowIndex = DriveImportConstants.DEFAULT_SHEET_SIZE,
+                                        StartColumnIndex = statusRow,
+                                        StartRowIndex = 1
+                                    }
+                                }
+                            },
+                            new ConditionalFormat
+                            {
+                                BooleanRule = new BooleanRule
+                                {
+                                    Condition = new Condition
+                                    {
+                                        Type = "TEXT_CONTAINS",
+                                        Values = new Value[]
+                                        {
+                                            new Value
+                                            {
+                                                UserEnteredValue = "Done"
+                                            }
+                                        }
+                                    },
+                                    Format = new Format
+                                    {
+                                        BackgroundColor = new BackgroundColorClass
+                                        {
+                                            Blue = 0.8039216,
+                                            Green = 0.88235295,
+                                            Red = 0.7176471
+                                        },
+                                        BackgroundColorStyle = new BackgroundColorStyle
+                                        {
+                                            RgbColor = new BackgroundColorClass
+                                            {
+                                                Blue = 0.8039216,
+                                                Green = 0.88235295,
+                                                Red = 0.7176471
+                                            }
+                                        },
+                                        TextFormat = new FormatTextFormat
+                                        {
+                                            ForegroundColor = new BackgroundColorClass(),
+                                            ForegroundColorStyle = new BackgroundColorStyle
+                                            {
+                                                RgbColor = new BackgroundColorClass()
+                                            }
+                                        }
+                                    }
+                                },
+                                Ranges = new CreateRange[]
+                                {
+                                    new CreateRange
+                                    {
+                                        EndColumnIndex = statusRow + 1,
+                                        EndRowIndex = DriveImportConstants.DEFAULT_SHEET_SIZE,
+                                        StartColumnIndex = statusRow,
+                                        StartRowIndex = 1
+                                    }
+                                }
+                            },
+                        }
+                    },
+                    new Sheet
+                    {
+                        Properties = new SheetProperties
+                        {
+                            SheetId = 1,
+                            Title = instructionsLabel,
+                            Index = 1,
+                            GridProperties = new GridProperties
+                            {
+                                ColumnCount = 4,
+                                RowCount = 8
+                            },
+                            SheetType = "GRID"
+                        }
+                    }
+                }
+            };
+
+            string sheetId = await this.CreateSpreadsheet(googleSheetCreate);
+
+            if (!string.IsNullOrEmpty(sheetId))
+            {
+                string lastHeaderColumnLetter = ((char)headerRowLabels.Count() + 65).ToString();
+
+                ValueRange valueRange = new ValueRange
+                {
+                    MajorDimension = "ROWS",
+                    Range = $"{sheetLabel}!A1:{lastHeaderColumnLetter}1",
+                    Values = new string[][]
+                    {
+                        headerRowLabels
+                    }
+                };
+
+                UpdateValuesResponse updateValuesResponse = await this.WriteSpreadsheetValues(sheetId, valueRange);
+
+                valueRange = new ValueRange
+                {
+                    MajorDimension = "ROWS",
+                    Range = $"{instructionsLabel}!A1:D8",
+                    Values = new string[][]
+                    {
+                        new string[] { "Populate the following fields", "", "Example", "Notes" },
+                        new string[] { "Image", "Image file name", "shirt1.jpg","Use DELETE to remove images for the Type/Value" },
+                        new string[] { "Type", "The identifier for the Value field", "SkuId, SkuRefId, ProductId, or ProductRefId","" },
+                        new string[] { "Value", "The value for the Type", "83", "" },
+                        new string[] { "Name", "Image name", "shirt-front", "" },
+                        new string[] { "Label", "Image label", "Shirt Front", "" },
+                        new string[] { "Main", "Set the image as the Main image", "true","Any text will set the image as Main" },
+                        new string[] { "Attributes", "Optionally limit by aku attribute", "color=red", "" }
+                    }
+                };
+
+                updateValuesResponse = await this.WriteSpreadsheetValues(sheetId, valueRange);
+
+                BatchUpdate batchUpdate = new BatchUpdate
+                {
+                    Requests = new Request[]
+                    {
+                        new Request
+                        {
+                            RepeatCell = new RepeatCell
+                            {
+                                Cell = new Cell
+                                {
+                                    UserEnteredFormat = new UserEnteredFormat
+                                    {
+                                        HorizontalAlignment = "CENTER",
+                                        BackgroundColor = new GroundColor
+                                        {
+                                            Blue = 0.0,
+                                            Green = 0.0,
+                                            Red = 0.0
+                                        },
+                                        TextFormat = new BatchUpdateTextFormat
+                                        {
+                                            Bold = true,
+                                            FontSize = 12,
+                                            ForegroundColor = new GroundColor
+                                            {
+                                                Blue = 1.0,
+                                                Green = 1.0,
+                                                Red = 1.0
+                                            }
+                                        }
+                                    }
+                                },
+                                Fields = "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)",
+                                Range = new BatchUpdateRange
+                                {
+                                    StartRowIndex = 0,
+                                    EndRowIndex = 1,
+                                    SheetId = 0
+                                }
+                            }
+                        },
+                        new Request
+                        {
+                            UpdateSheetProperties = new UpdateSheetProperties
+                            {
+                                Fields = "gridProperties.frozenRowCount",
+                                Properties = new Properties
+                                {
+                                    SheetId = 0,
+                                    GridProperties = new BatchUpdateGridProperties
+                                    {
+                                        FrozenRowCount = 1
+                                    }
+                                }
+                            }
+                        },
+                        new Request
+                        {
+                            SetDataValidation = new SetDataValidation
+                            {
+                                Range = new BatchUpdateRange
+                                {
+                                    StartRowIndex = 1,
+                                    EndRowIndex = DriveImportConstants.DEFAULT_SHEET_SIZE,
+                                    SheetId = 0,
+                                    EndColumnIndex = typeRow + 1,
+                                    StartColumnIndex = typeRow
+                                },
+                                Rule = new Rule
+                                {
+                                    Condition = new Condition
+                                    {
+                                        Type = "ONE_OF_LIST",
+                                        Values = new Value[]
+                                        {
+                                            new Value
+                                            {
+                                                UserEnteredValue = string.Empty
+                                            },
+                                            new Value
+                                            {
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.SKU_ID
+                                            },
+                                            new Value
+                                            {
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.SKU_REF_ID
+                                            },
+                                            new Value
+                                            {
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.PRODUCT_ID
+                                            },
+                                            new Value
+                                            {
+                                                UserEnteredValue = DriveImportConstants.IdentificatorType.PRODUCT_REF_ID
+                                            }
+                                        }
+                                    },
+                                    InputMessage = $"Valid values: '{DriveImportConstants.IdentificatorType.SKU_ID}', '{DriveImportConstants.IdentificatorType.SKU_REF_ID}', '{DriveImportConstants.IdentificatorType.PRODUCT_ID}', '{DriveImportConstants.IdentificatorType.PRODUCT_REF_ID}'",
+                                    Strict = true
+                                }
+                            }
+                        },
+                        new Request
+                        {
+                            AutoResizeDimensions = new AutoResizeDimensions
+                            {
+                                Dimensions = new Dimensions
+                                {
+                                    Dimension = "COLUMNS",
+                                    EndIndex = 4,
+                                    StartIndex = 0,
+                                    SheetId = 1
+                                }
+                            }
+                        },
+                        //new Request
+                        //{
+                        //    AutoResizeDimensions = new AutoResizeDimensions
+                        //    {
+                        //        Dimensions = new Dimensions
+                        //        {
+                        //            Dimension = "COLUMNS",
+                        //            EndIndex = headerRowLabels.Count(),
+                        //            StartIndex = 0,
+                        //            SheetId = 0
+                        //        }
+                        //    }
+                        //}
+                    }
+                };
+
+                var updateSheet = await this.UpdateSpreadsheet(sheetId, batchUpdate);
+                //Console.WriteLine($"updateSheet = {updateSheet}");
+
+                string importFolderId = null;
+                string accountFolderId = null;
+                string imagesFolderId = null;
+                string newFolderId = null;
+                string doneFolderId = null;
+                string errorFolderId = null;
+                string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+
+                FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+                if (folderIds != null)
+                {
+                    importFolderId = folderIds.ImagesFolderId;
+                    accountFolderId = folderIds.AccountFolderId;
+                    imagesFolderId = folderIds.ImagesFolderId;
+                    newFolderId = folderIds.NewFolderId;
+                    doneFolderId = folderIds.DoneFolderId;
+                    errorFolderId = folderIds.ErrorFolderId;
+                }
+                else
+                {
+                    ListFilesResponse getFoldersResponse = await this.GetFolders();
+                    if (getFoldersResponse != null)
+                    {
+                        importFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMPORT)).Select(f => f.Id).FirstOrDefault();
+                        if (!string.IsNullOrEmpty(importFolderId))
+                        {
+                            //Console.WriteLine($"importFolderId:{importFolderId}");
+                            accountFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(accountName) && f.Parents.Contains(importFolderId)).Select(f => f.Id).FirstOrDefault();
+                            if (!string.IsNullOrEmpty(accountFolderId))
+                            {
+                                //Console.WriteLine($"accountFolderId:{accountFolderId}");
+                                imagesFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.IMAGES) && f.Parents.Contains(accountFolderId)).Select(f => f.Id).FirstOrDefault();
+                                if (!string.IsNullOrEmpty(imagesFolderId))
+                                {
+                                    //Console.WriteLine($"imagesFolderId:{imagesFolderId}");
+                                    newFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.NEW) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                                    doneFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.DONE) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                                    errorFolderId = getFoldersResponse.Files.Where(f => f.Name.Equals(DriveImportConstants.FolderNames.ERROR) && f.Parents.Contains(imagesFolderId)).Select(f => f.Id).FirstOrDefault();
+                                    //Console.WriteLine($"n:{newFolderId} d:{doneFolderId} e:{errorFolderId}");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // If any essential folders are missing verify and create the folder structure.
+                if (string.IsNullOrEmpty(newFolderId) || string.IsNullOrEmpty(doneFolderId) || string.IsNullOrEmpty(errorFolderId))
+                {
+                    folderIds = null;
+                    _context.Vtex.Logger.Info("SheetImport", null, "Verifying folder structure.");
+                    Dictionary<string, string> folders = await this.ListFolders();   // Id, Name
+
+                    if (folders == null)
+                    {
+                        return ($"Error accessing Drive.");
+                    }
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
+                    {
+                        importFolderId = await this.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
+                    }
+                    else
+                    {
+                        importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
+                    }
+
+                    if (string.IsNullOrEmpty(importFolderId))
+                    {
+                        _context.Vtex.Logger.Info("SheetImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
+                        return ($"Could not find {DriveImportConstants.FolderNames.IMPORT} folder");
+                    }
+
+                    folders = await this.ListFolders(importFolderId);
+
+                    if (!folders.ContainsValue(accountName))
+                    {
+                        accountFolderId = await this.CreateFolder(accountName, importFolderId);
+                    }
+                    else
+                    {
+                        accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
+                    }
+
+                    if (string.IsNullOrEmpty(accountFolderId))
+                    {
+                        _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {accountFolderId} folder");
+                        return ($"Could not find {accountFolderId} folder");
+                    }
+
+                    folders = await this.ListFolders(accountFolderId);
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMAGES))
+                    {
+                        imagesFolderId = await this.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
+                    }
+                    else
+                    {
+                        imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
+                    }
+
+                    if (string.IsNullOrEmpty(imagesFolderId))
+                    {
+                        _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {imagesFolderId} folder");
+                        return ($"Could not find {imagesFolderId} folder");
+                    }
+
+                    folders = await this.ListFolders(imagesFolderId);
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
+                    {
+                        newFolderId = await this.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
+                        bool setPermission = await this.SetPermission(newFolderId);
+                        if (!setPermission)
+                        {
+                            _context.Vtex.Logger.Error("SheetImport", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
+                        }
+                    }
+                    else
+                    {
+                        newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
+                    }
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
+                    {
+                        doneFolderId = await this.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
+                    }
+                    else
+                    {
+                        doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
+                    }
+
+                    if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
+                    {
+                        errorFolderId = await this.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
+                    }
+                    else
+                    {
+                        errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
+                    }
+                }
+
+                if (folderIds == null)
+                {
+                    folderIds = new FolderIds
+                    {
+                        AccountFolderId = accountFolderId,
+                        DoneFolderId = doneFolderId,
+                        ErrorFolderId = errorFolderId,
+                        ImagesFolderId = imagesFolderId,
+                        ImportFolderId = imagesFolderId,
+                        NewFolderId = newFolderId
+                    };
+
+                    await _driveImportRepository.SaveFolderIds(folderIds, accountName);
+                }
+
+                bool moved = await this.MoveFile(sheetId, imagesFolderId);
+                Console.WriteLine($"Moved? {moved}");
+                if (moved)
+                {
+                    await this.AddImagesToSheet();
+                    batchUpdate = new BatchUpdate
+                    {
+                        Requests = new Request[]
+                        {
+                            new Request
+                            {
+                                AutoResizeDimensions = new AutoResizeDimensions
+                                {
+                                    Dimensions = new Dimensions
+                                    {
+                                        Dimension = "COLUMNS",
+                                        EndIndex = 2, //headerRowLabels.Count(),
+                                        StartIndex = 0,
+                                        SheetId = 0
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    updateSheet = await this.UpdateSpreadsheet(sheetId, batchUpdate);
+                }
+            }
+
+            string result = string.IsNullOrEmpty(sheetId) ? "Error" : "Created";
+            return (await this.GetSheetLink());
+        }
+
+        public async Task<string> GetSheetLink()
+        {
+            string sheetUrl = string.Empty;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+
+            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+            if (folderIds != null)
+            {
+                string imagesFolderId = folderIds.ImagesFolderId;
+                ListFilesResponse spreadsheets = await this.ListSheetsInFolder(imagesFolderId);
+                List<string> links = new List<string>();
+                if (spreadsheets != null)
+                {
+                    foreach (GoogleFile file in spreadsheets.Files)
+                    {
+                        links.Add(file.WebViewLink.ToString());
+                    }
+
+                    sheetUrl = string.Join("<br>", links);
+                }
+            }
+
+            return (sheetUrl);
+        }
+
+        public async Task<string> ClearAndAddImages()
+        {
+            string response = string.Empty;
+            string imagesFolderId = null;
+            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
+            if (folderIds != null)
+            {
+                imagesFolderId = folderIds.ImagesFolderId;
+                ListFilesResponse spreadsheets = await this.ListSheetsInFolder(imagesFolderId);
+                if (spreadsheets != null)
+                {
+                    SheetRange sheetRange = new SheetRange();
+                    sheetRange.Ranges = new List<string>();
+                    sheetRange.Ranges.Add($"A2:Z{DriveImportConstants.DEFAULT_SHEET_SIZE}");
+
+                    foreach (GoogleFile sheet in spreadsheets.Files)
+                    {
+                        response = response + " - " + await this.ClearSpreadsheet(sheet.Id, sheetRange);
+                    }
+                }
+                else
+                {
+                    response = "null sheet";
+                }
+            }
+            else
+            {
+                response = "null folderIds";
+            }
+
+            response = response + " - " + await this.AddImagesToSheet();
+
+            return response;
         }
     }
 }
