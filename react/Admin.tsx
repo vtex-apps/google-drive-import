@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { FC, useState } from 'react'
 import { useRuntime } from 'vtex.render-runtime'
@@ -18,11 +17,9 @@ import { compose, graphql, useQuery, useMutation } from 'react-apollo'
 
 import styles from './styles.css'
 import GoogleSignIn from '../public/metadata/google_signin.png'
-
 import Q_OWNER_EMAIL from './queries/GetOwnerEmail.gql'
 import Q_HAVE_TOKEN from './queries/HaveToken.gql'
 import Q_SHEET_LINK from './queries/SheetLink.gql'
-
 import M_REVOKE from './mutations/RevokeToken.gql'
 // import M_AUTHORIZE from './mutations/GoogleAuthorize.gql'
 import M_CREATE_SHEET from './mutations/CreateSheet.gql'
@@ -32,15 +29,7 @@ import M_IMPORT_IMAGES from './mutations/ImportImages.gql'
 
 const AUTH_URL = '/google-drive-import/auth'
 
-const Admin: FC<WrappedComponentProps & any> = ({
-  intl,
-  link,
-  token,
-  owner,
-}) => {
-  console.log('Link =>', link)
-  console.log('Token =>', token)
-  console.log('Owner =>', owner)
+const Admin: FC<WrappedComponentProps & any> = ({ intl, link, token }) => {
   const [state, setState] = useState<any>({
     currentTab: 1,
   })
@@ -59,7 +48,6 @@ const Admin: FC<WrappedComponentProps & any> = ({
 
   const [revoke, { loading: revokeLoading }] = useMutation(M_REVOKE, {
     onCompleted: (ret: any) => {
-      console.log('Revoke =>', ret)
       if (ret.revokeToken === true) {
         window.location.reload()
       }
@@ -209,16 +197,16 @@ const Admin: FC<WrappedComponentProps & any> = ({
                       />
                     </pre>
                     <p>
-                      There are two ways to associate images to SKUs:{' '}
+                      <FormattedMessage id="admin/google-drive-import.instructions-introduction" />{' '}
                       <strong>
                         <a href="#skuimages" className="link black-90">
-                          Standardized Naming
+                          <FormattedMessage id="admin/google-drive-import.instructions-introduction-imageTextLink" />
                         </a>
                       </strong>{' '}
-                      (SKU Images) and{' '}
+                      <FormattedMessage id="admin/google-drive-import.instructions-introduction-and" />{' '}
                       <strong>
                         <a href="#spreadsheet" className="link black-90">
-                          Spreadsheet
+                          <FormattedMessage id="admin/google-drive-import.instructions-introduction-spreadsheetTextLink" />
                         </a>
                       </strong>
                     </p>
@@ -236,7 +224,9 @@ const Admin: FC<WrappedComponentProps & any> = ({
                       <thead>
                         <tr>
                           <th />
-                          <th className="pa4">Description</th>
+                          <th className="pa4">
+                            <FormattedMessage id="admin/google-drive-import.instructions-description" />
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -302,15 +292,14 @@ const Admin: FC<WrappedComponentProps & any> = ({
                     </p>
 
                     <Divider />
-                    <h2 id="spreadsheet">Spreadsheet</h2>
+                    <h2 id="spreadsheet">
+                      <FormattedMessage id="admin/google-drive-import.instructions-spreadsheet" />
+                    </h2>
                     <p>
-                      Instead of renaming all the images, you can use a
-                      Spreadsheet to make the bind between SKUs and Images. On
-                      the Actions tab you'll find the button to create a
-                      Spreadsheet on your account, after that a link will be
-                      shown to led you directly to the file. Detailed
-                      instructions can be found on the Spreadsheet
-                      "Instructions" tab
+                      <FormattedMessage
+                        id="admin/google-drive-import.instructions-spreadsheet-description"
+                        values={{ lineBreak: <br /> }}
+                      />
                     </p>
                   </div>
                 </div>
@@ -323,13 +312,14 @@ const Admin: FC<WrappedComponentProps & any> = ({
             onClick={() => changeTab(2)}
           >
             <div className="bg-base pa8">
-              <h2>SKU Images</h2>
+              <h2>
+                <FormattedMessage id="admin/google-drive-import.sku-images.title" />
+              </h2>
               <Card>
                 <div className="flex">
                   <div className="w-70">
                     <p>
-                      The App fetches new images automatically, but you can
-                      force it to fetch new images immediately
+                      <FormattedMessage id="admin/google-drive-import.fetch.description" />
                     </p>
                   </div>
 
@@ -363,15 +353,28 @@ const Admin: FC<WrappedComponentProps & any> = ({
                   </div>
                 </div>
               </Card>
-              <br />
-              <h2>Spreadsheet</h2>
+
+              <div className="flex flex-row mv9">
+                <div className="flex-col w-40">
+                  <hr className="mv4 b--near-white" />
+                </div>
+                <div className="flex-col w-20 tc f3">
+                  <FormattedMessage id="admin/google-drive-import.divider" />
+                </div>
+                <div className="flex-col w-40">
+                  <hr className="mv4 b--near-white" />
+                </div>
+              </div>
+
+              <h2>
+                <FormattedMessage id="admin/google-drive-import.instructions-spreadsheet" />
+              </h2>
               {!createData && link.called && !link.loading && !link.sheetLink && (
                 <Card>
                   <div className="flex">
                     <div className="w-70">
                       <p>
-                        Creates a Sheet with a default structure that you need
-                        for the mapping
+                        <FormattedMessage id="admin/google-drive-import.create-sheet.description" />
                       </p>
                     </div>
 
@@ -403,7 +406,7 @@ const Admin: FC<WrappedComponentProps & any> = ({
                   <div className="flex">
                     <div className="w-100">
                       <p>
-                        Access the mapping Spreadsheet{' '}
+                        <FormattedMessage id="admin/google-drive-import.sheet-link.description" />{' '}
                         <a
                           href={createData?.createSheet || link.sheetLink}
                           target="_blank"
@@ -423,8 +426,7 @@ const Admin: FC<WrappedComponentProps & any> = ({
                     <div className="flex">
                       <div className="w-70">
                         <p>
-                          Starts the image importing process based on the
-                          mapping defined at the Spreadsheet
+                          <FormattedMessage id="admin/google-drive-import.sheet-import.description" />
                         </p>
                       </div>
                       <div
@@ -460,9 +462,7 @@ const Admin: FC<WrappedComponentProps & any> = ({
                     <div className="flex">
                       <div className="w-70">
                         <p>
-                          Clears the Spreadsheet and fills the image names and
-                          thumbnails automatically based on the files at the{' '}
-                          <strong>NEW</strong> folder
+                          <FormattedMessage id="admin/google-drive-import.add-images.description" />
                         </p>
                       </div>
                       <div
@@ -487,7 +487,9 @@ const Admin: FC<WrappedComponentProps & any> = ({
                         )}
                         {!addingImages && imagesAdded?.addImages && (
                           <p>
-                            <strong>Process initiated</strong>
+                            <strong>
+                              <FormattedMessage id="admin/google-drive-import.add-images.initiated" />
+                            </strong>
                           </p>
                         )}
                       </div>
