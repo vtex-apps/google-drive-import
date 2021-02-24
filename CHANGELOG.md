@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.3.0] - 2021-02-24
+
 ### Added
 - New mapping using Google Spreadsheet
 ## [0.2.1] - 2021-02-11
