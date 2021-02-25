@@ -1178,7 +1178,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/products/productgetbyrefid/{productRefId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/products/productgetbyrefid/{productRefId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -1403,9 +1403,21 @@ namespace DriveImport.Services
                             MeasurementUnit = getSkuResponse.MeasurementUnit,
                             ModalType = getSkuResponse.ModalType,
                             Name = getSkuResponse.Name,
-                            PackagedHeight = getSkuResponse.PackagedHeight
+                            PackagedHeight = getSkuResponse.PackagedHeight,
+                            PackagedLength = getSkuResponse.PackagedLength,
+                            PackagedWeightKg = getSkuResponse.PackagedWeightKg,
+                            PackagedWidth = getSkuResponse.PackagedWidth,
+                            ProductId = getSkuResponse.ProductId,
+                            RefId = getSkuResponse.RefId,
+                            RewardValue = getSkuResponse.RewardValue,
+                            UnitMultiplier = getSkuResponse.UnitMultiplier,
+                            WeightKg = getSkuResponse.WeightKg,
+                            Width = getSkuResponse.Width
                         };
 
+                        UpdateResponse updateResponse = await this.UpdateSku(skuId, updateSkuRequest);
+                        activated = updateResponse.Success;
+                        _context.Vtex.Logger.Info("ActivateSku", null, $"Sku '{skuId}' activated? {updateResponse.Success} '{updateResponse.Message}'");
                     }
                 }
             }
@@ -1473,7 +1485,7 @@ namespace DriveImport.Services
                             }
                             else if(activateSku)
                             {
-
+                                this.ActivateSku(id);
                             }
 
                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
@@ -1493,6 +1505,10 @@ namespace DriveImport.Services
                                     messages.Add(updateResponse.Message);
                                     string resultLine = $"{skuId},{imageName},{imageLabel},{isMain},{updateResponse.StatusCode},{updateResponse.Message}";
                                     resultsList.Add(resultLine);
+                                }
+                                else if (activateSku)
+                                {
+                                    this.ActivateSku(skuId);
                                 }
                             }
                             else
@@ -1597,6 +1613,11 @@ namespace DriveImport.Services
                                                 }
                                             }
 
+                                            if (updateResponse.Success && activateSku)
+                                            {
+                                                this.ActivateSku(prodRefSku);
+                                            }
+
                                             //messages.Add($"{prodRefSku}: {updateResponse.Success}");
 
                                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
@@ -1693,8 +1714,12 @@ namespace DriveImport.Services
                                             _context.Vtex.Logger.Error("ProcessImageFile", parsedFilename, $"Error parsing SkuUpdateResponse {updateResponse.Message}", ex);
                                         }
                                     }
-                                    
+
                                     //messages.Add($"{sku}:{updateResponse.Success}");
+                                    if (updateResponse.Success && activateSku)
+                                    {
+                                        this.ActivateSku(sku);
+                                    }
 
                                     _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {updateResponse.Success} '{updateResponse.Message}'");
                                 }

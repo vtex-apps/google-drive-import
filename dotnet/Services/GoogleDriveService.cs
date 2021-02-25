@@ -1617,7 +1617,7 @@ namespace DriveImport.Services
             string instructionsLabel = "Instructions";
             string[] headerRowLabels = new string[]
                 {
-                    "Image","Thumbnail","Type","Value","Name","Label","Main","Attributes","Status","Message","Date"
+                    "Image","Thumbnail","Type","Value","Name","Label","Main","Activate","Attributes","Status","Message","Date"
                 };
 
             int headerIndex = 0;
@@ -1803,7 +1803,7 @@ namespace DriveImport.Services
                 valueRange = new ValueRange
                 {
                     MajorDimension = "ROWS",
-                    Range = $"{instructionsLabel}!A1:D8",
+                    Range = $"{instructionsLabel}!A1:D9",
                     Values = new string[][]
                     {
                         new string[] { "Populate the following fields", "", "Example", "Notes" },
@@ -1813,6 +1813,7 @@ namespace DriveImport.Services
                         new string[] { "Name", "Image name", "shirt-front", "" },
                         new string[] { "Label", "Image label", "Shirt Front", "" },
                         new string[] { "Main", "Set the image as the Main image", "true","Any text will set the image as Main" },
+                        new string[] { "Activate", "Mark the sku as Active", "true","Any text will attempt to activate the sku" },
                         new string[] { "Attributes", "Optionally limit by aku attribute", "color=red", "" }
                     }
                 };
