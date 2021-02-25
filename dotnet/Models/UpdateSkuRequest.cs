@@ -1,11 +1,8 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DriveImport.Models
 {
-    public class GetSkuResponse
+    public class UpdateSkuRequest
     {
         [JsonProperty("Id")]
         public long Id { get; set; }
@@ -47,13 +44,13 @@ namespace DriveImport.Models
         public object WeightKg { get; set; }
 
         [JsonProperty("CubicWeight")]
-        public long CubicWeight { get; set; }
+        public double CubicWeight { get; set; }
 
         [JsonProperty("IsKit")]
         public bool IsKit { get; set; }
 
         [JsonProperty("CreationDate")]
-        public DateTimeOffset CreationDate { get; set; }
+        public object CreationDate { get; set; }
 
         [JsonProperty("RewardValue")]
         public object RewardValue { get; set; }
@@ -74,13 +71,9 @@ namespace DriveImport.Models
         public long UnitMultiplier { get; set; }
 
         [JsonProperty("ModalType")]
-        public string ModalType { get; set; }
+        public object ModalType { get; set; }
 
         [JsonProperty("KitItensSellApart")]
         public bool KitItensSellApart { get; set; }
-
-        [JsonProperty("Videos")]
-        public object[] Videos { get; set; }
     }
 }
-
