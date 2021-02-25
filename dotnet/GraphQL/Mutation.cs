@@ -54,7 +54,7 @@ namespace DriveImport.GraphQL
                 "processSheet",
                 resolve: context =>
                 {
-                    return vtexAPIService.DriveImport();
+                    return vtexAPIService.SheetImport();
                 });
 
             Field<StringGraphType>(

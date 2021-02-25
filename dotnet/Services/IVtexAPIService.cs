@@ -21,5 +21,6 @@ namespace DriveImport.Services
         Task<bool> DeleteImageByName(string skuId, string imageName);
         Task<bool> DeleteSkuImages(string skuId);
         Task<bool> ProcessDelete(string identificatorType, string id, string imageName);
+        Task ClearLockAfterDelay(int delayInMilliseconds);
     }
 }
