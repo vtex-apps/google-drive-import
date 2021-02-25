@@ -373,7 +373,7 @@ namespace DriveImport.Services
                 }
             }
 
-            //await ClearLockAfterDelay(5000);
+            await ClearLockAfterDelay(5000);
 
             return ($"Imported {doneCount} image(s).  {errorCount} image(s) not imported.");
         }
@@ -600,7 +600,7 @@ namespace DriveImport.Services
 
                         if (string.IsNullOrEmpty(sheetContent))
                         {
-                            //await ClearLockAfterDelay(5000);
+                            await ClearLockAfterDelay(5000);
                             return ("Empty Spreadsheet Response.");
                         }
 
@@ -800,7 +800,7 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    //await ClearLockAfterDelay(5000);
+                    await ClearLockAfterDelay(5000);
                     return ("No Spreadsheet Found!");
                 }
             }
@@ -852,7 +852,7 @@ namespace DriveImport.Services
                 }
             }
 
-            //await ClearLockAfterDelay(5000);
+            await ClearLockAfterDelay(5000);
 
             return ($"Imported {doneCount} image(s).  {errorCount} image(s) not imported.");
         }
@@ -1980,6 +1980,21 @@ namespace DriveImport.Services
             }
 
             return getSkuResponse;
+        }
+
+        public async Task ClearLockAfterDelay(int delayInMilliseconds)
+        {
+            await Task.Delay(delayInMilliseconds);
+            try
+            {
+                await _driveImportRepository.ClearImportLock();
+                _context.Vtex.Logger.Info("DriveImport", null, $"Cleared lock: {DateTime.Now}");
+                Console.WriteLine("Cleared lock");
+            }
+            catch (Exception ex)
+            {
+                _context.Vtex.Logger.Error("DriveImport", null, "Failed to clear lock", ex);
+            }
         }
     }
 }

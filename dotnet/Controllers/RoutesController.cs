@@ -695,17 +695,7 @@
 
         public async Task ClearLockAfterDelay(int delayInMilliseconds)
         {
-            await Task.Delay(delayInMilliseconds);
-            try
-            {
-                await _driveImportRepository.ClearImportLock();
-                _context.Vtex.Logger.Info("DriveImport", null, $"Cleared lock: {DateTime.Now}");
-                Console.WriteLine("Cleared lock");
-            }
-            catch(Exception ex)
-            {
-                _context.Vtex.Logger.Error("DriveImport", null, "Failed to clear lock", ex);
-            }
+            await _vtexAPIService.ClearLockAfterDelay(delayInMilliseconds);
         }
 
         public string PrintHeaders()
