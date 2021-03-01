@@ -477,7 +477,7 @@ namespace DriveImport.Services
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
                 string fields = "*";
-                string query = "mimeType contains 'image'";
+                string query = "mimeType contains 'image' and trashed = false";
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
@@ -529,7 +529,7 @@ namespace DriveImport.Services
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
                 string fields = "*";
-                string query = $"mimeType contains 'image' and 'root' in parents";
+                string query = $"mimeType contains 'image' and 'root' in parents and trashed = false";
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
@@ -581,7 +581,7 @@ namespace DriveImport.Services
             if (token != null && !string.IsNullOrEmpty(token.AccessToken))
             {
                 string fields = "*";
-                string query = $"mimeType contains 'image' and '{folderId}' in parents";
+                string query = $"mimeType contains 'image' and '{folderId}' in parents and trashed = false";
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
@@ -1631,6 +1631,7 @@ namespace DriveImport.Services
 
             int statusRow = headerIndexDictionary["status"];
             int typeRow = headerIndexDictionary["type"];
+            int activateRow = headerIndexDictionary["activate"];
 
             GoogleSheetCreate googleSheetCreate = new GoogleSheetCreate
             {
@@ -1932,6 +1933,44 @@ namespace DriveImport.Services
                                     EndIndex = 4,
                                     StartIndex = 0,
                                     SheetId = 1
+                                }
+                            }
+                        },
+                        new Request
+                        {
+                            SetDataValidation = new SetDataValidation
+                            {
+                                Range = new BatchUpdateRange
+                                {
+                                    StartRowIndex = 1,
+                                    EndRowIndex = DriveImportConstants.DEFAULT_SHEET_SIZE,
+                                    SheetId = 0,
+                                    EndColumnIndex = activateRow + 1,
+                                    StartColumnIndex = activateRow
+                                },
+                                Rule = new Rule
+                                {
+                                    Condition = new Condition
+                                    {
+                                        Type = "ONE_OF_LIST",
+                                        Values = new Value[]
+                                        {
+                                            new Value
+                                            {
+                                                UserEnteredValue = string.Empty
+                                            },
+                                            new Value
+                                            {
+                                                UserEnteredValue = "TRUE"
+                                            },
+                                            new Value
+                                            {
+                                                UserEnteredValue = "FALSE"
+                                            }
+                                        }
+                                    },
+                                    InputMessage = $"Valid values: True / False",
+                                    Strict = true
                                 }
                             }
                         },

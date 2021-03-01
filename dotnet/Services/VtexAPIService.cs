@@ -462,6 +462,7 @@ namespace DriveImport.Services
 
                 if (folders == null)
                 {
+                    _context.Vtex.Logger.Warn("SheetImport", null, $"Error accessing Drive. {accountName}");
                     return ($"Error accessing Drive.");
                 }
 
@@ -476,7 +477,7 @@ namespace DriveImport.Services
 
                 if (string.IsNullOrEmpty(importFolderId))
                 {
-                    _context.Vtex.Logger.Info("SheetImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
+                    _context.Vtex.Logger.Warn("SheetImport", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
                     return ($"Could not find {DriveImportConstants.FolderNames.IMPORT} folder");
                 }
 
@@ -493,7 +494,7 @@ namespace DriveImport.Services
 
                 if (string.IsNullOrEmpty(accountFolderId))
                 {
-                    _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {accountFolderId} folder");
+                    _context.Vtex.Logger.Warn("SheetImport", null, $"Could not find {accountFolderId} folder");
                     return ($"Could not find {accountFolderId} folder");
                 }
 
@@ -510,7 +511,7 @@ namespace DriveImport.Services
 
                 if (string.IsNullOrEmpty(imagesFolderId))
                 {
-                    _context.Vtex.Logger.Info("SheetImport", null, $"Could not find {imagesFolderId} folder");
+                    _context.Vtex.Logger.Warn("SheetImport", null, $"Could not find {imagesFolderId} folder");
                     return ($"Could not find {imagesFolderId} folder");
                 }
 
@@ -666,8 +667,6 @@ namespace DriveImport.Services
                             if (headerIndexDictionary.ContainsKey("status") && headerIndexDictionary["status"] < dataValues.Count())
                                 statusColumn = dataValues[headerIndexDictionary["status"]];
 
-                            bool activateSku = !string.IsNullOrEmpty(activateSkuValue);
-
                             if (string.IsNullOrEmpty(identificatorType) || string.IsNullOrEmpty(id) || string.IsNullOrEmpty(imageFileName))
                             {
                                 //Console.WriteLine($"Line ({index + 1}) is Empty!");
@@ -731,7 +730,7 @@ namespace DriveImport.Services
 
                                     Console.WriteLine($"Attempting to Process '({index}/{rowCount}) {fileNameForImport}' Link = {googleFile.WebContentLink}");
                                     stopWatch.Restart();
-                                    updateResponse = await this.ProcessImageFile(fileNameForImport, googleFile.WebContentLink.ToString(), activateSku);
+                                    updateResponse = await this.ProcessImageFile(fileNameForImport, googleFile.WebContentLink.ToString(), activateSkuValue);
                                     stopWatch.Stop();
                                     _context.Vtex.Logger.Debug("SheetImport", null, $"Process ({index}/{rowCount}) {stopWatch.ElapsedMilliseconds}");
 
@@ -1372,25 +1371,26 @@ namespace DriveImport.Services
             return updateResponse;
         }
 
-        public async Task<bool> ActivateSku(string skuId)
+        public async Task<bool> ActivateSku(string skuId, bool isActive)
         {
-            bool activated = false;
+            bool success = false;
+            Console.WriteLine($"    -   ActivateSku {skuId} to {isActive}");
             if (!string.IsNullOrEmpty(skuId))
             {
                 GetSkuResponse getSkuResponse = await this.GetSku(skuId);
                 if (getSkuResponse != null)
                 {
-                    if (getSkuResponse.IsActive)
+                    if (getSkuResponse.IsActive.Equals(isActive))
                     {
-                        _context.Vtex.Logger.Info("ActivateSku", null, $"Sku '{skuId}' is already active.");
-                        activated = true;
+                        _context.Vtex.Logger.Info("ActivateSku", null, $"Sku '{skuId}' active state is already {getSkuResponse.IsActive}.");
+                        success = true;
                     }
                     else
                     {
                         UpdateSkuRequest updateSkuRequest = new UpdateSkuRequest
                         {
                             EstimatedDateArrival = getSkuResponse.EstimatedDateArrival,
-                            IsActive = true,
+                            IsActive = isActive,
                             KitItensSellApart = getSkuResponse.KitItensSellApart,
                             CommercialConditionId = getSkuResponse.CommercialConditionId,
                             CreationDate = getSkuResponse.CreationDate,
@@ -1416,16 +1416,16 @@ namespace DriveImport.Services
                         };
 
                         UpdateResponse updateResponse = await this.UpdateSku(skuId, updateSkuRequest);
-                        activated = updateResponse.Success;
-                        _context.Vtex.Logger.Info("ActivateSku", null, $"Sku '{skuId}' activated? {updateResponse.Success} '{updateResponse.Message}'");
+                        success = updateResponse.Success;
+                        _context.Vtex.Logger.Info("ActivateSku", null, $"Sku '{skuId}' active state set to '{isActive}'? {updateResponse.Success} '{updateResponse.Message}'");
                     }
                 }
             }
 
-            return activated;
+            return success;
         }
 
-        public async Task<UpdateResponse> ProcessImageFile(string fileName, string webLink, bool activateSku = false)
+        public async Task<UpdateResponse> ProcessImageFile(string fileName, string webLink, string activateSkuValue = null)
         {
             var stopWatch = System.Diagnostics.Stopwatch.StartNew();
             UpdateResponse updateResponse = new UpdateResponse();
@@ -1440,6 +1440,12 @@ namespace DriveImport.Services
             string skuContextField = string.Empty;
             string skuContextValue = string.Empty;
             List<string> resultsList = new List<string>();
+            bool skuIsActive = true;
+            bool activateSku = false;
+            if (!string.IsNullOrEmpty(activateSkuValue))
+            {
+                activateSku = bool.TryParse(activateSkuValue, out skuIsActive);
+            }
 
             // IdentificatorType, Id, ImageName, ImageLabel, Main
             string[] fileNameArr = fileName.Split('.');
@@ -1485,7 +1491,7 @@ namespace DriveImport.Services
                             }
                             else if(activateSku)
                             {
-                                this.ActivateSku(id);
+                                this.ActivateSku(id, skuIsActive);
                             }
 
                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
@@ -1508,7 +1514,7 @@ namespace DriveImport.Services
                                 }
                                 else if (activateSku)
                                 {
-                                    this.ActivateSku(skuId);
+                                    this.ActivateSku(skuId, skuIsActive);
                                 }
                             }
                             else
@@ -1615,7 +1621,7 @@ namespace DriveImport.Services
 
                                             if (updateResponse.Success && activateSku)
                                             {
-                                                this.ActivateSku(prodRefSku);
+                                                this.ActivateSku(prodRefSku, skuIsActive);
                                             }
 
                                             //messages.Add($"{prodRefSku}: {updateResponse.Success}");
@@ -1718,7 +1724,7 @@ namespace DriveImport.Services
                                     //messages.Add($"{sku}:{updateResponse.Success}");
                                     if (updateResponse.Success && activateSku)
                                     {
-                                        this.ActivateSku(sku);
+                                        this.ActivateSku(sku, skuIsActive);
                                     }
 
                                     _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {updateResponse.Success} '{updateResponse.Message}'");
@@ -1756,72 +1762,6 @@ namespace DriveImport.Services
             }
 
             return updateResponse;
-        }
-
-        public async Task<bool> ProcessImageFile(string fileName, byte[] imageStream)
-        {
-            bool success = false;
-            string identificatorType = string.Empty;
-            string id = string.Empty;
-            string imageName = string.Empty;
-            string imageLabel = string.Empty;
-            bool isMain = false;
-
-            // IdentificatorType, Id, ImageName, ImageLabel, Main
-            string[] fileNameArr = fileName.Split('.');
-            if (fileNameArr.Count() == 2 && !string.IsNullOrEmpty(fileNameArr[0]))
-            {
-                string[] fileNameParsed = fileNameArr[0].Split(',');
-                if ((fileNameParsed.Count() == 5 || fileNameParsed.Count() == 4))
-                {
-                    identificatorType = fileNameParsed[0];
-                    id = fileNameParsed[1];
-                    imageName = fileNameParsed[2];
-                    imageLabel = fileNameParsed[3];
-                    if (fileNameParsed.Count() == 5)
-                    {
-                        isMain = fileNameParsed[4].Equals("Main", StringComparison.CurrentCultureIgnoreCase);
-                    }
-
-                    _context.Vtex.Logger.Info("ProcessImageFile", null, $"{identificatorType} {id} Main?{isMain}");
-
-                    switch (identificatorType)
-                    {
-                        case DriveImportConstants.IdentificatorType.SKU_ID:
-                            success = await this.UpdateSkuImageByFormData(id, imageName, imageLabel, isMain, imageStream);
-                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {id} success? {success}");
-                            break;
-                        case DriveImportConstants.IdentificatorType.SKU_REF_ID:
-                            string skuId = await this.GetSkuIdFromReference(id);
-                            success = await this.UpdateSkuImageByFormData(skuId, imageName, imageLabel, isMain, imageStream);
-                            _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {skuId} from {identificatorType} {id} success? {success}");
-                            break;
-                        case DriveImportConstants.IdentificatorType.PRODUCT_REF_ID:
-                            string prodId = await this.GetProductIdFromReference(id);
-                            List<string> prodRefSkuIds = await this.GetSkusFromProductId(prodId);
-                            success = true;
-                            foreach (string prodRefSku in prodRefSkuIds)
-                            {
-                                success &= await this.UpdateSkuImageByFormData(prodRefSku, imageName, imageLabel, isMain, imageStream);
-                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success}");
-                            }
-
-                            break;
-                        case DriveImportConstants.IdentificatorType.PRODUCT_ID:
-                            List<string> skuIds = await this.GetSkusFromProductId(id);
-                            success = true;
-                            foreach (string sku in skuIds)
-                            {
-                                success &= await this.UpdateSkuImageByFormData(sku, imageName, imageLabel, isMain, imageStream);
-                                _context.Vtex.Logger.Info("ProcessImageFile", null, $"UpdateSkuImage {sku} from {identificatorType} {id} success? {success}");
-                            }
-
-                            break;
-                    }
-                }
-            }
-
-            return success;
         }
 
         private async Task<long?> GetArchiveId(SkuUpdateResponse skuUpdateResponse, string imageName)
