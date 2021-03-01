@@ -16,12 +16,12 @@ namespace DriveImport.Services
         Task<UpdateResponse> UpdateSkuImageArchive(string skuId, string imageName, string imageLabel, bool isMain, string imageId);
         Task<bool> UpdateSkuImageByFormData(string skuId, string imageName, string imageLabel, bool isMain, byte[] imageStream);
         Task<GetSkuContextResponse> GetSkuContext(string skuId);
-        Task<UpdateResponse> ProcessImageFile(string fileName, string webLink, bool activateSku);
-        Task<bool> ProcessImageFile(string fileName, byte[] imageStream);
+        Task<UpdateResponse> ProcessImageFile(string fileName, string webLink, string activateSku);
         Task<bool> DeleteImageByName(string skuId, string imageName);
         Task<bool> DeleteSkuImages(string skuId);
         Task<bool> ProcessDelete(string identificatorType, string id, string imageName);
         Task ClearLockAfterDelay(int delayInMilliseconds);
         Task<UpdateResponse> UpdateSku(string skuId, UpdateSkuRequest updateSkuRequest);
+        Task<bool> ActivateSku(string skuId, bool isActive);
     }
 }
