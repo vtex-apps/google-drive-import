@@ -1125,7 +1125,7 @@ namespace DriveImport.Services
 
         public async Task<string> GetSkuIdFromReference(string skuRefId)
         {
-            // GET https://{{accountName}}.vtexcommercestable.com.br/api/catalog_system/pvt/sku/stockkeepingunitidbyrefid/{{refId}}
+            // GET https://{accountName}.{environment}.com.br/api/catalog_system/pvt/sku/stockkeepingunitidbyrefid/refId
 
             string skuId = string.Empty;
 
@@ -1134,7 +1134,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitidbyrefid/{skuRefId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitidbyrefid/{skuRefId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
