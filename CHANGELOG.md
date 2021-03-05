@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Get image archive id from sku update response
+
 ## [0.3.5] - 2021-03-02
 
 ### Fixed
