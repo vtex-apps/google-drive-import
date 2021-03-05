@@ -18,5 +18,8 @@ namespace DriveImport.Models
 
         [JsonProperty("Label")]
         public string Label { get; set; }
+
+        [JsonProperty("ArchiveId")]
+        public long ArchiveId { get; set; }
     }
 }

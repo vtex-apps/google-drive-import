@@ -1581,6 +1581,7 @@ namespace DriveImport.Services
                                                 updateResponse = await this.UpdateSkuImageArchive(prodRefSku, imageName, imageLabel, isMain, imageId.ToString());
                                                 stopWatch.Stop();
                                                 _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {prodRefSku} for ProdRef {id} from archive {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
+                                                Console.WriteLine($"------- Update sku {prodRefSku} for ProdRef {id} from archive: {updateResponse.Message}");
                                                 if (!updateResponse.Success)
                                                 {
                                                     imageId = null;
@@ -1610,7 +1611,8 @@ namespace DriveImport.Services
                                                 try
                                                 {
                                                     SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                                    imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                                    //imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                                    imageId = skuUpdateResponse.ArchiveId;
                                                     _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {prodRefSku} Image Id: {imageId}");
                                                 }
                                                 catch (Exception ex)
@@ -1683,6 +1685,7 @@ namespace DriveImport.Services
                                         updateResponse = await this.UpdateSkuImageArchive(sku, imageName, imageLabel, isMain, imageId.ToString());
                                         stopWatch.Stop();
                                         _context.Vtex.Logger.Debug("ProcessImageFile", null, $"Update sku {sku} for ProdId {id} from archive {stopWatch.ElapsedMilliseconds} {updateResponse.Message}");
+                                        Console.WriteLine($"------- Update sku {sku} for ProdRef {id} from archive: {updateResponse.Message}");
                                         if (!updateResponse.Success)
                                         {
                                             imageId = null;
@@ -1712,7 +1715,8 @@ namespace DriveImport.Services
                                         try
                                         {
                                             SkuUpdateResponse skuUpdateResponse = JsonConvert.DeserializeObject<SkuUpdateResponse>(updateResponse.Message);
-                                            imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                            //imageId = await this.GetArchiveId(skuUpdateResponse, imageLabel);
+                                            imageId = skuUpdateResponse.ArchiveId;
                                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"Sku {sku} Image Id: {imageId}");
                                         }
                                         catch (Exception ex)

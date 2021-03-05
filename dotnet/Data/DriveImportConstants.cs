@@ -23,6 +23,7 @@ namespace DriveImport.Data
         public const string PROXY_TO_HEADER_NAME = "X-Vtex-Proxy-To";
         public const string VTEX_ACCOUNT_HEADER_NAME = "X-Vtex-Account";
         public const string ENVIRONMENT = "vtexcommercestable";
+        public const string ENVIRONMENT_BETA = "vtexcommercebeta";
         public const string LOCAL_ENVIRONMENT = "myvtex";
         public const string VTEX_ID_HEADER_NAME = "VtexIdclientAutCookie";
         public const string VTEX_WORKSPACE_HEADER_NAME = "X-Vtex-Workspace";
