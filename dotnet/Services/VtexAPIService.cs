@@ -1541,6 +1541,7 @@ namespace DriveImport.Services
                                         bool proceed = true;
                                         if (!string.IsNullOrEmpty(skuContextField) && !string.IsNullOrEmpty(skuContextValue))
                                         {
+                                            proceed = false;
                                             GetSkuContextResponse skuContextResponse = await this.GetSkuContext(prodRefSku);
                                             if (skuContextResponse != null && skuContextResponse.SkuSpecifications != null)
                                             {
@@ -1661,6 +1662,7 @@ namespace DriveImport.Services
                                 bool proceed = true;
                                 if (!string.IsNullOrEmpty(skuContextField) && !string.IsNullOrEmpty(skuContextValue))
                                 {
+                                    proceed = false;
                                     GetSkuContextResponse skuContextResponse = await this.GetSkuContext(sku);
                                     if (skuContextResponse != null && skuContextResponse.SkuSpecifications != null)
                                     {

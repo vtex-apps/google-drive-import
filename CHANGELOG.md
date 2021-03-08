@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- Default content filter to false in case that the call to get sku details fails.
+
 ## [0.3.6] - 2021-03-05
 
 ### Changed
