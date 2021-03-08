@@ -1272,7 +1272,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog/pvt/sku/stockkeepingunitbyid/{skuId}")
+                    RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.{DriveImportConstants.ENVIRONMENT}.com.br/api/catalog_system/pvt/sku/stockkeepingunitbyid/{skuId}")
                 };
 
                 request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
@@ -1293,7 +1293,7 @@ namespace DriveImport.Services
                 }
                 else
                 {
-                    _context.Vtex.Logger.Warn("GetSkuContext", null, $"Could not get sku for id '{skuId}'");
+                    _context.Vtex.Logger.Warn("GetSkuContext", null, $"Could not get sku for id '{skuId}' [{response.StatusCode}]");
                 }
             }
             catch (Exception ex)
@@ -1546,21 +1546,6 @@ namespace DriveImport.Services
                                             if (skuContextResponse != null && skuContextResponse.SkuSpecifications != null)
                                             {
                                                 var skuSpecifications = skuContextResponse.SkuSpecifications.Where(s => s.FieldName.Equals(skuContextField, StringComparison.InvariantCultureIgnoreCase));
-
-                                                // debug
-                                                //List<string> specs = new List<string>();
-                                                //foreach (Specification specification in skuContextResponse.SkuSpecifications)
-                                                //{
-                                                //    specs.Add($"1) {specification.FieldName} = {string.Join(",", specification.FieldValues)}");
-                                                //}
-                                                //foreach (Specification specification in skuSpecifications)
-                                                //{
-                                                //    specs.Add($"2) {specification.FieldName} = {string.Join(",", specification.FieldValues)}");
-                                                //}
-                                                //_context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, string.Join(":", specs));
-                                                // end debug
-
-                                                //proceed = skuSpecifications.Any(skuContextField => skuContextField.Equals(skuContextValue, StringComparison.InvariantCultureIgnoreCase));
                                                 proceed = skuSpecifications.Any(s => s.FieldValues.Any(v => v.Equals(skuContextValue, StringComparison.InvariantCultureIgnoreCase)));
                                                 if(proceed)
                                                 {
