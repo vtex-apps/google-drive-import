@@ -1442,6 +1442,7 @@ namespace DriveImport.Services
             List<string> resultsList = new List<string>();
             bool skuIsActive = true;
             bool activateSku = false;
+            int processedSkus = 0;
             if (!string.IsNullOrEmpty(activateSkuValue))
             {
                 activateSku = bool.TryParse(activateSkuValue, out skuIsActive);
@@ -1561,6 +1562,7 @@ namespace DriveImport.Services
                                         //Console.WriteLine($"imageId='{imageId}' prodRefSku={prodRefSku}");
                                         if (proceed)
                                         {
+                                            processedSkus++;
                                             if (imageId != null)
                                             {
                                                 stopWatch.Restart();
@@ -1612,14 +1614,22 @@ namespace DriveImport.Services
                                                 this.ActivateSku(prodRefSku, skuIsActive);
                                             }
 
-                                            //messages.Add($"{prodRefSku}: {updateResponse.Success}");
-
                                             _context.Vtex.Logger.Info("ProcessImageFile", parsedFilename, $"UpdateSkuImage {prodRefSku} from {identificatorType} {id} success? {success} '{updateResponse.Message}' [{updateResponse.StatusCode}]");
                                         }
                                         else
                                         {
                                             _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Did not match '{skuContextField}'='{skuContextValue}' for Sku {prodRefSku}");
                                         }
+                                    }
+
+                                    if (processedSkus == 0 && !string.IsNullOrEmpty(skuContextField) && !string.IsNullOrEmpty(skuContextValue))
+                                    {
+                                        messages.Add($"No matches for {skuContextField}={skuContextValue}");
+                                        success = false;
+                                    }
+                                    else
+                                    {
+                                        messages.Add($"Processed {processedSkus} of {prodRefSkuIds.Count}");
                                     }
                                 }
                                 else
@@ -1666,6 +1676,7 @@ namespace DriveImport.Services
 
                                 if (proceed)
                                 {
+                                    processedSkus++;
                                     if (imageId != null)
                                     {
                                         stopWatch.Restart();
@@ -1724,6 +1735,16 @@ namespace DriveImport.Services
                                 {
                                     _context.Vtex.Logger.Debug("ProcessImageFile", parsedFilename, $"Did not match '{skuContextField}'='{skuContextValue}' for Sku {sku}");
                                 }
+                            }
+
+                            if (processedSkus == 0 && !string.IsNullOrEmpty(skuContextField) && !string.IsNullOrEmpty(skuContextValue))
+                            {
+                                messages.Add($"No matches for {skuContextField}={skuContextValue}");
+                                success = false;
+                            }
+                            else
+                            {
+                                messages.Add($"Processed {processedSkus} of {skuIds.Count}");
                             }
 
                             break;

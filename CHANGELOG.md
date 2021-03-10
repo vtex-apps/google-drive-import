@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Better messaging for variant matching
+
 ## [0.3.8] - 2021-03-08
 
 ### Fixed
