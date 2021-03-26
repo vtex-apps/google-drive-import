@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Pagination of image files
+
 ## [0.3.9] - 2021-03-10
 
 ### Added

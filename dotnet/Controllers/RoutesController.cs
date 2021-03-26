@@ -403,7 +403,17 @@
             }
 
             Dictionary<string, string> images = new Dictionary<string, string>();
-            ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            //ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            ListFilesResponse imageFiles = new ListFilesResponse();
+            imageFiles.Files = new List<GoogleFile>();
+            string nextPageToken = string.Empty;
+            do
+            {
+                ListFilesResponse listFilesResponse = await _googleDriveService.ListImagesInFolder(newFolderId, nextPageToken);
+                imageFiles.Files.AddRange(listFilesResponse.Files);
+                nextPageToken = listFilesResponse.NextPageToken;
+                Console.WriteLine($"nextPageToken = {nextPageToken}");
+            } while (!string.IsNullOrEmpty(nextPageToken));
 
             return Json(imageFiles);
         }
@@ -749,7 +759,18 @@
                 newFolderId = folderIds.NewFolderId;
                 imagesFolderId = folderIds.ImagesFolderId;
 
-                ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                //ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                ListFilesResponse imageFiles = new ListFilesResponse();
+                imageFiles.Files = new List<GoogleFile>();
+                string nextPageToken = string.Empty;
+                do
+                {
+                    ListFilesResponse listFilesResponse = await _googleDriveService.ListImagesInFolder(newFolderId, nextPageToken);
+                    imageFiles.Files.AddRange(listFilesResponse.Files);
+                    nextPageToken = listFilesResponse.NextPageToken;
+                    Console.WriteLine($"nextPageToken = {nextPageToken}");
+                } while (!string.IsNullOrEmpty(nextPageToken));
+
                 ListFilesResponse spreadsheets = await _googleDriveService.ListSheetsInFolder(imagesFolderId);
 
                 if (imageFiles != null && spreadsheets != null)

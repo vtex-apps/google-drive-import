@@ -573,7 +573,7 @@ namespace DriveImport.Services
             return listFilesResponse;
         }
 
-        public async Task<ListFilesResponse> ListImagesInFolder(string folderId)
+        public async Task<ListFilesResponse> ListImagesInFolder(string folderId, string pageToken = null)
         {
             ListFilesResponse listFilesResponse = null;
             string responseContent = string.Empty;
@@ -585,7 +585,7 @@ namespace DriveImport.Services
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Get,
-                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?fields={fields}&q={query}&orderBy=name&pageSize={DriveImportConstants.GOOGLE_DRIVE_PAGE_SIZE}"),
+                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_DRIVE_URL}/{DriveImportConstants.GOOGLE_DRIVE_FILES}?fields={fields}&q={query}&orderBy=name&pageSize={DriveImportConstants.GOOGLE_DRIVE_PAGE_SIZE}&pageToken={pageToken}"),
                     Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_JSON)
                 };
 
@@ -1539,7 +1539,18 @@ namespace DriveImport.Services
                 newFolderId = folderIds.NewFolderId;
                 imagesFolderId = folderIds.ImagesFolderId;
 
-                ListFilesResponse imageFiles = await this.ListImagesInFolder(newFolderId);
+                //ListFilesResponse imageFiles = await this.ListImagesInFolder(newFolderId);
+                ListFilesResponse imageFiles = new ListFilesResponse();
+                imageFiles.Files = new List<GoogleFile>();
+                string nextPageToken = string.Empty;
+                do
+                {
+                    ListFilesResponse listFilesResponse = await this.ListImagesInFolder(newFolderId, nextPageToken);
+                    imageFiles.Files.AddRange(listFilesResponse.Files);
+                    nextPageToken = listFilesResponse.NextPageToken;
+                    Console.WriteLine($"nextPageToken = {nextPageToken}");
+                } while (!string.IsNullOrEmpty(nextPageToken));
+
                 ListFilesResponse spreadsheets = await this.ListSheetsInFolder(imagesFolderId);
 
                 if (imageFiles != null && spreadsheets != null)
