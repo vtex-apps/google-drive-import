@@ -239,7 +239,18 @@ namespace DriveImport.Services
 
             GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
 
-            ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            //ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            ListFilesResponse imageFiles = new ListFilesResponse();
+            imageFiles.Files = new List<GoogleFile>();
+            string nextPageToken = string.Empty;
+            do
+            {
+                ListFilesResponse listFilesResponse = await _googleDriveService.ListImagesInFolder(newFolderId, nextPageToken);
+                imageFiles.Files.AddRange(listFilesResponse.Files);
+                nextPageToken = listFilesResponse.NextPageToken;
+                Console.WriteLine($"nextPageToken = {nextPageToken}");
+            } while (!string.IsNullOrEmpty(nextPageToken));
+
             if (imageFiles != null)
             {
                 //bool thereAreFiles = imageFiles.Files.Count > 0;
@@ -315,7 +326,16 @@ namespace DriveImport.Services
                     else
                     {
                         await Task.Delay(10000);
-                        imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                        //imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+                        nextPageToken = string.Empty;
+                        do
+                        {
+                            ListFilesResponse listFilesResponse = await _googleDriveService.ListImagesInFolder(newFolderId, nextPageToken);
+                            imageFiles.Files.AddRange(listFilesResponse.Files);
+                            nextPageToken = listFilesResponse.NextPageToken;
+                            Console.WriteLine($"nextPageToken = {nextPageToken}");
+                        } while (!string.IsNullOrEmpty(nextPageToken));
+
                         if (imageFiles == null)
                         {
                             thereAreFiles = false;
@@ -575,7 +595,18 @@ namespace DriveImport.Services
 
             // GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId);
             stopWatch.Restart();
-            ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            //ListFilesResponse imageFiles = await _googleDriveService.ListImagesInFolder(newFolderId);
+            ListFilesResponse imageFiles = new ListFilesResponse();
+            imageFiles.Files = new List<GoogleFile>();
+            string nextPageToken = string.Empty;
+            do
+            {
+                ListFilesResponse listFilesResponse = await _googleDriveService.ListImagesInFolder(newFolderId, nextPageToken);
+                imageFiles.Files.AddRange(listFilesResponse.Files);
+                nextPageToken = listFilesResponse.NextPageToken;
+                Console.WriteLine($"nextPageToken = {nextPageToken}");
+            } while(!string.IsNullOrEmpty(nextPageToken)) ;
+
             stopWatch.Stop();
             _context.Vtex.Logger.Debug("SheetImport", null, $"Getting images files {stopWatch.ElapsedMilliseconds}");
             stopWatch.Restart();

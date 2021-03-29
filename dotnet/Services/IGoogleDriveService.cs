@@ -20,7 +20,7 @@ namespace DriveImport.Services
         Task<ListFilesResponse> ListFiles();
         Task<ListFilesResponse> GetFolders();
         Task<ListFilesResponse> ListImagesInRootFolder();
-        Task<ListFilesResponse> ListImagesInFolder(string folderId);
+        Task<ListFilesResponse> ListImagesInFolder(string folderId, string pageToken = null);
         Task<ListFilesResponse> ListImages();
         Task<Dictionary<string, string>> ListFolders(string parentId = null);
         Task<string> CreateFolder(string folderName, string parentId = null);
