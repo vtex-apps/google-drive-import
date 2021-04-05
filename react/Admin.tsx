@@ -25,13 +25,12 @@ import M_REVOKE from './mutations/RevokeToken.gql'
 import M_CREATE_SHEET from './mutations/CreateSheet.gql'
 import M_PROCESS_SHEET from './mutations/ProcessSheet.gql'
 import M_ADD_IMAGES from './mutations/AddImages.gql'
-import M_IMPORT_IMAGES from './mutations/ImportImages.gql'
 
 const AUTH_URL = '/google-drive-import/auth'
 
 const Admin: FC<WrappedComponentProps & any> = ({ intl, link, token }) => {
   const [state, setState] = useState<any>({
-    currentTab: 1,
+    currentTab: 2,
   })
 
   const { account } = useRuntime()
@@ -58,10 +57,6 @@ const Admin: FC<WrappedComponentProps & any> = ({ intl, link, token }) => {
     create,
     { loading: createLoading, data: createData, called: createCalled },
   ] = useMutation(M_CREATE_SHEET)
-
-  const [fetch, { loading: fetching, data: fetched }] = useMutation(
-    M_IMPORT_IMAGES
-  )
 
   const [
     sheetImport,
@@ -196,102 +191,8 @@ const Admin: FC<WrappedComponentProps & any> = ({ intl, link, token }) => {
                         values={{ lineBreak: <br />, account }}
                       />
                     </pre>
-                    <p>
-                      <FormattedMessage id="admin/google-drive-import.instructions-introduction" />{' '}
-                      <strong>
-                        <a href="#skuimages" className="link black-90">
-                          <FormattedMessage id="admin/google-drive-import.instructions-introduction-imageTextLink" />
-                        </a>
-                      </strong>{' '}
-                      <FormattedMessage id="admin/google-drive-import.instructions-introduction-and" />{' '}
-                      <strong>
-                        <a href="#spreadsheet" className="link black-90">
-                          <FormattedMessage id="admin/google-drive-import.instructions-introduction-spreadsheetTextLink" />
-                        </a>
-                      </strong>
-                    </p>
                     <Divider />
-                    <h2 className="heading-3 mt4 mb4" id="skuimages">
-                      <FormattedMessage id="admin/google-drive-import.sku-images.title" />
-                    </h2>
-                    <p>
-                      <FormattedMessage id="admin/google-drive-import.instructions-line-01" />
-                    </p>
-
-                    <table
-                      className={`${styles.borderCollapse} ba collapse w-100`}
-                    >
-                      <thead>
-                        <tr>
-                          <th />
-                          <th className="pa4">
-                            <FormattedMessage id="admin/google-drive-import.instructions-description" />
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <th className="flex justify-left bt items-center pa4">
-                            IdType
-                          </th>
-                          <td className="bt bl pa4">
-                            <FormattedMessage id="admin/google-drive-import.instructions-description-IdType" />
-                          </td>
-                        </tr>
-                        <tr className={`${styles.striped}`}>
-                          <th className="flex justify-left bt pa4">Id</th>
-                          <td className="bt bl pa4">
-                            <FormattedMessage id="admin/google-drive-import.instructions-description-Id" />
-                          </td>
-                        </tr>
-                        <tr>
-                          <th className="flex justify-left bt items-center pa4">
-                            ImageName
-                          </th>
-                          <td className="bt bl pa4">
-                            <FormattedMessage id="admin/google-drive-import.instructions-description-ImageName" />
-                          </td>
-                        </tr>
-                        <tr className={`${styles.striped}`}>
-                          <th className="flex justify-left bt pa4">
-                            ImageLabel
-                          </th>
-                          <td className="bt bl pa4">
-                            <FormattedMessage id="admin/google-drive-import.instructions-description-ImageLabel" />
-                          </td>
-                        </tr>
-                        <tr className={`${styles.striped}`}>
-                          <th className="flex justify-left bt pa4">Main?</th>
-                          <td className="bt bl pa4">
-                            <FormattedMessage id="admin/google-drive-import.instructions-description-Main" />
-                          </td>
-                        </tr>
-                        <tr className={`${styles.striped}`}>
-                          <th className="flex justify-left bt pa4">
-                            Specification
-                          </th>
-                          <td className="bt bl pa4">
-                            <FormattedMessage id="admin/google-drive-import.instructions-description-Spec" />
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <p>
-                      <strong>
-                        <FormattedMessage
-                          id="admin/google-drive-import.instructions-examples"
-                          values={{ lineBreak: <br /> }}
-                        />
-                      </strong>
-                    </p>
-                    <p>
-                      <FormattedMessage id="admin/google-drive-import.instructions-line-02" />
-                    </p>
-                    <p>
-                      <FormattedMessage id="admin/google-drive-import.instructions-line-03" />
-                    </p>
-
-                    <Divider />
+                    
                     <h2 id="spreadsheet">
                       <FormattedMessage id="admin/google-drive-import.instructions-spreadsheet" />
                     </h2>
@@ -312,60 +213,6 @@ const Admin: FC<WrappedComponentProps & any> = ({ intl, link, token }) => {
             onClick={() => changeTab(2)}
           >
             <div className="bg-base pa8">
-              <h2>
-                <FormattedMessage id="admin/google-drive-import.sku-images.title" />
-              </h2>
-              <Card>
-                <div className="flex">
-                  <div className="w-70">
-                    <p>
-                      <FormattedMessage id="admin/google-drive-import.fetch.description" />
-                    </p>
-                  </div>
-
-                  <div
-                    style={{ flexGrow: 1 }}
-                    className="flex items-stretch w-20 justify-center"
-                  >
-                    <Divider orientation="vertical" />
-                  </div>
-
-                  <div className="w-30 items-center flex">
-                    {!fetched?.importImages && (
-                      <Button
-                        variation="primary"
-                        collapseLeft
-                        block
-                        isLoading={fetching}
-                        onClick={() => {
-                          fetch()
-                        }}
-                      >
-                        <FormattedMessage id="admin/google-drive-import.fetch.button" />
-                      </Button>
-                    )}
-
-                    {!fetching && fetched?.importImages && (
-                      <p className="block">
-                        <strong>{`${fetched.importImages}`}</strong>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-
-              <div className="flex flex-row mv9">
-                <div className="flex-col w-40">
-                  <hr className="mv4 b--near-white" />
-                </div>
-                <div className="flex-col w-20 tc f3">
-                  <FormattedMessage id="admin/google-drive-import.divider" />
-                </div>
-                <div className="flex-col w-40">
-                  <hr className="mv4 b--near-white" />
-                </div>
-              </div>
-
               <h2>
                 <FormattedMessage id="admin/google-drive-import.instructions-spreadsheet" />
               </h2>
