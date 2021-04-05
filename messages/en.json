@@ -29,7 +29,7 @@
   "admin/google-drive-import.instructions-line-02": "After import, the images will be moved to either the Error or Done folders. For images that encountered an error, the error message will be prepended to the filename.",
   "admin/google-drive-import.instructions-line-03": "The app will attempt to automatically import images when they are uploaded to the New folder, but you may also trigger an import manually with the button 'Fetch new images'.",
   "admin/google-drive-import.instructions-spreadsheet": "Spreadsheet",
-  "admin/google-drive-import.instructions-spreadsheet-description": "Instead of renaming all the images, you can use a Spreadsheet to associate SKU with Images.{lineBreak}On the Actions tab you'll find the button to create a Spreadsheet on your account, after that a link will be shown to led you directly to the file.{lineBreak} Detailed instructions can be found on the Spreadsheet \"Instructions\" tab",
+  "admin/google-drive-import.instructions-spreadsheet-description": "On the Actions tab you'll find the button to create a Spreadsheet on your account, after that a link will be shown to led you directly to the file.{lineBreak} Detailed instructions can be found on the Spreadsheet \"Instructions\" tab",
   "admin/google-drive-import.setup.button": "Grant Access",
   "admin/google-drive-import.setup.description": "Please click the button below to grant this app access to your Google Drive.",
   "admin/google-drive-import.setup.title": "Setup",

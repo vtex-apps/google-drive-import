@@ -231,9 +231,9 @@
                 _context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder Ids Saved? {folderIdsSaved}");
             }
 
-            GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId, true);
-            watch = (googleWatch != null);
-            _context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder [{newFolderId}] Watch Set? {watch}");
+            //GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId, true);
+            //watch = (googleWatch != null);
+            //_context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder [{newFolderId}] Watch Set? {watch}");
             //if (watch)
             //{
             //    long expiresIn = googleWatch.Expiration ?? 0;
