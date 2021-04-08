@@ -148,8 +148,8 @@ namespace DriveImport.Services
                                 token.RefreshToken = refreshToken;
                             }
 
+                            this.ShareToken(token);
                             bool saved = await _driveImportRepository.SaveToken(token);
-                            saved = await this.ShareToken(token);
                         }
                     }
                 }
