@@ -12,7 +12,7 @@ This app allows SKU images to be bulk imported into the VTEX Catalog from a user
 
 ## Configuration
 
-1. [Install](https://vtex.io/docs/recipes/store/installing-an-app) `vtex.google-drive-import` in the desired account.
+1. [Install](https://developers.vtex.com/vtex-developer-docs/docs/vtex-io-documentation-installing-an-app) `vtex.google-drive-import` in the desired account.
 
 2. In your account's admin dashboard, go to `Catalog > Google Drive Import`.
 
