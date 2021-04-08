@@ -78,177 +78,6 @@
             }
         }
 
-        public async Task<IActionResult> ProcessReturnCode()
-        {
-            bool success = false;
-            bool watch = false;
-            string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
-            string importFolderId;
-            string accountFolderId;
-            string imagesFolderId;
-            string newFolderId;
-            string doneFolderId;
-            string errorFolderId;
-            string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
-            string code = _httpContextAccessor.HttpContext.Request.Query["code"];
-
-            _context.Vtex.Logger.Info("ProcessReturnCode", null, $"code=[{code}]");
-
-            if (string.IsNullOrEmpty(code))
-            {
-                _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Missing return code. [{code}]");
-                return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Missing return code.");
-            }
-
-            success = await _googleDriveService.ProcessReturn(code);
-
-            if (!success)
-            {
-                _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not process code. [{code}]");
-                return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not process code.");
-            }
-
-            FolderIds folderIds = await _driveImportRepository.LoadFolderIds(accountName);
-            if (folderIds != null)
-            {
-                _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Folder Ids loaded from storage. [{code}]");
-                importFolderId = folderIds.ImagesFolderId;
-                accountFolderId = folderIds.AccountFolderId;
-                imagesFolderId = folderIds.ImagesFolderId;
-                newFolderId = folderIds.NewFolderId;
-                doneFolderId = folderIds.DoneFolderId;
-                errorFolderId = folderIds.ErrorFolderId;
-            }
-            else
-            {
-                Dictionary<string, string> folders = await _googleDriveService.ListFolders();   // Id, Name
-
-                if (folders == null)
-                {
-                    await Task.Delay(500);
-                    folders = await _googleDriveService.ListFolders();
-                    if (folders == null)
-                    {
-                        _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not Access Drive. [{code}]");
-                        return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}&message=Could not Access Drive.");
-                    }
-                }
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMPORT))
-                {
-                    importFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMPORT);
-                }
-                else
-                {
-                    importFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMPORT).Key;
-                }
-
-                if (string.IsNullOrEmpty(importFolderId))
-                {
-                    _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not find '{DriveImportConstants.FolderNames.IMPORT}' folder");
-                    return Json($"Could not find {DriveImportConstants.FolderNames.IMPORT} folder");
-                }
-
-                folders = await _googleDriveService.ListFolders(importFolderId);
-
-                if (!folders.ContainsValue(accountName))
-                {
-                    accountFolderId = await _googleDriveService.CreateFolder(accountName, importFolderId);
-                }
-                else
-                {
-                    accountFolderId = folders.FirstOrDefault(x => x.Value == accountName).Key;
-                }
-
-                if (string.IsNullOrEmpty(accountFolderId))
-                {
-                    _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not find {accountFolderId} folder");
-                    return Json($"Could not find {accountFolderId} folder");
-                }
-
-                folders = await _googleDriveService.ListFolders(accountFolderId);
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.IMAGES))
-                {
-                    imagesFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.IMAGES, accountFolderId);
-                }
-                else
-                {
-                    imagesFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.IMAGES).Key;
-                }
-
-                if (string.IsNullOrEmpty(imagesFolderId))
-                {
-                    _context.Vtex.Logger.Info("ProcessReturnCode", null, $"Could not find {imagesFolderId} folder");
-                    return Json($"Could not find {imagesFolderId} folder");
-                }
-
-                folders = await _googleDriveService.ListFolders(imagesFolderId);
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.NEW))
-                {
-                    newFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.NEW, imagesFolderId);
-                    bool setPermission = await _googleDriveService.SetPermission(newFolderId);
-                    if (!setPermission)
-                    {
-                        _context.Vtex.Logger.Error("ProcessReturnCode", "SetPermission", $"Could not set permissions on '{DriveImportConstants.FolderNames.NEW}' folder {newFolderId}");
-                    }
-                }
-                else
-                {
-                    newFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.NEW).Key;
-                }
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.DONE))
-                {
-                    doneFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.DONE, imagesFolderId);
-                }
-                else
-                {
-                    doneFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.DONE).Key;
-                }
-
-                if (!folders.ContainsValue(DriveImportConstants.FolderNames.ERROR))
-                {
-                    errorFolderId = await _googleDriveService.CreateFolder(DriveImportConstants.FolderNames.ERROR, imagesFolderId);
-                }
-                else
-                {
-                    errorFolderId = folders.FirstOrDefault(x => x.Value == DriveImportConstants.FolderNames.ERROR).Key;
-                }
-
-                folderIds = new FolderIds
-                {
-                    AccountFolderId = accountFolderId,
-                    DoneFolderId = doneFolderId,
-                    ErrorFolderId = errorFolderId,
-                    ImagesFolderId = imagesFolderId,
-                    ImportFolderId = imagesFolderId,
-                    NewFolderId = newFolderId
-                };
-
-                bool folderIdsSaved = await _driveImportRepository.SaveFolderIds(folderIds, accountName);
-                _context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder Ids Saved? {folderIdsSaved}");
-            }
-
-            //GoogleWatch googleWatch = await _googleDriveService.SetWatch(newFolderId, true);
-            //watch = (googleWatch != null);
-            //_context.Vtex.Logger.Error("ProcessReturnCode", null, $"Folder [{newFolderId}] Watch Set? {watch}");
-            //if (watch)
-            //{
-            //    long expiresIn = googleWatch.Expiration ?? 0;
-            //    if (expiresIn > 0)
-            //    {
-            //        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(expiresIn);
-            //        DateTime expiresAt = dateTimeOffset.UtcDateTime;
-            //        Console.WriteLine($"expiresAt = {expiresAt}");
-            //        CreateTask(expiresAt);
-            //    }
-            //}
-
-            return Redirect($"https://{siteUrl}/{DriveImportConstants.ADMIN_PAGE}?success={success}&watch={watch}");
-        }
-
         public async Task<IActionResult> GoogleAuthorize()
         {
             string url = await _googleDriveService.GetGoogleAuthorizationUrl();
@@ -259,17 +88,6 @@
             else
             {
                 return Redirect(url);
-            }
-        }
-
-        public async Task SaveCredentials()
-        {
-            if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
-            {
-                string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-                Credentials credentials = JsonConvert.DeserializeObject<Credentials>(bodyAsText);
-
-                await _googleDriveService.SaveCredentials(credentials);
             }
         }
 
@@ -418,6 +236,36 @@
             return Json(imageFiles);
         }
 
+        public async Task<bool> SaveToken()
+        {
+            bool success = false;
+            if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
+            {
+                string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+                Token token = JsonConvert.DeserializeObject<Token>(bodyAsText);
+
+                success = await _driveImportRepository.SaveToken(token);
+                success &= await _googleDriveService.ShareToken(token);
+            }
+
+            return success;
+        }
+
+        public async Task<bool> ShareToken()
+        {
+            if ("post".Equals(HttpContext.Request.Method, StringComparison.OrdinalIgnoreCase))
+            {
+                string bodyAsText = await new System.IO.StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+                Token token = JsonConvert.DeserializeObject<Token>(bodyAsText);
+
+                return await _driveImportRepository.SaveToken(token);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public async Task<bool> HaveToken()
         {
             bool haveToken = false;
@@ -560,30 +408,38 @@
         {
             bool revoked = false;
             revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
-            if (!revoked)
-            {
-                for (int i = 1; i < 5; i++)
-                {
-                    Console.WriteLine($"RevokeGoogleAuthorizationToken Retry #{i}");
-                    _context.Vtex.Logger.Info("GetOwnerEmail", "RevokeGoogleAuthorizationToken", $"Retry #{i}");
-                    await Task.Delay(500 * i);
-                    revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
-                    if (revoked)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if(revoked)
-            {
-                string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
-                await _driveImportRepository.SaveFolderIds(null, accountName);
-            }
-
             Response.Headers.Add("Cache-Control", "no-cache");
             return Json(revoked);
         }
+
+        //public async Task<IActionResult> RevokeToken()
+        //{
+        //    bool revoked = false;
+        //    revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
+        //    if (!revoked)
+        //    {
+        //        for (int i = 1; i < 5; i++)
+        //        {
+        //            Console.WriteLine($"RevokeGoogleAuthorizationToken Retry #{i}");
+        //            _context.Vtex.Logger.Info("GetOwnerEmail", "RevokeGoogleAuthorizationToken", $"Retry #{i}");
+        //            await Task.Delay(500 * i);
+        //            revoked = await _googleDriveService.RevokeGoogleAuthorizationToken();
+        //            if (revoked)
+        //            {
+        //                break;
+        //            }
+        //        }
+        //    }
+
+        //    if(revoked)
+        //    {
+        //        string accountName = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME];
+        //        await _driveImportRepository.SaveFolderIds(null, accountName);
+        //    }
+
+        //    Response.Headers.Add("Cache-Control", "no-cache");
+        //    return Json(revoked);
+        //}
 
         public async Task<IActionResult> SetWatch()
         {

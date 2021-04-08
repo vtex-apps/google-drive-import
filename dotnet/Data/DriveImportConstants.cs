@@ -48,6 +48,14 @@ namespace DriveImport.Data
         public const string REDIRECT_SITE_BASE = "https://googleauth.myvtex.com";
         public const string REDIRECT_PATH = "return";
 
+        public const string AUTH_SITE_BASE = "googleauth.myvtex.com";
+
+        public const string AUTH_APP_PATH = "google-auth";
+        public const string AUTH_PATH = "auth";
+        public const string REVOKE_PATH = "revoke-token";
+        public const string REFRESH_PATH = "refresh-token";
+        public const string APP_TYPE = "drive";
+
         public const string ADMIN_PAGE = "admin/google-drive-import";
         public const string WATCH_ENDPOINT = "google-drive-import/watch-notification";
 

@@ -49,125 +49,56 @@ namespace DriveImport.Services
         public async Task<string> GetGoogleAuthorizationUrl()
         {
             string authUrl = string.Empty;
-            Credentials credentials = await _driveImportRepository.GetCredentials();
-            string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
-            if (credentials != null && !string.IsNullOrEmpty(credentials.Web.ClientId))
-            {
-                string redirectUri = $"{DriveImportConstants.REDIRECT_SITE_BASE}/{DriveImportConstants.APP_NAME}/{DriveImportConstants.REDIRECT_PATH}/";
-                string clientId = credentials.Web.ClientId;
-                authUrl = $"{credentials.Web.AuthUri}?scope={DriveImportConstants.GOOGLE_SCOPE}&response_type={DriveImportConstants.GOOGLE_REPONSE_TYPE}&access_type={DriveImportConstants.GOOGLE_ACCESS_TYPE}&redirect_uri={redirectUri}&client_id={clientId}&state={siteUrl}";
-            }
-
-            return authUrl;
-        }
-
-        public async Task<Token> GetGoogleAuthorizationToken(string code)
-        {
-            Token tokenObj = new Token();
-            Credentials credentials = await _driveImportRepository.GetCredentials();
-            StringBuilder postData = new StringBuilder();
-            postData.Append("code=" + HttpUtility.UrlEncode(code) + "&");
-            postData.Append("client_id=" + HttpUtility.UrlEncode(credentials.Web.ClientId) + "&");
-            postData.Append("client_secret=" + HttpUtility.UrlEncode(credentials.Web.ClientSecret) + "&");
-            postData.Append("grant_type=" + HttpUtility.UrlEncode(DriveImportConstants.GRANT_TYPE_AUTH) + "&");
-            postData.Append("redirect_uri=" + HttpUtility.UrlEncode($"{DriveImportConstants.REDIRECT_SITE_BASE}/{DriveImportConstants.APP_NAME}/{DriveImportConstants.REDIRECT_PATH}/") + "&");
-            postData.Append("to=");
-
-            var request = new HttpRequestMessage
-            {
-                Method = HttpMethod.Post,
-                RequestUri = credentials.Web.TokenUri,
-                Content = new StringContent(postData.ToString(), Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
-            };
-
-            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-            if (authToken != null)
-            {
-                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
-                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-            }
-
-            var client = _clientFactory.CreateClient();
 
             try
             {
-                var response = await client.SendAsync(request);
-                string responseContent = await response.Content.ReadAsStringAsync();
-                //Console.WriteLine($"Token = {responseContent}");
-                if (response.IsSuccessStatusCode)
-                {
-                    tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
-                }
-                else
-                {
-                    _context.Vtex.Logger.Info("GetGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
-                }
-            }
-            catch(Exception ex)
-            {
-                _context.Vtex.Logger.Error("GetGoogleAuthorizationToken", null,  $"Error Posting request. {postData}", ex);
-                tokenObj = null;
-            }
-
-            return tokenObj;
-        }
-
-        public async Task<Token> RefreshGoogleAuthorizationToken(string refreshToken)
-        {
-            Token tokenObj = null; // new Token();
-            if (string.IsNullOrEmpty(refreshToken))
-            {
-                Console.WriteLine("Refresh Token Empty");
-                _context.Vtex.Logger.Info("RefreshGoogleAuthorizationToken", null, "Refresh Token Empty");
-            }
-            else
-            {
-                Credentials credentials = await _driveImportRepository.GetCredentials();
-                StringBuilder postData = new StringBuilder();
-                postData.Append("refresh_token=" + HttpUtility.UrlEncode(refreshToken) + "&");
-                postData.Append("client_id=" + HttpUtility.UrlEncode(credentials.Web.ClientId) + "&");
-                postData.Append("client_secret=" + HttpUtility.UrlEncode(credentials.Web.ClientSecret) + "&");
-                postData.Append("grant_type=" + HttpUtility.UrlEncode(DriveImportConstants.GRANT_TYPE_REFRESH));
-
                 var request = new HttpRequestMessage
                 {
-                    Method = HttpMethod.Post,
-                    RequestUri = credentials.Web.TokenUri,
-                    Content = new StringContent(postData.ToString(), Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri($"http://{DriveImportConstants.AUTH_SITE_BASE}/{DriveImportConstants.AUTH_APP_PATH}/{DriveImportConstants.AUTH_PATH}/{DriveImportConstants.APP_TYPE}")
                 };
 
+                request.Headers.Add(DriveImportConstants.USE_HTTPS_HEADER_NAME, "true");
                 string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
                 if (authToken != null)
                 {
                     request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
                     request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.PROXY_AUTHORIZATION_HEADER_NAME, authToken);
                 }
 
                 var client = _clientFactory.CreateClient();
-                try
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
                 {
-                    var response = await client.SendAsync(request);
-                    string responseContent = await response.Content.ReadAsStringAsync();
-                    //Console.WriteLine($"REFRESHED Token = {responseContent}");
-                    if (response.IsSuccessStatusCode)
-                    {
-                        tokenObj = JsonConvert.DeserializeObject<Token>(responseContent);
-                        Console.WriteLine($"Refresh Token Response {responseContent}");
-                    }
-                    else
-                    {
-                        _context.Vtex.Logger.Info("RefreshGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
-                        Console.WriteLine($"Refresh Token Response [{response.StatusCode}] {responseContent}");
-                    }
+                    authUrl = responseContent;
+                    string siteUrl = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.FORWARDED_HOST];
+                    Console.WriteLine($"authUrl (before) = {authUrl}");
+                    Console.WriteLine($"siteUrl = {siteUrl}");
+                    authUrl = authUrl.Replace("state=", $"state={siteUrl}");
+                    //authUrl = $"{authUrl}&state={siteUrl}";
+                    Console.WriteLine($"authUrl (after) = {authUrl}");
                 }
-                catch(Exception ex)
+                else
                 {
-                    _context.Vtex.Logger.Error("RefreshGoogleAuthorizationToken", null, $"Error refreshing token", ex);
-                    Console.WriteLine($"Error refreshing token [{ex.Message}]");
+                    Console.WriteLine($"Failed to get auth url [{response.StatusCode}]");
+                    _context.Vtex.Logger.Warn("GetAuthUrl", null, $"Failed to get auth url [{response.StatusCode}]");
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting auth url [{ex.Message}]");
+                _context.Vtex.Logger.Error("GetAuthUrl", null, $"Error getting auth url", ex);
+            }
 
-            return tokenObj;
+            return authUrl;
+        }
+
+        public async Task<Token> RefreshGoogleAuthorizationToken(string refreshToken)
+        {
+            Token token = await this.RefreshToken(refreshToken);
+            return token;
         }
 
         public async Task<bool> RevokeGoogleAuthorizationToken()
@@ -181,88 +112,20 @@ namespace DriveImport.Services
                 Console.WriteLine("Token Empty");
                 _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, "Token Empty");
                 await _driveImportRepository.SaveToken(new Token());
+                await this.ShareToken(new Token());
                 success = true;
             }
             else
             {
-                var request = new HttpRequestMessage
+                success = await this.RevokeGoogleAuthorizationToken(token);
+                if (success)
                 {
-                    Method = HttpMethod.Post,
-                    RequestUri = new Uri($"{DriveImportConstants.GOOGLE_AUTHORIZATION_REVOKE}?token={token.AccessToken}"),
-                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
-                };
-
-                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
-                if (authToken != null)
-                {
-                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
-                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
-                }
-
-                var client = _clientFactory.CreateClient();
-                try
-                {
-                    var response = await client.SendAsync(request);
-                    string responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"RevokeGoogleAuthorizationToken = {responseContent}");
-                    if (response.IsSuccessStatusCode)
-                    {
-                        await _driveImportRepository.SaveToken(new Token());
-                        success = true;
-                    }
-                    else
-                    {
-                        _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
-                    }
-                }
-                catch(Exception ex)
-                {
-                    _context.Vtex.Logger.Error("RevokeGoogleAuthorizationToken", null, $"Have Access Token? {!string.IsNullOrEmpty(token.AccessToken)} Have Refresh Token?{!string.IsNullOrEmpty(token.RefreshToken)}", ex);
+                    await _driveImportRepository.SaveToken(new Token());
+                    await this.ShareToken(new Token());
                 }
             }
 
             return success;
-        }
-
-        public async Task<bool> ProcessReturn(string code)
-        {
-            _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Processing Code [{code}]");
-            Token token = await this.GetGoogleAuthorizationToken(code);
-            if(token == null)
-            {
-                for (int i = 1; i < 5; i++)
-                {
-                    Console.WriteLine($"ProcessReturn Retry #{i}");
-                    _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Retry #{i}");
-                    await Task.Delay(500 * i);
-                    token = await this.GetGoogleAuthorizationToken(code);
-                    if(token != null)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            bool saved = false;
-            if (token != null)
-            {
-                token.ExpiresAt = DateTime.Now.AddSeconds(token.ExpiresIn);
-                saved = await _driveImportRepository.SaveToken(token);
-                _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Saved? {saved} {JsonConvert.SerializeObject(token)}");
-            }
-
-            if (!saved)
-            {
-                Console.WriteLine($"Did not save token. {JsonConvert.SerializeObject(token)}");
-                _context.Vtex.Logger.Info("ProcessReturn", "GoogleDriveService", $"Did not save token. {JsonConvert.SerializeObject(token)}");
-            }
-
-            return saved;
-        }
-
-        public async Task SaveCredentials(Credentials credentials)
-        {
-            await _driveImportRepository.SaveCredentials(credentials);
         }
 
         public async Task<Token> GetGoogleToken()
@@ -285,6 +148,7 @@ namespace DriveImport.Services
                                 token.RefreshToken = refreshToken;
                             }
 
+                            this.ShareToken(token);
                             bool saved = await _driveImportRepository.SaveToken(token);
                         }
                     }
@@ -2252,6 +2116,155 @@ namespace DriveImport.Services
             response = response + " - " + await this.AddImagesToSheet();
 
             return response;
+        }
+
+        private async Task<bool> RevokeGoogleAuthorizationToken(Token token)
+        {
+            bool success = false;
+
+            if (token != null && string.IsNullOrEmpty(token.AccessToken))
+            {
+                Console.WriteLine("Token Empty");
+                _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, "Token Empty");
+                success = true;
+            }
+            else
+            {
+                string jsonSerializedData = JsonConvert.SerializeObject(token);
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Post,
+                    RequestUri = new Uri($"http://{DriveImportConstants.AUTH_SITE_BASE}/{DriveImportConstants.AUTH_APP_PATH}/{DriveImportConstants.REVOKE_PATH}"),
+                    Content = new StringContent(jsonSerializedData, Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
+                };
+
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"RevokeGoogleAuthorizationToken = {responseContent}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        success = true;
+                    }
+                    else
+                    {
+                        _context.Vtex.Logger.Info("RevokeGoogleAuthorizationToken", null, $"{response.StatusCode} {responseContent}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _context.Vtex.Logger.Error("RevokeGoogleAuthorizationToken", null, $"Have Access Token? {!string.IsNullOrEmpty(token.AccessToken)} Have Refresh Token?{!string.IsNullOrEmpty(token.RefreshToken)}", ex);
+                }
+            }
+
+            return success;
+        }
+
+        private async Task<Token> RefreshToken(string refreshToken)
+        {
+            //Console.WriteLine($"RefreshToken");
+            Token token = null;
+
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Post,
+                    RequestUri = new Uri($"http://{DriveImportConstants.AUTH_SITE_BASE}/{DriveImportConstants.AUTH_APP_PATH}/{DriveImportConstants.REFRESH_PATH}/{DriveImportConstants.APP_TYPE}/{HttpUtility.UrlEncode(refreshToken)}"),
+                    Content = new StringContent(string.Empty, Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
+                };
+
+                string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+                if (authToken != null)
+                {
+                    request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                    request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+                }
+
+                var client = _clientFactory.CreateClient();
+                try
+                {
+                    var response = await client.SendAsync(request);
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    //Console.WriteLine($" RefreshToken = {response.IsSuccessStatusCode}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        token = JsonConvert.DeserializeObject<Token>(responseContent);
+                        Console.WriteLine($"RefreshToken = {responseContent}");
+                        //Console.WriteLine($"RefreshToken = {JsonConvert.SerializeObject(token)}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"url = '{request.RequestUri}'");
+                        Console.WriteLine($"RefreshToken: [{response.StatusCode}] {responseContent}");
+                        _context.Vtex.Logger.Info("RefreshToken", null, $"{response.StatusCode} {responseContent}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"RefreshToken Error: {ex.Message}");
+                    _context.Vtex.Logger.Error("RefreshToken", null, $"Refresh Token {refreshToken}", ex);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"RefreshToken is Null!");
+            }
+
+            return token;
+        }
+
+        public async Task<bool> ShareToken(Token token)
+        {
+            bool success = false;
+            string jsonSerializedMetadata = JsonConvert.SerializeObject(token);
+
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri($"http://{this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.VTEX_ACCOUNT_HEADER_NAME]}.myvtex.com/sheets-catalog-import/share-token"),
+                Content = new StringContent(jsonSerializedMetadata, Encoding.UTF8, DriveImportConstants.APPLICATION_FORM)
+            };
+
+            string authToken = this._httpContextAccessor.HttpContext.Request.Headers[DriveImportConstants.HEADER_VTEX_CREDENTIAL];
+            if (authToken != null)
+            {
+                request.Headers.Add(DriveImportConstants.AUTHORIZATION_HEADER_NAME, authToken);
+                request.Headers.Add(DriveImportConstants.VTEX_ID_HEADER_NAME, authToken);
+            }
+
+            var client = _clientFactory.CreateClient();
+            try
+            {
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    success = true;
+                }
+                else
+                {
+                    Console.WriteLine($"url = '{request.RequestUri}'");
+                    Console.WriteLine($"ShareToken: [{response.StatusCode}] {responseContent}");
+                    _context.Vtex.Logger.Info("ShareToken", null, $"{response.StatusCode} {responseContent}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ShareToken Error: {ex.Message}");
+                _context.Vtex.Logger.Error("ShareToken", null, $"ShareToken Error {jsonSerializedMetadata}", ex);
+            }
+
+            return success;
         }
     }
 }

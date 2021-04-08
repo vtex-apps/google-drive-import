@@ -8,14 +8,12 @@ namespace DriveImport.Services
 {
     public interface IGoogleDriveService
     {
-        Task<Token> GetGoogleAuthorizationToken(string code);
         Task<Token> RefreshGoogleAuthorizationToken(string refreshToken);
         Task<bool> RevokeGoogleAuthorizationToken();
         Task<string> GetGoogleAuthorizationUrl();
-        Task<bool> ProcessReturn(string code);
-        Task SaveCredentials(Credentials credentials);
         Task<Token> GetGoogleToken();
         Task<GoogleWatch> SetWatch(string fileId, bool reset = false);
+        Task<bool> ShareToken(Token token);
 
         Task<ListFilesResponse> ListFiles();
         Task<ListFilesResponse> GetFolders();

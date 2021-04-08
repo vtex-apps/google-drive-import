@@ -6,8 +6,12 @@
   "runtimeArgs": [
   ],
   "routes": {
-    "printHeaders": {
-      "path": "/google-drive-import/print-headers",
+    "saveToken": {
+      "path": "/google-drive-import/set-token",
+      "public": true
+    },
+    "shareToken": {
+      "path": "/google-drive-import/share-token",
       "public": true
     },
     "driveImport": {
