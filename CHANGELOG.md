@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- Revoke token if missing refresh token
+
 ## [0.5.0] - 2021-04-08
 
 ### Changed
