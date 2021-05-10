@@ -163,7 +163,7 @@ namespace DriveImport.Services
             else
             {
                 _context.Vtex.Logger.Info("GetGoogleToken", null, $"Could not load token.  Refresh token was null. Have Access token?{!string.IsNullOrEmpty(token.AccessToken)}");
-                if(string.IsNullOrEmpty(token.AccessToken))
+                if(!string.IsNullOrEmpty(token.AccessToken))
                 {
                     await this.RevokeGoogleAuthorizationToken();
                 }
